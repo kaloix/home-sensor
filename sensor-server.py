@@ -6,6 +6,7 @@ import string
 import markdown
 import datetime
 import logging
+import sensor
 
 # initialization
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
@@ -23,18 +24,30 @@ while True:
 	logging.info('collect data')
 	# TODO
 
+	data = dict()
+	data['temp_wohn_akt'] = sensor.Measurement()
+	data['temp_wohn_akt'].value = 1.2
+	data['temp_wohn_akt'].time = datetime.datetime.today()
+	data['temp_wohn_min'] = sensor.Measurement()
+	data['temp_wohn_min'].value = 3.4
+	data['temp_wohn_min'].time = datetime.datetime.today()
+	data['temp_wohn_max'] = sensor.Measurement()
+	data['temp_wohn_max'].value = 5.6
+	data['temp_wohn_max'].time = datetime.datetime.today()
+	data['temp_klima_akt'] = None
+	data['temp_klima_min'] = sensor.Measurement()
+	data['temp_klima_min'].value = 9.10
+	data['temp_klima_min'].time = datetime.datetime.today()
+	data['temp_klima_max'] = sensor.Measurement()
+	data['temp_klima_max'].value = 11.12
+	data['temp_klima_max'].time = datetime.datetime.today()
+
 	# fill markdown template
 	logging.info('write html')
-	identifier = {
-		'temp_wohn_akt': 23.6,
-		'temp_wohn_min': 10.0,
-		'temp_wohn_max': 30.1,
-		'temp_klima_akt': 11.1,
-		'temp_klima_min': 10.9,
-		'temp_klima_max': 29.5,
-		'bild_diagramm': 'plot.png',
-		'datum_aktualisierung': time.strftime('%c')}
-	markdown_filled = string.Template(markdown_template).substitute(identifier)
+	markdown_filled = string.Template(markdown_template).substitute(
+		bild_diagramm = 'plot.png',
+		datum_aktualisierung = time.strftime('%c'),
+		**data)
 
 	# convert markdown to html
 	extensions = [
@@ -44,11 +57,11 @@ while True:
 		'html_body': html_body}
 	html_filled = string.Template(html_template).substitute(identifier)
 
-	# Finalization
+	# finalization
 	with open('data.html', mode='w') as html_file:
 		html_file.write(html_filled)
 
-	# Wait for next tick
+	# wait for next tick
 	now = datetime.datetime.today()
 	pause = -1 * datetime.timedelta(
 		minutes = now.minute % 10 - 10,

@@ -6,3 +6,6 @@ plot.png
 
 # output
 data.html
+
+# python
+__pycache__/
