@@ -1,5 +1,8 @@
 # virtualenv
 ve/
 
+# input
+plot.png
+
 # output
 data.html
