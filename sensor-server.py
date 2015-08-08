@@ -39,7 +39,7 @@ while True:
 	data['temp_wohn_max'].time = datetime.datetime.today()
 	data['temp_klima_akt'] = None
 	data['temp_klima_min'] = sensor.Measurement()
-	data['temp_klima_min'].value = 9.10
+	data['temp_klima_min'].value = 9
 	data['temp_klima_min'].time = datetime.datetime.today()
 	data['temp_klima_max'] = sensor.Measurement()
 	data['temp_klima_max'].value = 11.12

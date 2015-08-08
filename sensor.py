@@ -3,4 +3,4 @@ class Measurement:
 	time = None
 	
 	def __str__(self):
-		return '{} °C / {}'.format(self.value, self.time.strftime('%X'))
+		return '{:.1f} °C / {:%X}'.format(self.value, self.time)
