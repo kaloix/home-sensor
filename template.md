@@ -6,7 +6,7 @@ Wohnung, Wohnzimmer | $temp_wohn_akt | $temp_wohn_min | $temp_wohn_max
 Wohnung, Klimaanlage | $temp_klima_akt | $temp_klima_min | $temp_klima_max
 
 ## Diagramm
-![Diagramm]($bild_diagramm)
+![Diagramm](plot.png)
 
 ---
     

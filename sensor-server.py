@@ -18,6 +18,9 @@ with open('template.md') as markdown_file:
 	markdown_template = markdown_file.read()
 with open('template.html') as html_file:
 	html_template = html_file.read()
+markdown_to_html = markdown.Markdown(
+	extensions = ['markdown.extensions.tables'],
+	output_format = 'html5')
 
 # main loop
 while True:
@@ -45,17 +48,13 @@ while True:
 	# fill markdown template
 	logging.info('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
-		bild_diagramm = 'plot.png',
 		datum_aktualisierung = time.strftime('%c'),
 		**data)
 
 	# convert markdown to html
-	extensions = [
-		'markdown.extensions.tables']
-	html_body = markdown.markdown(markdown_filled, extensions)
-	identifier = {
-		'html_body': html_body}
-	html_filled = string.Template(html_template).substitute(identifier)
+	html_body = markdown_to_html.convert(markdown_filled)
+	html_filled = string.Template(html_template).substitute(
+		body = html_body)
 
 	# finalization
 	with open('data.html', mode='w') as html_file:
