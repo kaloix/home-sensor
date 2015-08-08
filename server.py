@@ -12,7 +12,7 @@ import sensor
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 logging.basicConfig(
 	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] %(message)s',
-	datefmt = '%yy%mm%dd%Hh%Mm%Ss',
+	datefmt = '%y-%m-%d-%H-%M-%S',
 	level = logging.INFO)
 with open('template.md') as markdown_file:
 	markdown_template = markdown_file.read()
@@ -63,9 +63,10 @@ while True:
 
 	# wait for next tick
 	pause = start + 10*60 - time.perf_counter()
-	logging.info('sleep for {:.0f}s'.format(pause))
-	try:
-		time.sleep(pause)
-	except KeyboardInterrupt:
-		logging.info('exiting')
-		break
+	if pause > 0:
+		logging.info('sleep for {:.0f}s'.format(pause))
+		try:
+			time.sleep(pause)
+		except KeyboardInterrupt:
+			logging.info('exiting')
+			break
