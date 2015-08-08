@@ -24,6 +24,7 @@ markdown_to_html = markdown.Markdown(
 
 # main loop
 while True:
+	start = time.perf_counter()
 	logging.info('collect data')
 	# TODO
 
@@ -61,14 +62,10 @@ while True:
 		html_file.write(html_filled)
 
 	# wait for next tick
-	now = datetime.datetime.today()
-	pause = -1 * datetime.timedelta(
-		minutes = now.minute % 10 - 10,
-		seconds = now.second,
-		microseconds = now.microsecond)
-	logging.info('sleep for {}'.format(pause))
+	pause = start + 10*60 - time.perf_counter()
+	logging.info('sleep for {:.0f}s'.format(pause))
 	try:
-		time.sleep(pause.total_seconds())
+		time.sleep(pause)
 	except KeyboardInterrupt:
 		logging.info('exiting')
 		break
