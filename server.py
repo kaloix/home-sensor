@@ -10,6 +10,7 @@ import collections
 import random
 import matplotlib.pyplot
 import os
+import json
 
 class Sensor:
 	def __init__(self, name, file):
@@ -26,6 +27,13 @@ class Sensor:
 		logging.debug('first: {}, last: {}'.format(
 			self.history[0][1],
 			self.history[-1][1]))
+class SensorEncoder(json.JSONEncoder):
+	def default(self, obj):
+		if isinstance(obj, Sensor):
+			values, times = map(list, zip(*s.history))
+			times = [t.timestamp() for t in times]
+			return (obj.name, times, values)
+		return json.JSONEncoder.default(self, obj)
 def format_measurement(m):
 	return '{:.1f} °C / {:%X}'.format(*m)
 
@@ -34,6 +42,7 @@ logging.basicConfig(
 	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] %(message)s',
 	datefmt = '%y-%m-%d-%H-%M-%S',
 	level = logging.DEBUG)
+loffing.info('initialization')
 with open('template.md') as markdown_file:
 	markdown_template = markdown_file.read()
 with open('template.html') as html_file:
@@ -44,6 +53,7 @@ markdown_to_html = markdown.Markdown(
 sensor = [
 	Sensor('Wohnzimmer', None),
 	Sensor('Klimaanlage', None)]
+# TODO restore json backup
 
 while True:
 	start = time.perf_counter()
@@ -70,8 +80,8 @@ while True:
 	logging.info('generate plot')
 	matplotlib.pyplot.figure(figsize=(12, 4))
 	for s in sensor:
-		times, values = map(list, zip(*s.history))
-		matplotlib.pyplot.plot(values, times, label=s.name)
+		values, times = map(list, zip(*s.history))
+		matplotlib.pyplot.plot(times, values, label=s.name)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	now = datetime.datetime.now()
@@ -81,17 +91,20 @@ while True:
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.clf()
 
-	logging.info('copy to webserver')
-	files = ['index.html', 'plot.png', 'style.css']
-	target = 'kaloix@adhara.uberspace.de:html/sensor'
-	if os.system('scp {} {}'.format(' '.join(files), target)):
-		logging.error('scp failed')
+#	logging.info('copy to webserver')
+#	files = ['index.html', 'plot.png', 'style.css']
+#	target = 'kaloix@adhara.uberspace.de:html/sensor'
+#	if os.system('scp {} {}'.format(' '.join(files), target)):
+#		logging.error('scp failed')
 
-	pause = start + 3 - time.perf_counter()
+	pause = start + 10 - time.perf_counter()
 	if pause > 0:
 		logging.info('sleep for {:.0f}s'.format(pause))
 		try:
 			time.sleep(pause)
+
 		except KeyboardInterrupt:
 			logging.info('exiting')
+			with open('backup.json', mode='w') as json_file:
+				json_file.write(json.dumps(sensor, cls=SensorEncoder))
 			break
