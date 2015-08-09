@@ -6,7 +6,7 @@ plot.png
 
 # output
 index.html
-backup.json
+backup/
 
 # python
 __pycache__/

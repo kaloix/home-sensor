@@ -10,39 +10,35 @@ import collections
 import random
 import matplotlib.pyplot
 import os
-import json
+import csv
+import config
 
 class Sensor:
-	def __init__(self, name, file):
-		self.name = name
+	def __init__(self, file):
 		self.file = file
 		self.history = collections.deque()
 	def update(self):
 		# TODO parse self.file
-		value = random.randrange(100, 400) / 10
-		self.history.append((value, datetime.datetime.now()))
-		lower = self.history[-1][1] - datetime.timedelta(days=1)
-		while self.history[0][1] < lower:
+		value = random.randrange(-222, 444) / 10
+		if value < config.min_air_temp or value > config.max_air_temp:
+			logging.warning('temperature out of range')
+		self.history.append((value, time.time()))
+		while self.history[0][1] < self.history[-1][1] - config.history_seconds:
 			self.history.popleft()
 		logging.debug('first: {}, last: {}'.format(
 			self.history[0][1],
 			self.history[-1][1]))
-class SensorEncoder(json.JSONEncoder):
-	def default(self, obj):
-		if isinstance(obj, Sensor):
-			values, times = map(list, zip(*s.history))
-			times = [t.timestamp() for t in times]
-			return (obj.name, times, values)
-		return json.JSONEncoder.default(self, obj)
 def format_measurement(m):
-	return '{:.1f} °C / {:%X}'.format(*m)
+	return '{:.1f} °C / {:%X}'.format(
+		m[0],
+		datetime.datetime.fromtimestamp(m[1]))
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 logging.basicConfig(
-	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] %(message)s',
+	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] '
+		'%(message)s',
 	datefmt = '%y-%m-%d-%H-%M-%S',
 	level = logging.DEBUG)
-loffing.info('initialization')
 with open('template.md') as markdown_file:
 	markdown_template = markdown_file.read()
 with open('template.html') as html_file:
@@ -50,25 +46,37 @@ with open('template.html') as html_file:
 markdown_to_html = markdown.Markdown(
 	extensions = ['markdown.extensions.tables'],
 	output_format = 'html5')
-sensor = [
-	Sensor('Wohnzimmer', None),
-	Sensor('Klimaanlage', None)]
-# TODO restore json backup
+sensor_dict = {
+	'Wohnzimmer': Sensor(None),
+	'Klimaanlage': Sensor(None)}
+for name, sensor in sensor_dict.items():
+	filename = 'backup/{}.csv'.format(name)
+	try:
+		backup = list()
+		with open(filename, newline='') as csv_file:
+			reader = csv.reader(csv_file)
+			for row in reader:
+				backup.append(tuple(map(float, row)))
+	except FileNotFoundError:
+		logging.warning('no backup for {}'.format(name))
+	else:
+		sensor.history.extend(backup)
+		logging.info('backup restored for {}'.format(name))
 
 while True:
 	start = time.perf_counter()
 	logging.info('collect data')
 	data = list()
-	for s in sensor:
-		s.update()
+	for name, sensor in sensor_dict.items():
+		sensor.update()
 		data.append('{} | {} | {} | {}'.format(
-			s.name,
-			format_measurement(s.history[-1]),
-			format_measurement(min(s.history)),
-			format_measurement(max(s.history))))
+			name,
+			format_measurement(sensor.history[-1]),
+			format_measurement(min(sensor.history)),
+			format_measurement(max(sensor.history))))
 	data = '\n'.join(data)
 
-	logging.info('write html')
+	logging.info('write html and csv')
 	markdown_filled = string.Template(markdown_template).substitute(
 		datum_aktualisierung = time.strftime('%c'),
 		data = data)
@@ -76,35 +84,40 @@ while True:
 	html_filled = string.Template(html_template).substitute(body=html_body)
 	with open('index.html', mode='w') as html_file:
 		html_file.write(html_filled)
+	for name, sensor in sensor_dict.items():
+		filename = 'backup/{}.csv'.format(name)
+		with open(filename, mode='w', newline='') as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerows(sensor.history)
 
 	logging.info('generate plot')
 	matplotlib.pyplot.figure(figsize=(12, 4))
-	for s in sensor:
-		values, times = map(list, zip(*s.history))
-		matplotlib.pyplot.plot(times, values, label=s.name)
+	for name, sensor in sensor_dict.items():
+		values, times = map(list, zip(*sensor.history))
+		times = list(map(datetime.datetime.fromtimestamp, times))
+		matplotlib.pyplot.plot(times, values, label=name)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	now = datetime.datetime.now()
-	matplotlib.pyplot.xlim(now-datetime.timedelta(days=1), now)
-	matplotlib.pyplot.ylim(-20, 40)
+	matplotlib.pyplot.xlim(
+		now - datetime.timedelta(seconds=config.history_seconds),
+		now)
+	matplotlib.pyplot.ylim(config.min_air_temp, config.max_air_temp)
 	matplotlib.pyplot.legend(loc=2)
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.clf()
 
-#	logging.info('copy to webserver')
-#	files = ['index.html', 'plot.png', 'style.css']
-#	target = 'kaloix@adhara.uberspace.de:html/sensor'
-#	if os.system('scp {} {}'.format(' '.join(files), target)):
-#		logging.error('scp failed')
+	logging.info('copy to webserver')
+	files = ['index.html', 'plot.png', 'style.css']
+	target = 'kaloix@adhara.uberspace.de:html/sensor'
+	if os.system('scp {} {}'.format(' '.join(files), target)):
+		logging.error('scp failed')
 
-	pause = start + 10 - time.perf_counter()
+	pause = start + config.update_seconds - time.perf_counter()
 	if pause > 0:
 		logging.info('sleep for {:.0f}s'.format(pause))
 		try:
 			time.sleep(pause)
-
 		except KeyboardInterrupt:
 			logging.info('exiting')
-			with open('backup.json', mode='w') as json_file:
-				json_file.write(json.dumps(sensor, cls=SensorEncoder))
 			break
