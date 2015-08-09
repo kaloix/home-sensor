@@ -12,6 +12,9 @@ import matplotlib.pyplot
 import os
 import csv
 import config
+import traceback
+import smtplib
+import email.mime.text
 
 class Sensor:
 	def __init__(self, file):
@@ -28,43 +31,13 @@ class Sensor:
 		logging.debug('first: {}, last: {}'.format(
 			self.history[0][1],
 			self.history[-1][1]))
+
 def format_measurement(m):
 	return '{:.1f} °C / {:%X}'.format(
 		m[0],
 		datetime.datetime.fromtimestamp(m[1]))
 
-locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
-logging.basicConfig(
-	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] '
-		'%(message)s',
-	datefmt = '%y-%m-%d-%H-%M-%S',
-	level = logging.DEBUG)
-with open('template.md') as markdown_file:
-	markdown_template = markdown_file.read()
-with open('template.html') as html_file:
-	html_template = html_file.read()
-markdown_to_html = markdown.Markdown(
-	extensions = ['markdown.extensions.tables'],
-	output_format = 'html5')
-sensor_dict = {
-	'Wohnzimmer': Sensor(None),
-	'Klimaanlage': Sensor(None)}
-for name, sensor in sensor_dict.items():
-	filename = 'backup/{}.csv'.format(name)
-	try:
-		backup = list()
-		with open(filename, newline='') as csv_file:
-			reader = csv.reader(csv_file)
-			for row in reader:
-				backup.append(tuple(map(float, row)))
-	except FileNotFoundError:
-		logging.warning('no backup for {}'.format(name))
-	else:
-		sensor.history.extend(backup)
-		logging.info('backup restored for {}'.format(name))
-
-while True:
-	start = time.perf_counter()
+def loop():
 	logging.info('collect data')
 	data = list()
 	for name, sensor in sensor_dict.items():
@@ -113,6 +86,61 @@ while True:
 	if os.system('scp {} {}'.format(' '.join(files), target)):
 		logging.error('scp failed')
 
+def _email_(address, content):
+#	with open('smtpauth.txt') as smtpauth_file:
+#		user = smtpauth_file.readline().rstrip('\n')
+#		password = smtpauth_file.readline().rstrip('\n')
+	msg = email.mime.text.MIMEText(content)
+	msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
+	msg['From'] = 'sensor@kaloix.de'
+	msg['To'] = address
+	s = smtplib.SMTP(host='adhara.uberspace.de', port=587)
+	s.starttls()
+	s.ehlo()
+#	s.login(user, password)
+	s.send_message(msg)
+	s.quit()
+
+locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+logging.basicConfig(
+	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] '
+		'%(message)s',
+	datefmt = '%y-%m-%d-%H-%M-%S',
+	level = logging.DEBUG)
+with open('template.md') as markdown_file:
+	markdown_template = markdown_file.read()
+with open('template.html') as html_file:
+	html_template = html_file.read()
+markdown_to_html = markdown.Markdown(
+	extensions = ['markdown.extensions.tables'],
+	output_format = 'html5')
+sensor_dict = {
+	'Wohnzimmer': Sensor(None),
+	'Klimaanlage': Sensor(None)}
+for name, sensor in sensor_dict.items():
+	filename = 'backup/{}.csv'.format(name)
+	try:
+		backup = list()
+		with open(filename, newline='') as csv_file:
+			reader = csv.reader(csv_file)
+			for row in reader:
+				backup.append(tuple(map(float, row)))
+	except FileNotFoundError:
+		logging.warning('no backup for {}'.format(name))
+		continue
+	sensor.history.extend(backup)
+	logging.info('backup restored for {}'.format(name))
+
+while True:
+	start = time.perf_counter()
+	try:
+		loop()
+	except Exception as err:
+		tb_lines = traceback.format_tb(err.__traceback__)
+		error = '{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines))
+		logging.critical(error)
+		_email_('stefan@kaloix.de', error)
+		break
 	pause = start + config.update_seconds - time.perf_counter()
 	if pause > 0:
 		logging.info('sleep for {:.0f}s'.format(pause))
@@ -121,3 +149,5 @@ while True:
 		except KeyboardInterrupt:
 			logging.info('exiting')
 			break
+	else:
+		logging.warning('overload')

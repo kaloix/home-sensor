@@ -1,12 +1,13 @@
 # virtualenv
 ve/
 
-# input
-plot.png
-
 # output
 index.html
+plot.png
 backup/
 
 # python
 __pycache__/
+
+# authentication
+smtpauth.txt
