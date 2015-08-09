@@ -77,6 +77,9 @@ def loop():
 		now)
 	matplotlib.pyplot.ylim(config.min_air_temp, config.max_air_temp)
 	matplotlib.pyplot.legend(loc=2)
+	matplotlib.pyplot.grid(True)
+	matplotlib.pyplot.gca().yaxis.tick_right()
+	matplotlib.pyplot.gca().yaxis.set_label_position('right')
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.clf()
 
