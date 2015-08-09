@@ -4,8 +4,8 @@ Messpunkt | Aktuell | 24-h-Tief | 24-h-Hoch
 --- | --- | --- | ---
 $data
 
-## Diagramm
-![Diagramm](plot.png)
+## Verlauf
+![24-h-Verlauf](plot.png)
 
 ---
     
