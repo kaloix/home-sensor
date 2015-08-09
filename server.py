@@ -24,7 +24,7 @@ class Sensor:
 		# TODO parse self.file
 		value = random.randrange(-222, 444) / 10
 		if value < config.min_air_temp or value > config.max_air_temp:
-			logging.warning('temperature out of range')
+			email('temperature out of range: {}'.format(value))
 		self.history.append((value, time.time()))
 		while self.history[0][1] < self.history[-1][1] - config.history_seconds:
 			self.history.popleft()
@@ -85,15 +85,16 @@ def loop():
 	target = 'kaloix@adhara.uberspace.de:html/sensor'
 	if os.system('scp {} {}'.format(' '.join(files), target)):
 		logging.error('scp failed')
+		email('scp to uberspace failed')
 
-def _email_(address, content):
+def email(message):
 #	with open('smtpauth.txt') as smtpauth_file:
 #		user = smtpauth_file.readline().rstrip('\n')
 #		password = smtpauth_file.readline().rstrip('\n')
-	msg = email.mime.text.MIMEText(content)
+	msg = email.mime.text.MIMEText(message)
 	msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
 	msg['From'] = 'sensor@kaloix.de'
-	msg['To'] = address
+	msg['To'] = 'stefan@kaloix.de'
 	s = smtplib.SMTP(host='adhara.uberspace.de', port=587)
 	s.starttls()
 	s.ehlo()
@@ -139,7 +140,7 @@ while True:
 		tb_lines = traceback.format_tb(err.__traceback__)
 		error = '{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines))
 		logging.critical(error)
-		_email_('stefan@kaloix.de', error)
+		email(error)
 		break
 	pause = start + config.update_seconds - time.perf_counter()
 	if pause > 0:
