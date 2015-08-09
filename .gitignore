@@ -5,7 +5,7 @@ ve/
 plot.png
 
 # output
-data.html
+index.html
 
 # python
 __pycache__/
