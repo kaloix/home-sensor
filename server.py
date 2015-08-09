@@ -9,6 +9,7 @@ import logging
 import collections
 import random
 import matplotlib.pyplot
+import os
 
 class Sensor:
 	def __init__(self, name, file):
@@ -80,7 +81,11 @@ while True:
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.clf()
 
-	# TODO scp to uberspace
+	logging.info('copy to webserver')
+	files = ['index.html', 'plot.png', 'style.css']
+	target = 'kaloix@adhara.uberspace.de:html/sensor'
+	if os.system('scp {} {}'.format(' '.join(files), target)):
+		logging.error('scp failed')
 
 	pause = start + 3 - time.perf_counter()
 	if pause > 0:
