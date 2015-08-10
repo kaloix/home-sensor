@@ -16,9 +16,10 @@ import sensor
 
 def loop():
 	logging.info('collect data')
+	now = time.time()
 	data = list()
 	for sensor in sensor_list:
-		sensor.update()
+		sensor.update(now)
 		if sensor.problem:
 			notify.measurement_warning(sensor.problem, sensor.name)
 		data.append(str(sensor))
@@ -26,7 +27,7 @@ def loop():
 
 	logging.info('write html and csv')
 	markdown_filled = string.Template(markdown_template).substitute(
-		datum_aktualisierung = time.strftime('%c'),
+		datum_aktualisierung = time.strftime('%c', time.localtime(now)),
 		data = data)
 	html_body = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(body=html_body)
@@ -46,10 +47,9 @@ def loop():
 		matplotlib.pyplot.plot(times, values, label=sensor.name)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
-	now = datetime.datetime.now()
 	matplotlib.pyplot.xlim(
-		now - datetime.timedelta(seconds=config.history_seconds),
-		now)
+		datetime.datetime.fromtimestamp(now - config.history_seconds),
+		datetime.datetime.fromtimestamp(now))
 	matplotlib.pyplot.legend(loc='best')
 	matplotlib.pyplot.grid(True)
 	matplotlib.pyplot.gca().yaxis.tick_right()
@@ -68,7 +68,7 @@ logging.basicConfig(
 	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] '
 		'%(message)s',
 	datefmt = '%y-%m-%d-%H-%M-%S',
-	level = logging.DEBUG)
+	level = logging.INFO)
 with open('template.md') as markdown_file:
 	markdown_template = markdown_file.read()
 with open('template.html') as html_file:

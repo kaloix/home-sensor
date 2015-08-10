@@ -9,20 +9,23 @@ class NotificationCenter:
 	warning_pause = dict()
 
 	def send_email(self, message, address):
-		logging.info('sending email')
-#		with open('smtpauth.txt') as smtpauth_file:
-#			user = smtpauth_file.readline().rstrip('\n')
-#			password = smtpauth_file.readline().rstrip('\n')
+		logging.info('send email')
+		#with open('smtpauth.txt') as smtpauth_file:
+		#	user = smtpauth_file.readline().rstrip('\n')
+		#	password = smtpauth_file.readline().rstrip('\n')
 		msg = email.mime.text.MIMEText(str(message))
 		msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
 		msg['From'] = 'sensor@kaloix.de'
 		msg['To'] = address
-		s = smtplib.SMTP(host='adhara.uberspace.de', port=587)
-		s.starttls()
-		s.ehlo()
-#		s.login(user, password)
-		s.send_message(msg)
-		s.quit()
+		try:
+			s = smtplib.SMTP(host='adhara.uberspace.de', port=587)
+			s.starttls()
+			s.ehlo()
+			#s.login(user, password)
+			s.send_message(msg)
+			s.quit()
+		except OSError as err:
+			logging.error('send email failed: {}'.format(err))
 	
 	def admin_error(self, message):
 		logging.error(message)
