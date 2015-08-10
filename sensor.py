@@ -23,7 +23,7 @@ class Sensor:
 			'{:.1f} °C um {:%H:%M} Uhr'.format(self.minimum[0],
 				datetime.datetime.fromtimestamp(self.minimum[1])),
 			'{:.1f} °C um {:%H:%M} Uhr'.format(self.maximum[0],
-				datetime.datetime.fromtimestamp(self.minimum[1])),
+				datetime.datetime.fromtimestamp(self.maximum[1])),
 			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling),
 			'Warnung' if self.problem else 'Ok'])
 
