@@ -1,7 +1,7 @@
 # Temperatur-Anzeige
 ## Werte
-Messpunkt | Aktuell | 24-h-Tief | 24-h-Hoch
---- | --- | --- | ---
+Messpunkt | Aktuell | 24-h-Tief | 24-h-Hoch | Zulässig
+--- | --- | --- | --- | ---
 $data
 
 ## Verlauf
