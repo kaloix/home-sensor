@@ -37,7 +37,7 @@ class NotificationCenter:
 		self.warning_pause[id] = time.time() + config.warning_pause_seconds
 
 	def measurement_warning(self, measurement, name):
-		text = 'Messpunkt "{}" außerhalb des gültigen Bereichs:\n{:.1f} °C / {:%c}'.format(
+		text = 'Messpunkt "{}" außerhalb des zulässigen Bereichs:\n{:.1f} °C / {:%c}'.format(
 			name,
 			measurement[0],
 			datetime.datetime.fromtimestamp(measurement[1]))

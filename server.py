@@ -58,7 +58,7 @@ def loop():
 	matplotlib.pyplot.clf()
 
 	logging.info('copy to webserver')
-	files = ['index.html', 'plot.png', 'style.css']
+	files = ['index.html', 'plot.png']
 	target = 'kaloix@adhara.uberspace.de:html/sensor'
 	if os.system('scp {} {}'.format(' '.join(files), target)):
 		notify.admin_error('scp to uberspace failed')
