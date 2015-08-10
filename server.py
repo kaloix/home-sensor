@@ -81,17 +81,17 @@ sensor_list = [
 	sensor.Sensor('Klimaanlage', None, 10, 30)]
 for sensor in sensor_list:
 	filename = 'backup/{}.csv'.format(sensor.name)
+	backup = list()
 	try:
-		backup = list()
 		with open(filename, newline='') as csv_file:
 			reader = csv.reader(csv_file)
 			for row in reader:
 				backup.append(tuple(map(float, row)))
 	except FileNotFoundError:
 		logging.warning('no backup for {}'.format(sensor.name))
-		continue
-	sensor.history.extend(backup)
-	logging.info('backup restored for {}'.format(sensor.name))
+	else:
+		sensor.history.extend(backup)
+		logging.info('backup restored for {}'.format(sensor.name))
 notify = notification.NotificationCenter()
 
 while True:
@@ -104,12 +104,12 @@ while True:
 			'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
 		break
 	pause = start + config.update_seconds - time.perf_counter()
-	if pause > 0:
-		logging.info('sleep for {:.0f} minutes'.format(pause/60))
-		try:
-			time.sleep(pause)
-		except KeyboardInterrupt:
-			logging.info('exiting')
-			break
-	else:
-		logging.warning('overload')
+	if pause < 0:
+		notify.admin_error('overload')
+		break
+	logging.info('sleep for {:.0f} minutes'.format(pause/60))
+	try:
+		time.sleep(pause)
+	except KeyboardInterrupt:
+		logging.info('exiting')
+		break
