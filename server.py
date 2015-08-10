@@ -104,9 +104,6 @@ while True:
 			'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
 		break
 	pause = start + config.update_seconds - time.perf_counter()
-	if pause < 0:
-		notify.admin_error('overload')
-		break
 	logging.info('sleep for {:.0f} minutes'.format(pause/60))
 	try:
 		time.sleep(pause)

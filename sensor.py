@@ -31,10 +31,6 @@ class Sensor:
 		self.history.append((value, time.time()))
 		while self.history[0][1] < self.history[-1][1] - config.history_seconds:
 			self.history.popleft()
-			logging.debug('dropping measurement')
-		logging.debug('first: {:%c}, last: {:%c}'.format(
-			datetime.datetime.fromtimestamp(self.history[0][1]),
-			datetime.datetime.fromtimestamp(self.history[-1][1])))
 		self.minimum = min(self.history)
 		self.maximum = max(self.history)
 		if self.minimum[0] < self.floor:
