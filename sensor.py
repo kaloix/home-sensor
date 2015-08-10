@@ -6,40 +6,43 @@ import time
 import config
 
 class Sensor:
-	def __init__(self, name, file, minimum, maximum):
+	def __init__(self, name, file, floor, ceiling):
 		self.name = name
 		self.file = file
+		self.floor = floor
+		self.ceiling = ceiling
 		self.history = collections.deque()
-		self.minimum = minimum
-		self.maximum = maximum
+		self.minimum = None
+		self.maximum = None
 		self.problem = None
 
 	def __str__(self):
-		if self.problem:
-			warning = '{:.1f} °C / {:%c}'.format(
-				self.problem[0],
-				datetime.datetime.fromtimestamp(self.problem[1]))
-		else:
-			warning = '—'
 		return ' | '.join([
 			self.name,
 			format_measurement(self.history[-1]),
-			format_measurement(min(self.history)),
-			format_measurement(max(self.history)),
-			'{:.1f} °C – {:.1f} °C'.format(self.minimum, self.maximum),
-			warning])
+			format_measurement(self.minimum),
+			format_measurement(self.maximum),
+			'{:.1f} °C – {:.1f} °C'.format(self.floor, self.ceiling),
+			'Warnung' if self.problem else 'Ok'])
 
 	def update(self):
 		# TODO parse self.file
-		value = random.randrange(50, 350) / 10
+		value = random.randrange(200, 400) / 10
 		self.history.append((value, time.time()))
 		while self.history[0][1] < self.history[-1][1] - config.history_seconds:
 			self.history.popleft()
+			logging.debug('dropping measurement')
 		logging.debug('first: {:%c}, last: {:%c}'.format(
 			datetime.datetime.fromtimestamp(self.history[0][1]),
 			datetime.datetime.fromtimestamp(self.history[-1][1])))
-		if self.history[-1][0] < self.minimum or self.history[-1][0] > self.maximum:
-			self.problem = self.history[-1]
+		self.minimum = min(self.history)
+		self.maximum = max(self.history)
+		if self.minimum[0] < self.floor:
+			self.problem = self.minimum
+		elif self.maximum[0] > self.ceiling:
+			self.problem = self.maximum
+		else:
+			self.problem = None
 
 def format_measurement(m):
 	return '{:.1f} °C / {:%X}'.format(
