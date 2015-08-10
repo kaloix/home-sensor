@@ -20,9 +20,11 @@ class Sensor:
 		return ' | '.join([
 			self.name,
 			'{:.1f} °C'.format(self.current) if self.current else 'Fehler',
-			format_measurement(self.minimum),
-			format_measurement(self.maximum),
-			'{:.1f} °C – {:.1f} °C'.format(self.floor, self.ceiling),
+			'{:.1f} °C um {:%H:%M} Uhr'.format(self.minimum[0],
+				datetime.datetime.fromtimestamp(self.minimum[1])),
+			'{:.1f} °C um {:%H:%M Uhr}'.format(self.maximum[0],
+				datetime.datetime.fromtimestamp(self.minimum[1])),
+			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling),
 			'Warnung' if self.problem else 'Ok'])
 
 	def update(self, now):
@@ -43,9 +45,3 @@ class Sensor:
 			self.problem = self.maximum
 		else:
 			self.problem = None
-
-def format_measurement(m):
-	return '{:.1f} °C / {:%X}'.format(
-		m[0],
-		datetime.datetime.fromtimestamp(m[1]))
-
