@@ -10,9 +10,9 @@ class NotificationCenter:
 
 	def send_email(self, message, address):
 		logging.info('sending email')
-	#	with open('smtpauth.txt') as smtpauth_file:
-	#		user = smtpauth_file.readline().rstrip('\n')
-	#		password = smtpauth_file.readline().rstrip('\n')
+#		with open('smtpauth.txt') as smtpauth_file:
+#			user = smtpauth_file.readline().rstrip('\n')
+#			password = smtpauth_file.readline().rstrip('\n')
 		msg = email.mime.text.MIMEText(str(message))
 		msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
 		msg['From'] = 'sensor@kaloix.de'
@@ -20,7 +20,7 @@ class NotificationCenter:
 		s = smtplib.SMTP(host='adhara.uberspace.de', port=587)
 		s.starttls()
 		s.ehlo()
-	#	s.login(user, password)
+#		s.login(user, password)
 		s.send_message(msg)
 		s.quit()
 	
@@ -37,10 +37,7 @@ class NotificationCenter:
 		self.warning_pause[id] = time.time() + config.warning_pause_seconds
 
 	def measurement_warning(self, measurement, name):
-		if not measurement:
-			return
-		text = 'Messpunkt "{}" außerhalb des gültigen Bereichs:\n'
-				'{:.1f} °C / {:%c}'.format(
+		text = 'Messpunkt "{}" außerhalb des gültigen Bereichs:\n{:.1f} °C / {:%c}'.format(
 			name,
 			measurement[0],
 			datetime.datetime.fromtimestamp(measurement[1]))
