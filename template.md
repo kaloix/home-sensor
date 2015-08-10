@@ -1,11 +1,11 @@
 # Temperatur-Anzeige
 ## Werte
-Messpunkt | Aktuell | 24-h-Tief | 24-h-Hoch | Zulässig | Status
+Messpunkt | Aktuell | Tageshoch | Tagestief | Zulässig | Status
 --- | --- | --- | --- | --- | ---
 $data
 
-## Verlauf
-![24-h-Verlauf](plot.png)
+## Tagesverlauf
+![Verlauf der letzten 24 Stunden](plot.png)
 
 ---
     

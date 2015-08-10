@@ -22,7 +22,7 @@ class Sensor:
 			'{:.1f} °C'.format(self.current) if self.current else 'Fehler',
 			'{:.1f} °C um {:%H:%M} Uhr'.format(self.minimum[0],
 				datetime.datetime.fromtimestamp(self.minimum[1])),
-			'{:.1f} °C um {:%H:%M Uhr}'.format(self.maximum[0],
+			'{:.1f} °C um {:%H:%M} Uhr'.format(self.maximum[0],
 				datetime.datetime.fromtimestamp(self.minimum[1])),
 			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling),
 			'Warnung' if self.problem else 'Ok'])
@@ -30,7 +30,7 @@ class Sensor:
 	def update(self, now):
 		try:
 			# TODO parse self.file
-			self.current = random.randrange(200, 400) / 10
+			self.current = random.randrange(180, 260) / 10
 		except Exception:
 			self.current = None
 		else:
