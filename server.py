@@ -14,6 +14,36 @@ import config
 import notification
 import sensor
 
+locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+logging.basicConfig(
+	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] %(message)s',
+	datefmt = '%y-%m-%d-%H-%M-%S',
+	level = logging.INFO)
+with open('template.md') as markdown_file:
+	markdown_template = markdown_file.read()
+with open('template.html') as html_file:
+	html_template = html_file.read()
+markdown_to_html = markdown.Markdown(
+	extensions = ['markdown.extensions.tables'],
+	output_format = 'html5')
+sensor_list = [
+	sensor.Sensor('Wohnzimmer', None, 15, 30),
+	sensor.Sensor('Klimaanlage', None, 10, 30)]
+for sensor in sensor_list:
+	filename = 'backup/{}.csv'.format(sensor.name)
+	backup = list()
+	try:
+		with open(filename, newline='') as csv_file:
+			reader = csv.reader(csv_file)
+			for row in reader:
+				backup.append(tuple(map(float, row)))
+	except FileNotFoundError:
+		logging.warning('no backup for {}'.format(sensor.name))
+	else:
+		sensor.history.extend(backup)
+		logging.info('backup restored for {}'.format(sensor.name))
+notify = notification.NotificationCenter()
+
 def loop():
 	logging.info('collect data')
 	now = time.time()
@@ -45,12 +75,11 @@ def loop():
 		values, times = map(list, zip(*sensor.history))
 		times = list(map(datetime.datetime.fromtimestamp, times))
 		matplotlib.pyplot.plot(times, values, label=sensor.name)
-	matplotlib.pyplot.xlabel('Uhrzeit')
-	matplotlib.pyplot.ylabel('Temperatur °C')
 	matplotlib.pyplot.xlim(
 		datetime.datetime.fromtimestamp(now - config.history_seconds),
 		datetime.datetime.fromtimestamp(now))
-	matplotlib.pyplot.legend(loc='best')
+	matplotlib.pyplot.xlabel('Uhrzeit')
+	matplotlib.pyplot.ylabel('Temperatur °C')
 	matplotlib.pyplot.grid(True)
 	matplotlib.pyplot.gca().yaxis.tick_right()
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
@@ -59,40 +88,8 @@ def loop():
 
 	logging.info('copy to webserver')
 	files = ['index.html', 'plot.png']
-	target = 'kaloix@adhara.uberspace.de:html/sensor'
-	if os.system('scp {} {}'.format(' '.join(files), target)):
+	if os.system('scp {} {}'.format(' '.join(files), config.webserver)):
 		notify.admin_error('scp to uberspace failed')
-
-locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
-logging.basicConfig(
-	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] '
-		'%(message)s',
-	datefmt = '%y-%m-%d-%H-%M-%S',
-	level = logging.INFO)
-with open('template.md') as markdown_file:
-	markdown_template = markdown_file.read()
-with open('template.html') as html_file:
-	html_template = html_file.read()
-markdown_to_html = markdown.Markdown(
-	extensions = ['markdown.extensions.tables'],
-	output_format = 'html5')
-sensor_list = [
-	sensor.Sensor('Wohnzimmer', None, 15, 30),
-	sensor.Sensor('Klimaanlage', None, 10, 30)]
-for sensor in sensor_list:
-	filename = 'backup/{}.csv'.format(sensor.name)
-	backup = list()
-	try:
-		with open(filename, newline='') as csv_file:
-			reader = csv.reader(csv_file)
-			for row in reader:
-				backup.append(tuple(map(float, row)))
-	except FileNotFoundError:
-		logging.warning('no backup for {}'.format(sensor.name))
-	else:
-		sensor.history.extend(backup)
-		logging.info('backup restored for {}'.format(sensor.name))
-notify = notification.NotificationCenter()
 
 while True:
 	start = time.perf_counter()
