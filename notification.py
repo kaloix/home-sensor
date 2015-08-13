@@ -31,7 +31,8 @@ class NotificationCenter:
 	
 	def admin_error(self, message):
 		logging.error(message)
-		self.send_email(message, self.admin_address)
+		text = 'Administrator-Meldung:\n{}'.format(message)
+		self.send_email(text, self.admin_address)
 	
 	def user_warning(self, message, id):
 		logging.warning(message)
