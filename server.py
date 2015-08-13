@@ -97,7 +97,7 @@ def loop():
 
 	logging.info('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
-		datum_aktualisierung = '{:%c}'.format(now),
+		datum_aktualisierung = '{:%A %d. %B %Y %X}'.format(now),
 		data = markdown_data,
 		year = '{:%Y}'.format(now))
 	html_body = markdown_to_html.convert(markdown_filled)
@@ -122,6 +122,7 @@ def loop():
 	os.system('cp index.html plot.png {}'.format(config['webserver']))
 
 while True:
+	start = time.perf_counter()
 	try:
 		loop()
 	except Exception as err:
@@ -129,5 +130,6 @@ while True:
 		notify.admin_error(
 			'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
 		break
-	logging.info('sleep')
+	logging.info('sleep, duration was {:.0f}s'.format(
+		time.perf_counter() - start))
 	time.sleep(60)
