@@ -5,19 +5,19 @@
 	"webserver": "~/html/sensor",
 	"sensor": {
 		"001": {
-		    "name": "Name",
+		    "name": "Wohnzimmer",
 		    "type": "temperature",
 		    "floor": 15,
 		    "ceiling": 30,
-		    "file": "/path/to/file",
+		    "file": "/path/to/file1",
 		    "station": 1
 		},
 		"002": {
-		    "name": "Name",
+		    "name": "Klimaanlage",
 		    "type": "temperature",
-		    "floor": 15,
+		    "floor": 10,
 		    "ceiling": 30,
-		    "file": "/path/to/file",
+		    "file": "/path/to/file2",
 		    "station": 1
 		}
 	}

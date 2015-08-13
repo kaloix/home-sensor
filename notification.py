@@ -12,9 +12,6 @@ class NotificationCenter:
 
 	def send_email(self, message, address):
 		logging.info('send email')
-		#with open('smtpauth.txt') as smtpauth_file:
-		#	user = smtpauth_file.readline().rstrip('\n')
-		#	password = smtpauth_file.readline().rstrip('\n')
 		msg = email.mime.text.MIMEText(str(message))
 		msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
 		msg['From'] = 'sensor@kaloix.de'
@@ -23,7 +20,6 @@ class NotificationCenter:
 			s = smtplib.SMTP(host='adhara.uberspace.de', port=587)
 			s.starttls()
 			s.ehlo()
-			#s.login(user, password)
 			s.send_message(msg)
 			s.quit()
 		except OSError as err:

@@ -99,7 +99,7 @@ def loop():
 	markdown_filled = string.Template(markdown_template).substitute(
 		data = markdown_data,
 		date = '{:%A %d. %B %Y}'.format(now),
-		time = '{:%X}'.format(now),
+		time = '{:%X %Z}'.format(now),
 		year = '{:%Y}'.format(now))
 	html_body = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(body=html_body)
