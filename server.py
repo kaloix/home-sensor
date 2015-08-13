@@ -97,8 +97,9 @@ def loop():
 
 	logging.info('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
-		datum_aktualisierung = '{:%A %d. %B %Y %X}'.format(now),
 		data = markdown_data,
+		date = '{:%A, den %d. %B %Y}'.format(now),
+		time = '{%X}'.format(now),
 		year = '{:%Y}'.format(now))
 	html_body = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(body=html_body)
@@ -130,6 +131,6 @@ while True:
 		notify.admin_error(
 			'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
 		break
-	logging.info('sleep, duration was {:.0f}s'.format(
-		time.perf_counter() - start))
+	logging.info('sleep, duration was {}s'.format(
+		round(time.perf_counter() - start)))
 	time.sleep(60)

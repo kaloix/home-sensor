@@ -9,4 +9,4 @@ $data
 
 ---
     
-Letzte Aktualisierung $datum_aktualisierung • Copyright © $year Stefan Schindler
+Letzte Aktualisierung am $date um $time • Copyright © $year Stefan Schindler
