@@ -118,6 +118,7 @@ def loop():
 	matplotlib.pyplot.grid(True)
 	matplotlib.pyplot.gca().yaxis.tick_right()
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
+	matplotlib.pyplot.legend()
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.clf()
 	os.system('cp index.html plot.png {}'.format(config['webserver']))
