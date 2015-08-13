@@ -18,7 +18,6 @@ class Sensor:
 		self.floor = floor
 		self.ceiling = ceiling
 		self.csv = 'csv/{}.csv'.format(id)
-		self.csv_modified = 0
 
 	def __str__(self):
 		return ' | '.join([
@@ -67,16 +66,6 @@ for id, attr in config['sensor'].items():
 			attr['ceiling']))
 
 def loop():
-	print('check modification')
-	new_csv = False
-	for sensor in sensor_list:
-		modified = os.path.getmtime(sensor.csv)
-		if modified > sensor.csv_modified:
-			new_csv = True
-		sensor.csv_modified = modified
-	if not new_csv:
-		return
-
 	print('read csv')
 	now = datetime.datetime.now()
 	min_age = now - datetime.timedelta(minutes=config['update_minutes'])
