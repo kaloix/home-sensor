@@ -1,7 +1,7 @@
 {
 	"update_minutes": 10,
 	"history_hours": 24,
-	"server": "kaloix@adhara.uberspace.de:sensor",
+	"server": "kaloix@adhara.uberspace.de:home-sensor/csv",
 	"webserver": "~/html/sensor",
 	"sensor": {
 		"001": {

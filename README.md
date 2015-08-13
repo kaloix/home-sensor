@@ -1,6 +1,18 @@
 # Kaloix Sensor System
 > This project was made with only personal use by me in mind. Code is not commentated, probably bad structured and containes German language.
 
+## Sensor
+### Features
+* Import relevant sensors from `config.json`
+* Collect and parse sensor data using a file system interface
+* Export data as CSV files to folder `csv/`
+* Copy these files to the server, when new data is available
+
+### Usage
+    ./sensor.py <station>
+
+The *station* parameter corresponds with the same field in the sensor list of `config.json`.
+
 ## Server
 ### Features
 * Import sensor list from `config.json`
@@ -15,25 +27,13 @@
     pip install virtualenv
     virtualenv --python=python3 ve/
     source ve/bin/activate
-    pip install matplotlib
+    pip install matplotlib markdown
     deactivate
 
 ### Usage
     source ve/bin/activate
     ./server.py
     deactivate
-
-## Sensor
-### Features
-* Import relevant sensors from `config.json`
-* Collect and parse sensor data using a file system interface
-* Export data as CSV files to folder `csv/`
-* Copy these files to the server, when new data is available
-
-### Usage
-    ./sensor.py <station>
-
-The *station* parameter corresponds with the same field in the sensor list of `config.json`.
 
 ## Acknowledgements
 * Python module [matplotlib](http://matplotlib.org/index.html) for generation of plots

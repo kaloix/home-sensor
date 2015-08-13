@@ -6,9 +6,5 @@ index.html
 plot.png
 csv/
 
-# authentication
-smtpauth.txt
-
 # python
 __pycache__/
-
