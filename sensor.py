@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-import collections
-import random
-import json
 import argparse
-import time
-import os
-import util
+import collections
+import json
 import logging
+import os
+import random
+import time
+import util
 
 class Sensor:
 	def __init__(self, id, file, parser):

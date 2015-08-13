@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
-import locale
-import time
-import string
-import markdown
 import datetime
-import matplotlib.pyplot
-import os
-import traceback
-import notification
-import util
 import json
+import locale
+import logging
+import markdown
+import matplotlib.pyplot
+import notification
+import os
+import string
+import time
+import traceback
+import util
 
 class Sensor:
 	def __init__(self, id, name, floor, ceiling):
