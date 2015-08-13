@@ -9,4 +9,4 @@ $data
 
 ---
     
-Letzte Aktualisierung $datum_aktualisierung • Copyright © 2015 Stefan Schindler
+Letzte Aktualisierung $datum_aktualisierung • Copyright © $year Stefan Schindler

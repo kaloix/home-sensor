@@ -98,7 +98,8 @@ def loop():
 	logging.info('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
 		datum_aktualisierung = '{:%c}'.format(now),
-		data = markdown_data)
+		data = markdown_data,
+		year = '{:%Y}'.format(now))
 	html_body = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(body=html_body)
 	with open('index.html', mode='w') as html_file:
