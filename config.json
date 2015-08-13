@@ -1,8 +1,8 @@
 {
 	"update_minutes": 10,
 	"history_hours": 24,
-	"server_address": "kaloix@adhara.uberspace.de:sensor",
-	"server_path": "~/html/sensor",
+	"server": "kaloix@adhara.uberspace.de:sensor",
+	"webserver": "~/html/sensor",
 	"sensor": {
 		"001": {
 		    "name": "Name",

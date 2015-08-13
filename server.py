@@ -85,7 +85,7 @@ def loop():
 		markdown_data.append(str(sensor))
 	markdown_data = '\n'.join(markdown_data)
 
-	print('write html and csv')
+	print('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
 		datum_aktualisierung = '{:%c}'.format(now),
 		data = markdown_data)
@@ -108,7 +108,7 @@ def loop():
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.clf()
-	os.system('cp index.html plot.png {}'.format(config['server_path']))
+	os.system('cp index.html plot.png {}'.format(config['webserver']))
 
 while True:
 	try:

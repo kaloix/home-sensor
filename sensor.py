@@ -62,7 +62,7 @@ def loop():
 
 	print('copy to webserver')
 	if files:
-		os.system('scp {} {}'.format(' '.join(files), config['server_address']))
+		os.system('scp {} {}'.format(' '.join(files), config['server']))
 
 while True:
 	loop()
