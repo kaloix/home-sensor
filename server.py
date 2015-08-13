@@ -82,7 +82,7 @@ def loop():
 		if sensor.current[1] < min_age:
 			sensor.error = True
 		if sensor.error:
-			notify.admin_error('no data from sensor {}'.format(sensor.name))
+			notify.sensor_warning(sensor.id, sensor.name)
 		if sensor.problem:
 			notify.measurement_warning(sensor.id, sensor.name, sensor.problem)
 		markdown_data.append(str(sensor))
