@@ -5,20 +5,47 @@ import time
 import string
 import markdown
 import datetime
-import logging
 import matplotlib.pyplot
 import os
-import csv
 import traceback
-import config
 import notification
-import sensor
+import util
+import json
+
+class Sensor:
+	def __init__(self, id, name, floor, ceiling):
+		self.name = name
+		self.floor = floor
+		self.ceiling = ceiling
+		self.csv = 'csv/{}.csv'.format(id)
+		self.csv_modified = 0
+
+	def __str__(self):
+		return ' | '.join([
+			self.name,
+			'Fehler' if self.error else '{:.1f} °C'.format(self.current[0]),
+			'{:.1f} °C um {:%H:%M} Uhr'.format(*self.minimum),
+			'{:.1f} °C um {:%H:%M} Uhr'.format(*self.maximum),
+			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling),
+			'Warnung' if self.problem else 'Ok'])
+
+	def update(self, data):
+		self.history = list()
+		for d in data:
+			self.history.append((
+				float(d[1]),
+				datetime.datetime.fromtimestamp(float(d[0]))))
+		self.current = self.history[-1]
+		self.minimum = min(self.history)
+		self.maximum = max(self.history)
+		if self.minimum[0] < self.floor:
+			self.problem = self.minimum
+		elif self.maximum[0] > self.ceiling:
+			self.problem = self.maximum
+		else:
+			self.problem = None
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
-logging.basicConfig(
-	format = '[%(asctime)s:%(levelname)s:%(module)s:%(threadName)s] %(message)s',
-	datefmt = '%y-%m-%d-%H-%M-%S',
-	level = logging.INFO)
 with open('template.md') as markdown_file:
 	markdown_template = markdown_file.read()
 with open('template.html') as html_file:
@@ -26,58 +53,65 @@ with open('template.html') as html_file:
 markdown_to_html = markdown.Markdown(
 	extensions = ['markdown.extensions.tables'],
 	output_format = 'html5')
-sensor_list = [
-	sensor.Sensor('Wohnzimmer', None, 15, 30),
-	sensor.Sensor('Klimaanlage', None, 10, 30)]
-for sensor in sensor_list:
-	filename = 'backup/{}.csv'.format(sensor.name)
-	backup = list()
-	try:
-		with open(filename, newline='') as csv_file:
-			reader = csv.reader(csv_file)
-			for row in reader:
-				backup.append(tuple(map(float, row)))
-	except FileNotFoundError:
-		logging.warning('no backup for {}'.format(sensor.name))
-	else:
-		sensor.history.extend(backup)
-		logging.info('backup restored for {}'.format(sensor.name))
 notify = notification.NotificationCenter()
+with open('config.json') as json_file:
+	json_config = json_file.read()
+config = json.loads(json_config)
+sensor_list = list()
+for id, attr in config['sensor'].items():
+	if attr['type'] == 'temperature':
+		sensor_list.append(Sensor(
+			id,
+			attr['name'],
+			attr['floor'],
+			attr['ceiling']))
 
 def loop():
-	logging.info('collect data')
-	now = time.time()
-	data = list()
+	print('check modification')
+	new_csv = False
 	for sensor in sensor_list:
-		sensor.update(now)
-		if sensor.problem:
-			notify.measurement_warning(sensor.problem, sensor.name)
-		data.append(str(sensor))
-	data = '\n'.join(data)
+		modified = os.path.getmtime(sensor.csv)
+		if modified > sensor.csv_modified:
+			new_csv = True
+		sensor.csv_modified = modified
+	if not new_csv:
+		return
 
-	logging.info('write html and csv')
+	print('read csv')
+	now = datetime.datetime.now()
+	min_age = now - datetime.timedelta(minutes=config['update_minutes'])
+	markdown_data = list()
+	for sensor in sensor_list:
+		sensor.error = False
+		try:
+			sensor.update(util.read_csv(sensor.csv))
+		except FileNotFoundError:
+			sensor.error = True
+		if sensor.current[1] < min_age:
+			sensor.error = True
+		if sensor.error:
+			notify.admin_error('no data from sensor {}'.format(sensor.name))
+		if sensor.problem:
+			notify.measurement_warning(sensor.name, sensor.problem)
+		markdown_data.append(str(sensor))
+	markdown_data = '\n'.join(markdown_data)
+
+	print('write html and csv')
 	markdown_filled = string.Template(markdown_template).substitute(
-		datum_aktualisierung = time.strftime('%c', time.localtime(now)),
-		data = data)
+		datum_aktualisierung = '{:%c}'.format(now),
+		data = markdown_data)
 	html_body = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(body=html_body)
 	with open('index.html', mode='w') as html_file:
 		html_file.write(html_filled)
-	for sensor in sensor_list:
-		filename = 'backup/{}.csv'.format(sensor.name)
-		with open(filename, mode='w', newline='') as csv_file:
-			writer = csv.writer(csv_file)
-			writer.writerows(sensor.history)
 
-	logging.info('generate plot')
+	print('generate plot')
+	frame_start = now - datetime.timedelta(hours=config['history_hours'])
 	matplotlib.pyplot.figure(figsize=(12, 4))
 	for sensor in sensor_list:
 		values, times = map(list, zip(*sensor.history))
-		times = list(map(datetime.datetime.fromtimestamp, times))
 		matplotlib.pyplot.plot(times, values, label=sensor.name)
-	matplotlib.pyplot.xlim(
-		datetime.datetime.fromtimestamp(now - config.history_seconds),
-		datetime.datetime.fromtimestamp(now))
+	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	matplotlib.pyplot.grid(True)
@@ -85,14 +119,9 @@ def loop():
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.clf()
-
-	logging.info('copy to webserver')
-	files = ['index.html', 'plot.png']
-	if os.system('scp {} {}'.format(' '.join(files), config.webserver)):
-		notify.admin_error('scp to uberspace failed')
+	os.system('cp index.html plot.png {}'.format(config['server_path']))
 
 while True:
-	start = time.perf_counter()
 	try:
 		loop()
 	except Exception as err:
@@ -100,10 +129,5 @@ while True:
 		notify.admin_error(
 			'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
 		break
-	pause = start + config.update_seconds - time.perf_counter()
-	logging.info('sleep for {:.0f} minutes'.format(pause/60))
-	try:
-		time.sleep(pause)
-	except KeyboardInterrupt:
-		logging.info('exiting')
-		break
+	print('sleep')
+	time.sleep(60)

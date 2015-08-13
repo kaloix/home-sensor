@@ -1,11 +1,13 @@
 import smtplib
 import email.mime.text
 import logging
-import config
 import time
 import datetime
 
 class NotificationCenter:
+	admin_address = 'stefan@kaloix.de'
+	user_address = 'stefan@kaloix.de'
+	warning_pause_seconds = 24 * 60 * 60
 	warning_pause = dict()
 
 	def send_email(self, message, address):
@@ -29,19 +31,17 @@ class NotificationCenter:
 	
 	def admin_error(self, message):
 		logging.error(message)
-		self.send_email(message, config.admin_address)
+		self.send_email(message, self.admin_address)
 	
 	def user_warning(self, message, id):
 		logging.warning(message)
 		if id in self.warning_pause and self.warning_pause[id] > time.time():
 			logging.info('suppress email')
 			return
-		self.send_email(message, config.user_address)
-		self.warning_pause[id] = time.time() + config.warning_pause_seconds
+		self.send_email(message, self.user_address)
+		self.warning_pause[id] = time.time() + self.warning_pause_seconds
 
-	def measurement_warning(self, measurement, name):
+	def measurement_warning(self, name, measurement):
 		text = 'Messpunkt "{}" außerhalb des zulässigen Bereichs:\n{:.1f} °C / {:%c}'.format(
-			name,
-			measurement[0],
-			datetime.datetime.fromtimestamp(measurement[1]))
+			name, *measurement)
 		self.user_warning(text, name)

@@ -1,0 +1,24 @@
+{
+	"update_minutes": 10,
+	"history_hours": 24,
+	"server_address": "kaloix@adhara.uberspace.de:sensor",
+	"server_path": "~/html/sensor",
+	"sensor": {
+		"001": {
+		    "name": "Name",
+		    "type": "temperature",
+		    "floor": 15,
+		    "ceiling": 30,
+		    "file": "/path/to/file",
+		    "station": 1
+		},
+		"002": {
+		    "name": "Name",
+		    "type": "temperature",
+		    "floor": 15,
+		    "ceiling": 30,
+		    "file": "/path/to/file",
+		    "station": 1
+		}
+	}
+}

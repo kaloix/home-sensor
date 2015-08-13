@@ -4,10 +4,11 @@ ve/
 # output
 index.html
 plot.png
-backup/
+csv/
+
+# authentication
+smtpauth.txt
 
 # python
 __pycache__/
 
-# authentication
-smtpauth.txt
