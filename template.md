@@ -1,7 +1,7 @@
 # Temperatur-Anzeige
 ## Werte
-Messpunkt | Aktuell | Tagestief | Tageshoch | Zulässig | Status
---- | --- | --- | --- | --- | ---
+Messpunkt | Aktuell | Tagestief | Tageshoch | Zulässig
+--- | --- | --- | --- | ---
 $data
 
 ## Tagesverlauf

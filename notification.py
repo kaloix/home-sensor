@@ -46,7 +46,12 @@ class NotificationCenter:
 		text = 'Messpunkt "{}" liefert keine Daten.'.format(name)
 		self.user_warning(text, 's'+id)
 
-	def measurement_warning(self, id, name, measurement):
-		text = 'Messpunkt "{}" außerhalb des zulässigen Bereichs:\n{:.1f} °C / {:%c}'.format(
-			name, *measurement)
-		self.user_warning(text, 'm'+id)
+	def low_warning(self, id, name, measurement):
+		text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n'
+			'{:.1f} °C / {:%c}'.format(name, *measurement)
+		self.user_warning(text, 'l'+id)
+
+	def high_warning(self, id, name, measurement):
+		text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n'
+			'{:.1f} °C / {:%c}'.format(name, *measurement)
+		self.user_warning(text, 'h'+id)

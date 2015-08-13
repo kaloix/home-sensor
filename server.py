@@ -25,10 +25,13 @@ class Sensor:
 		return ' | '.join([
 			self.name,
 			'Fehler' if self.error else '{:.1f} °C'.format(self.current[0]),
-			'{:.1f} °C um {:%H:%M} Uhr'.format(*self.minimum),
-			'{:.1f} °C um {:%H:%M} Uhr'.format(*self.maximum),
-			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling),
-			'Warnung' if self.problem else 'Ok'])
+			'{}{:.1f} °C um {:%H:%M} Uhr'.format(
+				'⚠ ' if self.low else '',
+				*self.minimum),
+			'{}{:.1f} °C um {:%H:%M} Uhr'.format(
+				'⚠ ' if self.high else '',
+				*self.maximum),
+			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling))
 
 	def update(self, data):
 		self.history = list()
@@ -40,11 +43,13 @@ class Sensor:
 		self.minimum = min(self.history)
 		self.maximum = max(self.history)
 		if self.minimum[0] < self.floor:
-			self.problem = self.minimum
-		elif self.maximum[0] > self.ceiling:
-			self.problem = self.maximum
+			self.low = self.minimum
 		else:
-			self.problem = None
+			self.low = None
+		if self.maximum[0] > self.ceiling:
+			self.high = self.maximum
+		else:
+			self.high = None
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 util.init_logging()
@@ -83,8 +88,10 @@ def loop():
 			sensor.error = True
 		if sensor.error:
 			notify.sensor_warning(sensor.id, sensor.name)
-		if sensor.problem:
-			notify.measurement_warning(sensor.id, sensor.name, sensor.problem)
+		if sensor.low:
+			notify.low_warning(sensor.id, sensor.name, sensor.low)
+		if sensor.high:
+			notify.high_warning(sensor.id, sensor.name, sensor.high)
 		markdown_data.append(str(sensor))
 	markdown_data = '\n'.join(markdown_data)
 
