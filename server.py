@@ -14,6 +14,7 @@ import json
 
 class Sensor:
 	def __init__(self, id, name, floor, ceiling):
+		self.id = id
 		self.name = name
 		self.floor = floor
 		self.ceiling = ceiling
@@ -45,6 +46,7 @@ class Sensor:
 			self.problem = None
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+util.init_logging()
 with open('template.md') as markdown_file:
 	markdown_template = markdown_file.read()
 with open('template.html') as html_file:
@@ -66,7 +68,7 @@ for id, attr in config['sensor'].items():
 			attr['ceiling']))
 
 def loop():
-	print('read csv')
+	logging.info('read csv')
 	now = datetime.datetime.now()
 	min_age = now - datetime.timedelta(minutes=config['update_minutes'])
 	markdown_data = list()
@@ -81,11 +83,11 @@ def loop():
 		if sensor.error:
 			notify.admin_error('no data from sensor {}'.format(sensor.name))
 		if sensor.problem:
-			notify.measurement_warning(sensor.name, sensor.problem)
+			notify.measurement_warning(sensor.id, sensor.problem)
 		markdown_data.append(str(sensor))
 	markdown_data = '\n'.join(markdown_data)
 
-	print('write html')
+	logging.info('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
 		datum_aktualisierung = '{:%c}'.format(now),
 		data = markdown_data)
@@ -94,7 +96,7 @@ def loop():
 	with open('index.html', mode='w') as html_file:
 		html_file.write(html_filled)
 
-	print('generate plot')
+	logging.info('generate plot')
 	frame_start = now - datetime.timedelta(hours=config['history_hours'])
 	matplotlib.pyplot.figure(figsize=(12, 4))
 	for sensor in sensor_list:
@@ -118,5 +120,5 @@ while True:
 		notify.admin_error(
 			'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
 		break
-	print('sleep')
+	logging.info('sleep')
 	time.sleep(60)

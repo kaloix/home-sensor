@@ -7,6 +7,7 @@ import argparse
 import time
 import os
 import util
+import logging
 
 class Sensor:
 	def __init__(self, id, file, parser):
@@ -17,11 +18,11 @@ class Sensor:
 		try:
 			data = util.read_csv(self.csv)
 		except FileNotFoundError as err:
-			print('backup not found: {}'.format(err))
+			logging.warning('backup not found: {}'.format(err))
 		else:
 			for d in data:
 				self.history.append(tuple(map(float, d)))
-			print('backup restored for {}'.format(id))
+			logging.info('backup restored for {}'.format(id))
 
 	def update(self):
 		now = time.time()
@@ -33,11 +34,12 @@ class Sensor:
 
 def parse_temp(file):
 	# TODO parse self.file
-	return random.randrange(180, 260) / 10
+	return random.randrange(180, 500) / 10
 
 parser = argparse.ArgumentParser()
 parser.add_argument('station', type=int)
 args = parser.parse_args()
+util.init_logging()
 with open('config.json') as json_file:
 	json_config = json_file.read()
 config = json.loads(json_config)
@@ -49,22 +51,23 @@ for id, attr in config['sensor'].items():
 		sensor.append(Sensor(id, attr['file'], parse_temp))
 
 def loop():
-	print('collect data')
+	logging.info('collect data')
 	files = list()
 	for s in sensor:
 		try:
 			s.update()
 		except Exception as err:
-			print('sensor failure: {}'.format(err))
+			logging.error(err)
 		else:
 			util.write_csv(s.csv, s.history)
 			files.append(s.csv)
 
-	print('copy to webserver')
+	logging.info('copy to webserver')
 	if files:
-		os.system('scp {} {}'.format(' '.join(files), config['server']))
+		if os.system('scp {} {}'.format(' '.join(files), config['server'])):
+			logging.error('scp failed')
 
 while True:
 	loop()
-	print('sleep')
+	logging.info('sleep')
 	time.sleep(config['update_minutes']*60)
