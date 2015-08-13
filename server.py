@@ -84,7 +84,7 @@ def loop():
 		if sensor.error:
 			notify.admin_error('no data from sensor {}'.format(sensor.name))
 		if sensor.problem:
-			notify.measurement_warning(sensor.id, sensor.problem)
+			notify.measurement_warning(sensor.id, sensor.name, sensor.problem)
 		markdown_data.append(str(sensor))
 	markdown_data = '\n'.join(markdown_data)
 

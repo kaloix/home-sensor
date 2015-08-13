@@ -41,7 +41,7 @@ class NotificationCenter:
 		self.send_email(message, self.user_address)
 		self.warning_pause[id] = time.time() + self.warning_pause_seconds
 
-	def measurement_warning(self, name, measurement):
+	def measurement_warning(self, id, name, measurement):
 		text = 'Messpunkt "{}" außerhalb des zulässigen Bereichs:\n{:.1f} °C / {:%c}'.format(
 			name, *measurement)
-		self.user_warning(text, name)
+		self.user_warning(text, id)
