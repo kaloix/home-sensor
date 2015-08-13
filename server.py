@@ -31,7 +31,7 @@ class Sensor:
 			'{}{:.1f} °C um {:%H:%M} Uhr'.format(
 				'⚠ ' if self.high else '',
 				*self.maximum),
-			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling))
+			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling)])
 
 	def update(self, data):
 		self.history = list()
