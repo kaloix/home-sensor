@@ -5,8 +5,8 @@ Messpunkt | Aktuell | Tagestief | Tageshoch | Zulässig
 $data
 
 ## Tagesverlauf
-![Verlauf der letzten 24 Stunden](plot.png)
+![Verlauf](plot.png)
 
 ---
     
-Letzte Aktualisierung am $date um $time • Copyright © $year Stefan Schindler
+Letzte Aktualisierung $date $time • Copyright © $year Stefan Schindler
