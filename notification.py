@@ -5,10 +5,12 @@ import smtplib
 import time
 
 class NotificationCenter:
-	admin_address = 'stefan@kaloix.de'
-	user_address = 'stefan@kaloix.de'
-	warning_pause_seconds = 24 * 60 * 60
-	warning_pause = dict()
+	def __init__(self):
+		admin_address = 'stefan@kaloix.de'
+		user_address = 'stefan@kaloix.de'
+		warning_pause_seconds = 24 * 60 * 60
+		warning_pause = dict()
+		self.admin_error('test mail')
 
 	def send_email(self, message, address):
 		logging.info('send email')
