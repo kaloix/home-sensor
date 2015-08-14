@@ -12,6 +12,7 @@ import string
 import time
 import traceback
 import util
+#import gc
 
 class Sensor:
 	def __init__(self, id, name, floor, ceiling):
@@ -120,13 +121,14 @@ def loop():
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
 	matplotlib.pyplot.legend(loc='best')
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
-	matplotlib.pyplot.clf()
+	matplotlib.pyplot.close()
 	os.system('cp index.html plot.png {}'.format(config['webserver']))
 
 while True:
 	start = time.perf_counter()
 	try:
 		loop()
+		#gc.collect()
 		util.memory_check()
 	except Exception as err:
 		tb_lines = traceback.format_tb(err.__traceback__)
