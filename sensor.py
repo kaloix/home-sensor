@@ -68,6 +68,9 @@ def loop():
 			logging.error('scp failed')
 
 while True:
+	start = time.perf_counter()
 	loop()
-	logging.info('sleep')
+	util.memory_check()
+	logging.info('sleep, duration was {}s'.format(
+		round(time.perf_counter() - start)))
 	time.sleep(config['update_minutes']*60)

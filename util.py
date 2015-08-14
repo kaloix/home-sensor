@@ -1,5 +1,6 @@
 import csv
 import logging
+import resource
 
 def read_csv(file):
 	data = list()
@@ -18,4 +19,10 @@ def init_logging():
 	logging.basicConfig(
 		format = '[%(asctime)s:%(levelname)s:%(module)s] %(message)s',
 		datefmt = '%y-%m-%d-%H-%M-%S',
-		level = logging.INFO)
+		level = logging.DEBUG)
+
+def memory_check():
+	memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000000
+	logging.debug('using {:.0f} megabytes of memory'.format(memory))
+	if memory > 100:
+		raise SystemExit('memory leak')

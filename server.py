@@ -118,7 +118,7 @@ def loop():
 	matplotlib.pyplot.grid(True)
 	matplotlib.pyplot.gca().yaxis.tick_right()
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
-	matplotlib.pyplot.legend()
+	matplotlib.pyplot.legend(loc='best')
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.clf()
 	os.system('cp index.html plot.png {}'.format(config['webserver']))
@@ -127,6 +127,7 @@ while True:
 	start = time.perf_counter()
 	try:
 		loop()
+		util.memory_check()
 	except Exception as err:
 		tb_lines = traceback.format_tb(err.__traceback__)
 		notify.admin_error(
