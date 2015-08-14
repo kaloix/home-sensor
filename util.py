@@ -23,6 +23,6 @@ def init_logging():
 
 def memory_check():
 	memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000000
-	logging.debug('using {:.0f} megabytes of memory'.format(memory))
+	logging.debug('using {:.3f} megabytes of memory'.format(memory))
 	if memory > 100:
 		raise SystemExit('memory leak')

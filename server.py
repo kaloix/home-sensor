@@ -76,7 +76,7 @@ for id, attr in config['sensor'].items():
 def loop():
 	logging.info('read csv')
 	now = datetime.datetime.now()
-	min_age = now - datetime.timedelta(minutes=config['update_minutes'])
+	min_age = now - datetime.timedelta(minutes=config['update_minutes']+3)
 	markdown_data = list()
 	for sensor in sensor_list:
 		sensor.error = False
