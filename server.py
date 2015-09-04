@@ -13,6 +13,7 @@ import time
 import traceback
 import util
 import config
+import csv
 
 class Sensor(util.DetailHistory):
 	def __init__(self, id, name, floor, ceiling):
@@ -22,8 +23,10 @@ class Sensor(util.DetailHistory):
 		self.name = name
 	def import_csv(self, now):
 		self.reset()
-		for data in util.read_csv(self.csv):
-			self.append(*map(float, data))
+		with open(config.csv_path.format(self.id), newline='') as csv_file:
+			reader = csv.reader(csv_file)
+			for row in reader:
+				self.append(*map(float, row))
 		self.clear(now)
 		if self.history:
 			self.process(now)
@@ -102,7 +105,7 @@ def loop():
 	frame_start = now - config.history_range
 	matplotlib.pyplot.figure(figsize=(12, 4))
 	for s in sensor:
-		values, times = map(list, zip(*s.history))
+		times, values = map(list, zip(*s.history))
 		matplotlib.pyplot.plot(times, values, label=s.name)
 	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')

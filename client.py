@@ -9,6 +9,7 @@ import random
 import time
 import util
 import config
+import csv
 
 class Sensor(util.History):
 	def __init__(self, id, file):
@@ -17,11 +18,13 @@ class Sensor(util.History):
 		self.file = file
 	def read_value(self):
 		now = time.time()
-		value = random.randrange(180, 500) / 10
+		value = random.randrange(140, 310) / 10
 		self.append(now, value)
 		self.clear(now)
 	def export_csv(self):
-		util.write_csv(self.csv, self.history)
+		with open(self.csv, mode='w', newline='') as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerows(self.history)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('station', type=int)
@@ -45,9 +48,8 @@ while True:
 		s.export_csv()
 		files.append(s.csv)
 	logging.info('copy to webserver')
-	if files:
-		if os.system('scp {} {}'.format(' '.join(files), config.client_server)):
-			logging.error('scp failed')
+	if os.system('scp {} {}'.format(' '.join(files), config.client_server)):
+		logging.error('scp failed')
 	util.memory_check()
 	logging.info('sleep, duration was {}s'.format(
 		round(time.perf_counter() - start)))

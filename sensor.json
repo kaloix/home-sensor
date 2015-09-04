@@ -10,7 +10,7 @@
 	"002": {
 	    "name": "Klimaanlage",
 	    "type": "temperature",
-	    "floor": 10,
+	    "floor": 15,
 	    "ceiling": 30,
 	    "file": "/path/to/file2",
 	    "station": 1
