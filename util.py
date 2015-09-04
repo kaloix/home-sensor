@@ -4,6 +4,7 @@ import collections
 import config
 import functools
 import datetime
+import csv
 
 def init_logging():
 	logging.basicConfig(
@@ -27,48 +28,55 @@ class Value:
 		return self.value < other.value
 	def __eq__(self, other):
 		return self.value == other.value
+
 @functools.total_ordering
 class Measurement:
 	def __init__(self, timestamp, value):
+		self.timestamp = timestamp
 		self.value = Value(value)
-		self.timestamp = datetime.datetime.fromtimestamp(timestamp)
-		self.sequence = [timestamp, value]
 	def __str__(self):
 		return '{} um {:%H:%M} Uhr'.format(self.value, self.timestamp)
 	def __lt__(self, other):
 		return self.timestamp < other.timestamp
 	def __eq__(self, other):
 		return self.timestamp == other.timestamp
-	def __len__(self):
-		return len(self.sequence)
-	def __getitem__(self, key):
-		return self.sequence[key]
+
 class History:
-	def __init__(self):
-		self.history = collections.deque()
+	def __init__(self, id):
+		self.csv = '{}.csv'.format(id)
+		self.data = collections.deque()
 	def append(self, timestamp, value):
-		if self.history and timestamp <= self.history[-1].timestamp:
-			raise Exception('timestamp not ascending')
-		measurement = Measurement(timestamp, value)
-		self.history.append(measurement)
+		if not self.data or timestamp > self.data[-1].timestamp:
+			measurement = Measurement(timestamp, value)
+			self.data.append(measurement)
 	def clear(self, now):
-		while self.history[0].timestamp < now - config.history_range:
-			self.history.popleft()
+		while self.data[0].timestamp < now - config.history_range:
+			self.data.popleft()
+	def read(self, file):
+		with open(dir+self.csv, newline='') as csv_file:
+			for row in csv.reader(csv_file):
+				self.append(
+					datetime.datetime.fromtimestamp(float(row[0])),
+					float(row[1]))
+	def write(self, dir):
+		rows = [(d.timestamp.timestamp(), d.value.value) for d in self.data]
+		with open(dir+self.csv, mode='w', newline='') as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerows(rows)
+
 class DetailHistory(History):
-	def __init__(self, floor, ceiling):
-		super().__init__()
+	def __init__(self, id, floor, ceiling):
+		super().__init__(id)
 		self.floor = Value(floor)
 		self.ceiling = Value(ceiling)
-	def reset(self):
-		self.history = collections.deque()
 	def process(self, now):
-		if not self.history:
+		if not self.data:
 			raise Exception('cant process empty data')
-		if self.history[-1].timestamp < now - config.history_range:
+		if self.data[-1].timestamp < now - config.history_range:
 			self.current = None
 		else:
-			self.current = self.history[-1]
-		self.minimum = min(self.history)
-		self.maximum = max(self.history)
+			self.current = self.data[-1]
+		self.minimum = min(self.data)
+		self.maximum = max(self.data)
 		self.warn_low = self.minimum.value < self.floor
 		self.warn_high = self.maximum.value > self.ceiling

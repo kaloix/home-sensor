@@ -1,10 +1,7 @@
-# virtualenv
 ve/
-
-# output
 index.html
 plot.png
 csv/
-
-# python
+data/
+backup/
 __pycache__/

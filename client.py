@@ -9,22 +9,18 @@ import random
 import time
 import util
 import config
-import csv
+import datetime
 
-class Sensor(util.History):
+class Sensor:
 	def __init__(self, id, file):
-		super().__init__()
-		self.csv = config.csv_path.format(id)
+		self.history = util.History(id)
 		self.file = file
-	def read_value(self):
+	def update(self):
 		now = datetime.datetime.now()
 		value = random.randrange(140, 310) / 10
-		self.append(now, value)
-		self.clear(now)
-	def export_csv(self):
-		with open(self.csv, mode='w', newline='') as csv_file:
-			writer = csv.writer(csv_file)
-			writer.writerows(self.history)
+		self.history.append(now, value)
+		self.history.clear(now)
+		self.history.write(config.data_dir)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('station', type=int)
@@ -42,15 +38,12 @@ for id, attr in sensor_json.items():
 while True:
 	start = time.perf_counter()
 	logging.info('collect data')
-	files = list()
 	for s in sensor:
-		s.read_value()
-		s.export_csv()
-		files.append(s.csv)
+		s.update()
 	logging.info('copy to webserver')
-	if os.system('scp {} {}'.format(' '.join(files), config.client_server)):
+	if os.system('scp {0}* {1}{0}'.format(config.data_dir, config.client_server)):
 		logging.error('scp failed')
 	util.memory_check()
 	logging.info('sleep, duration was {}s'.format(
 		round(time.perf_counter() - start)))
-	time.sleep(config.interval_seconds)
+	time.sleep(config.update_interval.total_seconds())

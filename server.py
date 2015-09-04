@@ -13,45 +13,39 @@ import time
 import traceback
 import util
 import config
-import csv
 
-class Sensor(util.DetailHistory):
+class Sensor:
 	def __init__(self, id, name, floor, ceiling):
-		super().__init__(floor, ceiling)
-		self.id = id
-		self.csv = config.csv_path.format(id)
+		self.history = util.DetailHistory(id, floor, ceiling)
 		self.name = name
-	def import_csv(self, now):
-		self.reset()
-		with open(config.csv_path.format(self.id), newline='') as csv_file:
-			reader = csv.reader(csv_file)
-			for row in reader:
-				self.append(*map(float, row))
-		self.clear(now)
-		if self.history:
-			self.process(now)
+	def update(self):
+		self.history.read(config.data_dir)
+		now = datetime.datetime.now()
+		self.history.clear(now)
+		if self.history.data:
+			self.history.process(now)
 	def markdown(self):
 		delimiter = ' | '
 		string = [
 			self.name,
 			delimiter]
-		if not self.history:
+		if self.history.data:
+			string.extend([
+				str(self.history.current.value) if self.history.current else 'Fehler',
+				delimiter,
+				'⚠ ' if self.history.warn_low else '',
+				str(self.history.minimum),
+				delimiter,
+				'⚠ ' if self.history.warn_high else '',
+				str(self.history.maximum),
+				delimiter,
+				str(self.history.floor),
+				' bis ',
+				str(self.history.ceiling)])
+		else:
 			string.extend([
 				'Keine Daten',
 				delimiter, delimiter, delimiter])
-		else:
-			string.extend([
-				str(self.current.value) if self.current else 'Fehler',
-				delimiter,
-				'⚠ ' if self.warn_low else '',
-				str(self.minimum),
-				delimiter,
-				'⚠ ' if self.warn_high else '',
-				str(self.maximum),
-				delimiter,
-				str(self.floor),
-				' bis ',
-				str(self.ceiling)])
 		return ''.join(string)
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
@@ -81,14 +75,14 @@ def loop():
 	now = datetime.datetime.now()
 	markdown_string = list()
 	for s in sensor:
-		s.import_csv(now)
+		s.update()
 		markdown_string.append(s.markdown())
-		if not s.history:
+		if not s.history.current:
 			notify.sensor_warning(s.id, s.name)
-		if s.warn_low:
-			notify.low_warning(s.id, s.name, s.minimum)
-		if s.warn_high:
-			notify.high_warning(s.id, s.name, s.maximum)
+		if s.history.warn_low:
+			notify.low_warning(s.id, s.name, s.history.minimum)
+		if s.history.warn_high:
+			notify.high_warning(s.id, s.name, s.history.maximum)
 	markdown_data = '\n'.join(markdown_string)
 
 	logging.info('write html')
