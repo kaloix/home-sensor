@@ -13,7 +13,7 @@ import config
 class Sensor(util.History):
 	def __init__(self, id, file):
 		super().__init__()
-		self.csv = 'csv/{}.csv'.format(id)
+		self.csv = config.csv_path.format(id)
 		self.file = file
 	def read_value(self):
 		now = time.time()
@@ -21,7 +21,7 @@ class Sensor(util.History):
 		self.append(now, value)
 		self.clear(now)
 	def export_csv(self):
-		util.write_csv(self.csv, list(self.history))
+		util.write_csv(self.csv, self.history)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('station', type=int)

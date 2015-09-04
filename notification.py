@@ -2,14 +2,11 @@ import datetime
 import email.mime.text
 import logging
 import smtplib
-import time
+import config
 
 class NotificationCenter:
 	def __init__(self):
-		admin_address = 'stefan@kaloix.de'
-		user_address = 'stefan@kaloix.de'
-		warning_pause_seconds = 24 * 60 * 60
-		warning_pause = dict()
+		self.warning_pause = dict()
 		self.admin_error('test mail')
 
 	def send_email(self, message, address):
@@ -30,26 +27,25 @@ class NotificationCenter:
 	def admin_error(self, message):
 		logging.error(message)
 		text = 'Administrator-Meldung:\n{}'.format(message)
-		self.send_email(text, self.admin_address)
+		self.send_email(text, config.admin_address)
 	
 	def user_warning(self, message, id):
 		logging.warning(message)
-		if id in self.warning_pause and self.warning_pause[id] > time.time():
+		now = datetime.datetime.now()
+		if id in self.warning_pause and self.warning_pause[id] > now:
 			logging.info('suppress email')
 			return
-		self.send_email(message, self.user_address)
-		self.warning_pause[id] = time.time() + self.warning_pause_seconds
+		self.send_email(message, config.user_address)
+		self.warning_pause[id] = now + config.warning_pause
 
 	def sensor_warning(self, id, name):
 		text = 'Messpunkt "{}" liefert keine Daten.'.format(name)
 		self.user_warning(text, 's'+id)
 
 	def low_warning(self, id, name, measurement):
-		text = ('Messpunkt "{}" unterhalb des zulässigen Bereichs:\n'
-			'{:.1f} °C / {:%c}').format(name, *measurement)
+		text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n{}'.format(name, measurement)
 		self.user_warning(text, 'l'+id)
 
 	def high_warning(self, id, name, measurement):
-		text = ('Messpunkt "{}" überhalb des zulässigen Bereichs:\n'
-			'{:.1f} °C / {:%c}').format(name, *measurement)
+		text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}'.format(name, measurement)
 		self.user_warning(text, 'h'+id)

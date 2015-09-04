@@ -12,16 +12,18 @@ import string
 import time
 import traceback
 import util
+import config
 
-class Sensor(DetailHistory):
-	def __init__(self, floor, ceiling, id, name):
+class Sensor(util.DetailHistory):
+	def __init__(self, id, name, floor, ceiling):
 		super().__init__(floor, ceiling)
 		self.id = id
+		self.csv = config.csv_path.format(id)
 		self.name = name
 	def import_csv(self, now):
 		self.reset()
 		for data in util.read_csv(self.csv):
-			self.append(map(float, data))
+			self.append(*map(float, data))
 		self.clear(now)
 		if self.history:
 			self.process(now)
@@ -36,7 +38,7 @@ class Sensor(DetailHistory):
 				delimiter, delimiter, delimiter])
 		else:
 			string.extend([
-				str(self.current, short=True) if self.current else 'Fehler',
+				str(self.current.value) if self.current else 'Fehler',
 				delimiter,
 				'⚠ ' if self.warn_low else '',
 				str(self.minimum),
@@ -44,9 +46,9 @@ class Sensor(DetailHistory):
 				'⚠ ' if self.warn_high else '',
 				str(self.maximum),
 				delimiter,
-				str(self.floor, short=True),
+				str(self.floor),
 				' bis ',
-				str(self.ceiling, short=True)])
+				str(self.ceiling)])
 		return ''.join(string)
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
@@ -65,7 +67,7 @@ sensor_json = json.loads(json_config)
 sensor = list()
 for id, attr in sensor_json.items():
 	if attr['type'] == 'temperature':
-		sensor_list.append(Sensor(
+		sensor.append(Sensor(
 			id,
 			attr['name'],
 			attr['floor'],
@@ -73,17 +75,17 @@ for id, attr in sensor_json.items():
 
 def loop():
 	logging.info('read csv')
-	now = time.time()
+	now = datetime.datetime.now()
 	markdown_string = list()
 	for s in sensor:
 		s.import_csv(now)
 		markdown_string.append(s.markdown())
-		if not sensor.history:
-			notify.sensor_warning(sensor.id, sensor.name)
-		if sensor.warn_low:
-			notify.low_warning(sensor.id, sensor.name, sensor.minimum)
-		if sensor.warn_high:
-			notify.high_warning(sensor.id, sensor.name, sensor.maximum)
+		if not s.history:
+			notify.sensor_warning(s.id, s.name)
+		if s.warn_low:
+			notify.low_warning(s.id, s.name, s.minimum)
+		if s.warn_high:
+			notify.high_warning(s.id, s.name, s.maximum)
 	markdown_data = '\n'.join(markdown_string)
 
 	logging.info('write html')
@@ -97,11 +99,11 @@ def loop():
 		html_file.write(html_filled)
 
 	logging.info('generate plot')
-	frame_start = now - datetime.timedelta(hours=config['history_hours'])
+	frame_start = now - config.history_range
 	matplotlib.pyplot.figure(figsize=(12, 4))
-	for sensor in sensor_list:
-		values, times = map(list, zip(*sensor.history))
-		matplotlib.pyplot.plot(times, values, label=sensor.name)
+	for s in sensor:
+		values, times = map(list, zip(*s.history))
+		matplotlib.pyplot.plot(times, values, label=s.name)
 	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
@@ -111,13 +113,12 @@ def loop():
 	matplotlib.pyplot.legend(loc='best')
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.close()
-	os.system('cp index.html plot.png {}'.format(config['webserver']))
+	os.system('cp index.html plot.png {}'.format(config.web_dir))
 
 while True:
 	start = time.perf_counter()
 	try:
 		loop()
-		#gc.collect()
 		util.memory_check()
 	except Exception as err:
 		tb_lines = traceback.format_tb(err.__traceback__)

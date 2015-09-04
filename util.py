@@ -4,6 +4,7 @@ import resource
 import collections
 import config
 import functools
+import datetime
 
 def read_csv(file):
 	data = list()
@@ -32,23 +33,31 @@ def memory_check():
 		raise Exception('memory leak')
 
 @functools.total_ordering
+class Value:
+	def __init__(self, value):
+		self.value = value
+	def __str__(self):
+		return '{:.1f} °C'.format(self.value)
+	def __lt__(self, other):
+		return self.value < other.value
+	def __eq__(self, other):
+		return self.value == other.value
+@functools.total_ordering
 class Measurement:
 	def __init__(self, timestamp, value):
-		self.timestamp = timestamp
-		self.value = value
-	def __str__(self, short=False):
-		if short:
-			return '{:.1f} °C'.format(self.value)
-		else:
-			return '{:.1f} °C um {:%H:%M} Uhr'.format(self.value, self.timestamp)
+		self.value = Value(value)
+		self.timestamp = datetime.datetime.fromtimestamp(timestamp)
+		self.sequence = [timestamp, value]
+	def __str__(self):
+		return '{} um {:%H:%M} Uhr'.format(self.value, self.timestamp)
 	def __lt__(self, other):
 		return self.timestamp < other.timestamp
 	def __eq__(self, other):
 		return self.timestamp == other.timestamp
 	def __len__(self):
-		return 2
+		return len(self.sequence)
 	def __getitem__(self, key):
-		return [self.timestamp, self.value][key]
+		return self.sequence[key]
 class History:
 	def __init__(self):
 		self.history = collections.deque()
@@ -58,23 +67,23 @@ class History:
 		measurement = Measurement(timestamp, value)
 		self.history.append(measurement)
 	def clear(self, now):
-		while self.history[0].timestamp < now - config.history_seconds:
+		while self.history[0].timestamp < now - config.history_range:
 			self.history.popleft()
 class DetailHistory(History):
 	def __init__(self, floor, ceiling):
 		super().__init__()
-		self.floor = Measurement(None, floor)
-		self.ceiling = Measurement(None, ceiling)
+		self.floor = Value(floor)
+		self.ceiling = Value(ceiling)
 	def reset(self):
 		self.history = collections.deque()
 	def process(self, now):
 		if not self.history:
 			raise Exception('cant process empty data')
-		if self.history[-1].timestamp >= now - config.history_seconds:
-			self.current = self.history[-1]
-		else:
+		if self.history[-1].timestamp < now - config.history_range:
 			self.current = None
+		else:
+			self.current = self.history[-1]
 		self.minimum = min(self.history)
 		self.maximum = max(self.history)
-		self.warn_low = self.minimum.value < self.floor.value
-		self.warn_high = self.maximum.value > self.ceiling.value
+		self.warn_low = self.minimum.value < self.floor
+		self.warn_high = self.maximum.value > self.ceiling
