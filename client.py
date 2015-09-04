@@ -17,7 +17,7 @@ class Sensor(util.History):
 		self.csv = config.csv_path.format(id)
 		self.file = file
 	def read_value(self):
-		now = time.time()
+		now = datetime.datetime.now()
 		value = random.randrange(140, 310) / 10
 		self.append(now, value)
 		self.clear(now)
