@@ -12,45 +12,42 @@ import string
 import time
 import traceback
 import util
-#import gc
 
-class Sensor:
-	def __init__(self, id, name, floor, ceiling):
+class Sensor(DetailHistory):
+	def __init__(self, floor, ceiling, id, name):
+		super().__init__(floor, ceiling)
 		self.id = id
 		self.name = name
-		self.floor = floor
-		self.ceiling = ceiling
-		self.csv = 'csv/{}.csv'.format(id)
-
-	def __str__(self):
-		return ' | '.join([
+	def import_csv(self, now):
+		self.reset()
+		for data in util.read_csv(self.csv):
+			self.append(map(float, data))
+		self.clear(now)
+		if self.history:
+			self.process(now)
+	def markdown(self):
+		delimiter = ' | '
+		string = [
 			self.name,
-			'Fehler' if self.error else '{:.1f} °C'.format(self.current[0]),
-			'{}{:.1f} °C um {:%H:%M} Uhr'.format(
-				'⚠ ' if self.low else '',
-				*self.minimum),
-			'{}{:.1f} °C um {:%H:%M} Uhr'.format(
-				'⚠ ' if self.high else '',
-				*self.maximum),
-			'{:.0f} °C bis {:.0f} °C'.format(self.floor, self.ceiling)])
-
-	def update(self, data):
-		self.history = list()
-		for d in data:
-			self.history.append((
-				float(d[1]),
-				datetime.datetime.fromtimestamp(float(d[0]))))
-		self.current = self.history[-1]
-		self.minimum = min(self.history)
-		self.maximum = max(self.history)
-		if self.minimum[0] < self.floor:
-			self.low = self.minimum
+			delimiter]
+		if not self.history:
+			string.extend([
+				'Keine Daten',
+				delimiter, delimiter, delimiter])
 		else:
-			self.low = None
-		if self.maximum[0] > self.ceiling:
-			self.high = self.maximum
-		else:
-			self.high = None
+			string.extend([
+				str(self.current, short=True) if self.current else 'Fehler',
+				delimiter,
+				'⚠ ' if self.warn_low else '',
+				str(self.minimum),
+				delimiter,
+				'⚠ ' if self.warn_high else '',
+				str(self.maximum),
+				delimiter,
+				str(self.floor, short=True),
+				' bis ',
+				str(self.ceiling, short=True)])
+		return ''.join(string)
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 util.init_logging()
@@ -62,11 +59,11 @@ markdown_to_html = markdown.Markdown(
 	extensions = ['markdown.extensions.tables'],
 	output_format = 'html5')
 notify = notification.NotificationCenter()
-with open('config.json') as json_file:
+with open('sensor.json') as json_file:
 	json_config = json_file.read()
-config = json.loads(json_config)
-sensor_list = list()
-for id, attr in config['sensor'].items():
+sensor_json = json.loads(json_config)
+sensor = list()
+for id, attr in sensor_json.items():
 	if attr['type'] == 'temperature':
 		sensor_list.append(Sensor(
 			id,
@@ -76,25 +73,18 @@ for id, attr in config['sensor'].items():
 
 def loop():
 	logging.info('read csv')
-	now = datetime.datetime.now()
-	min_age = now - datetime.timedelta(minutes=config['update_minutes']+3)
-	markdown_data = list()
-	for sensor in sensor_list:
-		sensor.error = False
-		try:
-			sensor.update(util.read_csv(sensor.csv))
-		except FileNotFoundError:
-			sensor.error = True
-		if sensor.current[1] < min_age:
-			sensor.error = True
-		if sensor.error:
+	now = time.time()
+	markdown_string = list()
+	for s in sensor:
+		s.import_csv(now)
+		markdown_string.append(s.markdown())
+		if not sensor.history:
 			notify.sensor_warning(sensor.id, sensor.name)
-		if sensor.low:
-			notify.low_warning(sensor.id, sensor.name, sensor.low)
-		if sensor.high:
-			notify.high_warning(sensor.id, sensor.name, sensor.high)
-		markdown_data.append(str(sensor))
-	markdown_data = '\n'.join(markdown_data)
+		if sensor.warn_low:
+			notify.low_warning(sensor.id, sensor.name, sensor.minimum)
+		if sensor.warn_high:
+			notify.high_warning(sensor.id, sensor.name, sensor.maximum)
+	markdown_data = '\n'.join(markdown_string)
 
 	logging.info('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
