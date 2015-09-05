@@ -25,7 +25,7 @@ def parse_w1_temp(file):
 				return int(file.readline().split('t=')[-1]) / 1000
 			else:
 				return None
-	except OSError, ValueError:
+	except Exception:
 		return None
 
 @functools.total_ordering
