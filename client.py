@@ -35,7 +35,7 @@ for name, attr in sensor_json.items():
 	sensor.append(Sensor(name, attr['file']))
 
 while True:
-	start = time.perf_counter()
+	start = time.time()
 	logging.info('collect data')
 	for s in sensor:
 		s.update()
@@ -44,5 +44,5 @@ while True:
 		logging.error('scp failed')
 	util.memory_check()
 	logging.info('sleep, duration was {}s'.format(
-		round(time.perf_counter() - start)))
+		round(time.time() - start)))
 	time.sleep(config.update_interval.total_seconds())

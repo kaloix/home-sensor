@@ -2,7 +2,7 @@
 > This project was made with only personal use by me in mind. Code is not commentated, probably bad structured and containes German language.
 
 ## Requirements
-* Python 3
+* Python 3.2.3
 * [markdown](https://pythonhosted.org/Markdown/)
 * [matplotlib](http://matplotlib.org/index.html)
 

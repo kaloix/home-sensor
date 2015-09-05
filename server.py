@@ -107,7 +107,7 @@ def loop():
 	os.system('cp index.html plot.png {}'.format(config.web_dir))
 
 while True:
-	start = time.perf_counter()
+	start = time.time()
 	try:
 		loop()
 		util.memory_check()
@@ -117,5 +117,5 @@ while True:
 			'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
 		break
 	logging.info('sleep, duration was {}s'.format(
-		round(time.perf_counter() - start)))
+		round(time.time() - start)))
 	time.sleep(60)
