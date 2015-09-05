@@ -19,14 +19,9 @@ def memory_check():
 		raise Exception('memory leak')
 
 def parse_w1_temp(file):
-	try:
-		with open(file) as w1_file:
-			if file.readline().endswith('YES'):
-				return int(file.readline().split('t=')[-1]) / 1000
-			else:
-				return None
-	except Exception:
-		return None
+	with open(file) as w1_file:
+		if file.readline().endswith('YES'):
+			return int(file.readline().split('t=')[-1]) / 1000
 
 def timestamp(date_time):
 	return (date_time - datetime.datetime(1970, 1, 1)).total_seconds()
