@@ -21,8 +21,8 @@ def memory_check():
 def parse_w1_temp(file):
 	try:
 		with open(file) as w1_file:
-			if file.readline().endswith('YES'):
-				return int(file.readline().split('t=')[-1]) / 1000
+			if w1_file.readline().endswith('YES'):
+				return int(w1_file.readline().split('t=')[-1]) / 1000
 	except Exception as err:
 		logging.error('sensor failure: {}'.format(err))
 
