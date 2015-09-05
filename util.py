@@ -81,7 +81,7 @@ class DetailHistory(History):
 		self.floor = Value(floor)
 		self.ceiling = Value(ceiling)
 	def process(self, now):
-		if self.data and self.data[-1].timestamp >= now - config.history_range:
+		if self.data and self.data[-1].timestamp >= now - 2*config.client_interval:
 			self.current = self.data[-1]
 		else:
 			self.current = None
