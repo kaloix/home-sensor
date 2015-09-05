@@ -12,8 +12,8 @@ import config
 import datetime
 
 class Sensor:
-	def __init__(self, id, file):
-		self.history = util.History(id)
+	def __init__(self, name, file):
+		self.history = util.History(name)
 		self.file = file
 	def update(self):
 		now = datetime.datetime.now()
@@ -30,10 +30,10 @@ with open('sensor.json') as json_file:
 	json_config = json_file.read()
 sensor_json = json.loads(json_config)
 sensor = list()
-for id, attr in sensor_json.items():
+for name, attr in sensor_json.items():
 	if attr['station'] != args.station:
 		continue
-	sensor.append(Sensor(id, attr['file']))
+	sensor.append(Sensor(name, attr['file']))
 
 while True:
 	start = time.perf_counter()

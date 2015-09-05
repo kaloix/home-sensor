@@ -15,38 +15,30 @@ import util
 import config
 
 class Sensor:
-	def __init__(self, id, name, floor, ceiling):
-		self.history = util.DetailHistory(id, floor, ceiling)
+	def __init__(self, name, floor, ceiling):
+		self.history = util.DetailHistory(name, floor, ceiling)
 		self.name = name
 	def update(self):
 		self.history.read(config.data_dir)
 		now = datetime.datetime.now()
 		self.history.clear(now)
-		if self.history.data:
-			self.history.process(now)
+		self.history.process(now)
 	def markdown(self):
 		delimiter = ' | '
-		string = [
+		return ''.join([
 			self.name,
-			delimiter]
-		if self.history.data:
-			string.extend([
-				str(self.history.current.value) if self.history.current else 'Fehler',
-				delimiter,
-				'⚠ ' if self.history.warn_low else '',
-				str(self.history.minimum),
-				delimiter,
-				'⚠ ' if self.history.warn_high else '',
-				str(self.history.maximum),
-				delimiter,
-				str(self.history.floor),
-				' bis ',
-				str(self.history.ceiling)])
-		else:
-			string.extend([
-				'Keine Daten',
-				delimiter, delimiter, delimiter])
-		return ''.join(string)
+			delimiter,
+			str(self.history.current.value) if self.history.current else 'Fehler',
+			delimiter,
+			'⚠ ' if self.history.warn_low else '',
+			str(self.history.minimum),
+			delimiter,
+			'⚠ ' if self.history.warn_high else '',
+			str(self.history.maximum),
+			delimiter,
+			str(self.history.floor),
+			' bis ',
+			str(self.history.ceiling)])
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 util.init_logging()
@@ -62,13 +54,11 @@ with open('sensor.json') as json_file:
 	json_config = json_file.read()
 sensor_json = json.loads(json_config)
 sensor = list()
-for id, attr in sensor_json.items():
-	if attr['type'] == 'temperature':
-		sensor.append(Sensor(
-			id,
-			attr['name'],
-			attr['floor'],
-			attr['ceiling']))
+for name, attr in sensor_json.items():
+	sensor.append(Sensor(
+		name,
+		attr['floor'],
+		attr['ceiling']))
 
 def loop():
 	logging.info('read csv')
@@ -78,11 +68,14 @@ def loop():
 		s.update()
 		markdown_string.append(s.markdown())
 		if not s.history.current:
-			notify.sensor_warning(s.id, s.name)
+			text = 'Messpunkt "{}" liefert keine Daten.'.format(s.name)
+			notify.warn_user(text, s.name+'s')
 		if s.history.warn_low:
-			notify.low_warning(s.id, s.name, s.history.minimum)
+			text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n{}'.format(s.name, s.history.minimum)
+			notify.warn_user(text, s.name+'l')
 		if s.history.warn_high:
-			notify.high_warning(s.id, s.name, s.history.maximum)
+			text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}'.format(s.name, s.history.maximum)
+			notify.warn_user(text, s.name+'h')
 	markdown_data = '\n'.join(markdown_string)
 
 	logging.info('write html')
@@ -99,8 +92,7 @@ def loop():
 	frame_start = now - config.history_range
 	matplotlib.pyplot.figure(figsize=(12, 4))
 	for s in sensor:
-		times, values = map(list, zip(*s.history))
-		matplotlib.pyplot.plot(times, values, label=s.name)
+		matplotlib.pyplot.plot(*s.history.melt(), label=s.name)
 	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
@@ -119,7 +111,7 @@ while True:
 		util.memory_check()
 	except Exception as err:
 		tb_lines = traceback.format_tb(err.__traceback__)
-		notify.admin_error(
+		notify.warn_admin(
 			'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
 		break
 	logging.info('sleep, duration was {}s'.format(

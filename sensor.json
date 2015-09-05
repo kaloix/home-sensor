@@ -1,14 +1,12 @@
 {
-	"001": {
-	    "name": "Wohnzimmer",
+	"Wohnzimmer": {
 	    "type": "temperature",
 	    "floor": 15,
 	    "ceiling": 30,
 	    "file": "/path/to/file1",
 	    "station": 1
 	},
-	"002": {
-	    "name": "Klimaanlage",
+	"Klimaanlage": {
 	    "type": "temperature",
 	    "floor": 15,
 	    "ceiling": 30,

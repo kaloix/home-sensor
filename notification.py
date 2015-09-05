@@ -7,9 +7,10 @@ import config
 class NotificationCenter:
 	def __init__(self):
 		self.warning_pause = dict()
-		self.admin_error('test mail')
+		self.warn_admin('test mail')
 
-	def send_email(self, message, address):
+	def _send_email(self, message, address):
+		return
 		logging.info('send email')
 		msg = email.mime.text.MIMEText(str(message))
 		msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
@@ -24,28 +25,16 @@ class NotificationCenter:
 		except OSError as err:
 			logging.error('send email failed: {}'.format(err))
 	
-	def admin_error(self, message):
+	def warn_admin(self, message):
 		logging.error(message)
 		text = 'Administrator-Meldung:\n{}'.format(message)
-		self.send_email(text, config.admin_address)
+		self._send_email(text, config.admin_address)
 	
-	def user_warning(self, message, id):
+	def warn_user(self, message, key):
 		logging.warning(message)
 		now = datetime.datetime.now()
-		if id in self.warning_pause and self.warning_pause[id] > now:
+		if key in self.warning_pause and self.warning_pause[key] > now:
 			logging.info('suppress email')
 			return
-		self.send_email(message, config.user_address)
-		self.warning_pause[id] = now + config.warning_pause
-
-	def sensor_warning(self, id, name):
-		text = 'Messpunkt "{}" liefert keine Daten.'.format(name)
-		self.user_warning(text, 's'+id)
-
-	def low_warning(self, id, name, measurement):
-		text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n{}'.format(name, measurement)
-		self.user_warning(text, 'l'+id)
-
-	def high_warning(self, id, name, measurement):
-		text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}'.format(name, measurement)
-		self.user_warning(text, 'h'+id)
+		self._send_email(message, config.user_address)
+		self.warning_pause[key] = now + config.warning_pause
