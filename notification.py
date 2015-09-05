@@ -7,7 +7,7 @@ import config
 class NotificationCenter:
 	def __init__(self):
 		self.warning_pause = dict()
-		self.warn_admin('test mail')
+		self.warn_admin('initial test mail')
 
 	def _send_email(self, message, address):
 		if not config.enable_email:
