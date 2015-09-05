@@ -13,7 +13,7 @@ def init_logging():
 		level = logging.DEBUG)
 
 def memory_check():
-	memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000
+	memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e3
 	logging.debug('using {:.0f} megabytes of memory'.format(memory))
 	if memory > 100:
 		raise Exception('memory leak')
@@ -21,12 +21,12 @@ def memory_check():
 def parse_w1_temp(file):
 	with open(file) as w1_file:
 		if w1_file.readline().strip().endswith('YES'):
-			return int(w1_file.readline().split('t=')[-1].strip()) / 1000
+			return int(w1_file.readline().split('t=')[-1].strip()) / 1e3
 		else:
 			raise Exception('sensor says no')
 
 def timestamp(date_time):
-	return float('{:%s}'.format(date_time)) + date_time.microsecond
+	return float('{:%s}'.format(date_time)) + date_time.microsecond / 1e6
 
 @functools.total_ordering
 class Value:
