@@ -18,11 +18,13 @@ class Sensor:
 	def __init__(self, name, floor, ceiling):
 		self.history = util.DetailHistory(name, floor, ceiling)
 		self.name = name
+		self.history.read(config.backup_dir)
 	def update(self):
 		self.history.read(config.data_dir)
 		now = datetime.datetime.now()
 		self.history.clear(now)
 		self.history.process(now)
+		self.history.write(config.backup_dir)
 	def markdown(self):
 		delimiter = ' | '
 		return ''.join([
@@ -49,7 +51,6 @@ with open('template.html') as html_file:
 markdown_to_html = markdown.Markdown(
 	extensions = ['markdown.extensions.tables'],
 	output_format = 'html5')
-notify = notification.NotificationCenter()
 with open('sensor.json') as json_file:
 	json_config = json_file.read()
 sensor_json = json.loads(json_config)
@@ -59,6 +60,7 @@ for name, attr in sensor_json.items():
 		name,
 		attr['floor'],
 		attr['ceiling']))
+notify = notification.NotificationCenter()
 
 def loop():
 	logging.info('read csv')

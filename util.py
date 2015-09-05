@@ -53,10 +53,12 @@ class History:
 		while self.data and self.data[0].timestamp < now - config.history_range:
 			self.data.popleft()
 	def read(self, directory):
-		with open(directory+self.csv, newline='') as csv_file:
-			reader = csv.reader(csv_file)
-			for r in reader:
-				self.append(datetime.datetime.fromtimestamp(float(r[0])), float(r[1]))
+		try:
+			with open(directory+self.csv, newline='') as csv_file:
+				for r in csv.reader(csv_file):
+					self.append(datetime.datetime.fromtimestamp(float(r[0])), float(r[1]))
+		except FileNotFoundError:
+			pass
 	def write(self, directory):
 		rows = [(d.timestamp.timestamp(), d.value.value) for d in self.data]
 		with open(directory+self.csv, mode='w', newline='') as csv_file:
