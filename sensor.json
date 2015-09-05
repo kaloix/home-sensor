@@ -1,5 +1,5 @@
 {
-	"Test": {
+	"Wohnzimmer": {
 	    "type": "temperature",
 	    "floor": 10,
 	    "ceiling": 40,
