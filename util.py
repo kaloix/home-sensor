@@ -19,12 +19,11 @@ def memory_check():
 		raise Exception('memory leak')
 
 def parse_w1_temp(file):
-	try:
-		with open(file) as w1_file:
-			if w1_file.readline().endswith('YES'):
-				return int(w1_file.readline().split('t=')[-1]) / 1000
-	except Exception as err:
-		logging.error('sensor failure: {}'.format(err))
+	with open(file) as w1_file:
+		if w1_file.readline().strip().endswith('YES'):
+			return int(w1_file.readline().split('t=')[-1].strip()) / 100
+		else:
+			raise Exception('sensor says no')
 
 def timestamp(date_time):
 	return (date_time - datetime.datetime(1970, 1, 1)).total_seconds()
