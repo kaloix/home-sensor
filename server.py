@@ -118,4 +118,4 @@ while True:
 		break
 	logging.info('sleep, duration was {}s'.format(
 		round(time.time() - start)))
-	time.sleep(60)
+	time.sleep(config.server_interval.total_seconds())
