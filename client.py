@@ -16,11 +16,8 @@ class Sensor:
 		self.file = file
 	def update(self):
 		now = datetime.datetime.now()
-		try:
-			value = util.parse_w1_temp(self.file)
-		except Exception as err:
-			logging.error('sensor failure: {}'.format(err))
-		else:
+		value = util.parse_w1_temp(self.file)
+		if value is not None:
 			self.history.append(now, value)
 		self.history.clear(now)
 		self.history.write(config.data_dir)

@@ -9,3 +9,4 @@ client_server = 'kaloix@adhara.uberspace.de:home-sensor/'
 web_dir = '~/html/sensor/'
 admin_address = 'stefan@kaloix.de'
 user_address = 'stefan@kaloix.de'
+enable_email = False

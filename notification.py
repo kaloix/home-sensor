@@ -10,6 +10,9 @@ class NotificationCenter:
 		self.warn_admin('test mail')
 
 	def _send_email(self, message, address):
+		if not config.enable_email:
+			logging.info('send email disabled')
+			return
 		logging.info('send email')
 		msg = email.mime.text.MIMEText(str(message))
 		msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
@@ -31,6 +34,7 @@ class NotificationCenter:
 	
 	def warn_user(self, message, key):
 		logging.warning(message)
+		logging.debug(key)
 		now = datetime.datetime.now()
 		if key in self.warning_pause and self.warning_pause[key] > now:
 			logging.info('suppress email')

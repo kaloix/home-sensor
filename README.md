@@ -14,8 +14,10 @@
 * Copy these files to the server, when new data is available
 
 ### Usage
-The directory `csv/` on the server must be created manually first.
+The directory `data/` on the server must be created manually first.
 
+    modprobe w1-gpio
+    modprobe w1-therm
     ./sensor.py <station>
 
 The *station* parameter corresponds with the same field in the sensor list of `config.json`.
