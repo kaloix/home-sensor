@@ -28,6 +28,9 @@ def parse_w1_temp(file):
 	except Exception:
 		return None
 
+def timestamp(date_time):
+	return (date_time - datetime.datetime(1970, 1, 1)).total_seconds()
+
 @functools.total_ordering
 class Value:
 	def __init__(self, value):
@@ -70,7 +73,7 @@ class History:
 		except FileNotFoundError:
 			pass
 	def write(self, directory):
-		rows = [(d.timestamp.timestamp(), d.value.value) for d in self.data]
+		rows = [(timestamp(d.timestamp), d.value.value) for d in self.data]
 		with open(directory+self.csv, mode='w', newline='') as csv_file:
 			writer = csv.writer(csv_file)
 			writer.writerows(rows)
