@@ -26,7 +26,7 @@ def parse_w1_temp(file):
 			raise Exception('sensor says no')
 
 def timestamp(date_time):
-	return (date_time - datetime.datetime(1970, 1, 1)).total_seconds()
+	return float('{:%s}'.format(date_time)) + date_time.microsecond
 
 @functools.total_ordering
 class Value:

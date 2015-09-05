@@ -18,7 +18,7 @@ The directory `data/` on the server must be created manually first.
 
     modprobe w1-gpio
     modprobe w1-therm
-    ./sensor.py <station>
+    ./client.py <station>
 
 The *station* parameter corresponds with the same field in the sensor list of `config.json`.
 
