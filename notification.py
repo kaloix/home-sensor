@@ -10,7 +10,6 @@ class NotificationCenter:
 		self.warn_admin('test mail')
 
 	def _send_email(self, message, address):
-		return
 		logging.info('send email')
 		msg = email.mime.text.MIMEText(str(message))
 		msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
