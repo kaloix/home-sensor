@@ -18,6 +18,16 @@ def memory_check():
 	if memory > 100:
 		raise Exception('memory leak')
 
+def parse_w1_temp(file):
+	try:
+		with open(file) as w1_file:
+			if file.readline().endswith('YES'):
+				return int(file.readline().split('t=')[-1]) / 1000
+			else:
+				return None
+	except OSError, ValueError:
+		return None
+
 @functools.total_ordering
 class Value:
 	def __init__(self, value):

@@ -1,7 +1,7 @@
 import datetime
 
-history_range = datetime.timedelta(days=1)
-update_interval = datetime.timedelta(minutes=10)
+history_range = datetime.timedelta(hours=1) # days=1
+update_interval = datetime.timedelta(minutes=1) # minutes=10
 warning_pause = datetime.timedelta(days=1)
 data_dir = 'data/'
 backup_dir = 'backup/'

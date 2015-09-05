@@ -5,7 +5,6 @@ import collections
 import json
 import logging
 import os
-import random
 import time
 import util
 import config
@@ -17,7 +16,7 @@ class Sensor:
 		self.file = file
 	def update(self):
 		now = datetime.datetime.now()
-		value = random.randrange(140, 310) / 10
+		value = util.parse_w1_temp(self.file)
 		self.history.append(now, value)
 		self.history.clear(now)
 		self.history.write(config.data_dir)

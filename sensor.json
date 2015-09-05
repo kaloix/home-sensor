@@ -1,16 +1,9 @@
 {
-	"Wohnzimmer": {
+	"Test": {
 	    "type": "temperature",
-	    "floor": 15,
-	    "ceiling": 30,
-	    "file": "/path/to/file1",
-	    "station": 1
-	},
-	"Klimaanlage": {
-	    "type": "temperature",
-	    "floor": 15,
-	    "ceiling": 30,
-	    "file": "/path/to/file2",
+	    "floor": 10,
+	    "ceiling": 40,
+	    "file": "/sys/bus/w1/devices/28-0000071d810f/w1_slave",
 	    "station": 1
 	}
 }
