@@ -47,9 +47,9 @@ class Measurement:
 	def __str__(self):
 		return '{} um {:%H:%M} Uhr'.format(self.value, self.timestamp)
 	def __lt__(self, other):
-		return self.timestamp < other.timestamp
+		return self.value < other.value
 	def __eq__(self, other):
-		return self.timestamp == other.timestamp
+		return self.value == other.value
 
 class History:
 	def __init__(self, name):
