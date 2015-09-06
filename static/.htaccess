@@ -5,10 +5,10 @@
 
 <IfModule mod_expires.c>
 	ExpiresActive on
-	ExpiresByType text/html "modification plus 1 minutes"
+	ExpiresByType text/html "modification plus 1 minute"
 	ExpiresByType text/css "access plus 1 month"
 	<Files "favicon.png">
-		ExpiresDefault "access plus 1 month"
+		ExpiresByType image/png "access plus 1 month"
 	</Files>
-	ExpiresByType image/png "modification plus 1 minutes"
+	ExpiresByType image/png "modification plus 1 minute"
 </IfModule>
