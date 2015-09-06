@@ -1,0 +1,14 @@
+# http://httpd.apache.org/docs/2.2/mod/core.html#files
+# http://httpd.apache.org/docs/2.2/mod/mod_expires.html
+# https://github.com/h5bp/html5-boilerplate/blob/master/dist/.htaccess#L835
+# https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching#cache-control
+
+<IfModule mod_expires.c>
+	ExpiresActive on
+	ExpiresByType text/html "modification plus 1 minutes"
+	ExpiresByType text/css "access plus 1 month"
+	<Files "favicon.png">
+		ExpiresDefault "access plus 1 month"
+	</Files>
+	ExpiresByType image/png "modification plus 1 minutes"
+</IfModule>
