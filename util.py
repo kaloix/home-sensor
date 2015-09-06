@@ -85,10 +85,10 @@ class DetailHistory(History):
 			self.current = self.data[-1]
 		else:
 			self.current = None
-		self.minimum = min(self.data) if self.data else None
-		self.maximum = max(self.data) if self.data else None
-		self.warn_low = self.minimum.value < self.floor if self.data else None
-		self.warn_high = self.maximum.value > self.ceiling if self.data else None
+		self.minimum = min(reversed(self.data)) if self.data else None
+		self.maximum = max(reversed(self.data)) if self.data else None
+		self.warn_low = self.minimum.value < self.floor if self.minimum else None
+		self.warn_high = self.maximum.value > self.ceiling if self.maximum else None
 	def melt(self):
 		timestamp = list()
 		value = list()
