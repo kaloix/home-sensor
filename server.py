@@ -87,7 +87,7 @@ def loop():
 		year = '{:%Y}'.format(now))
 	html_body = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(
-		refresh_seconds = config.client_interval.total_seconds(),
+		refresh_seconds = int(config.client_interval.total_seconds()),
 		body = html_body)
 	with open('index.html', mode='w') as html_file:
 		html_file.write(html_filled)
