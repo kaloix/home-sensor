@@ -33,6 +33,7 @@ The *station* parameter corresponds with the same field in the sensor list of `s
 * Copy these files in webserver directory
 
 ### Usage
+    cp static/* <web_dir>
     pip install virtualenv
     virtualenv --python=python3 ve/
     source ve/bin/activate
