@@ -1,14 +1,14 @@
 # Kaloix Sensor System
-> This project was made with only personal use by me in mind. Code is not commentated, probably bad structured and containes German language.
+> This project was made with only personal use by me in mind. Code is not commentated, maybe bad structured and the user interface is in German language.
 
 ## Requirements
 * Python 3.2.3
 * [markdown](https://pythonhosted.org/Markdown/)
 * [matplotlib](http://matplotlib.org/index.html)
 
-## Sensor
+## Client
 ### Features
-* Import relevant sensors from `config.json`
+* Import relevant sensors from `sensor.json`
 * Collect and parse sensor data using a file system interface
 * Export data as CSV files to folder `csv/`
 * Copy these files to the server, when new data is available
@@ -20,11 +20,11 @@ The directory `data/` on the server must be created manually first.
     modprobe w1-therm
     ./client.py <station>
 
-The *station* parameter corresponds with the same field in the sensor list of `config.json`.
+The *station* parameter corresponds with the same field in the sensor list of `sensor.json`.
 
 ## Server
 ### Features
-* Import sensor list from `config.json`
+* Import sensor list from `sensor.json`
 * Monitor directory `csv/` for new sensor data
 * Send admin email on missing sensor updates and crash
 * Send user email on out of range sensor values
@@ -32,17 +32,11 @@ The *station* parameter corresponds with the same field in the sensor list of `c
 * Generate `plot.png` with sensor history
 * Copy these files in webserver directory
 
-### Installation
+### Usage
     pip install virtualenv
     virtualenv --python=python3 ve/
     source ve/bin/activate
     pip install markdown matplotlib
-    deactivate
-
-### Usage
-At least one sensor instance must be started beforehand.
-
-    source ve/bin/activate
     ./server.py
     deactivate
 
@@ -51,4 +45,4 @@ At least one sensor instance must be started beforehand.
 
 ## Copyright
 Copyright © 2015 Stefan Schindler  
-Licensed under GNU GPL v3
+Licensed under the GNU General Public License v3
