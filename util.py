@@ -43,6 +43,8 @@ class Record:
 		return len(self.value)
 	def __getitem__(self, key):
 		return Measurement(self.value[key], self.timestamp[key])
+	def __nonzero__(self):
+		return bool(self.value)
 	def append(self, item):
 		if not self.value or item.timestamp > self.timestamp[-1]:
 			self.value.append(item.value)
