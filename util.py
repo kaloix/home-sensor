@@ -98,7 +98,7 @@ class History:
 	def store(self, value):
 		now = datetime.datetime.now()
 		self._summarize(now)
-		self.detail.append(Measurement(value, now))
+		self.detail.append(value, now)
 		self._clear(now)
 		self._process(now)
 	def backup(self, directory):
