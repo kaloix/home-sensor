@@ -11,7 +11,7 @@ import config
 import datetime
 
 class Sensor:
-	def __init__(self, name, floor, ceiling):
+	def __init__(self, name, floor, ceiling, file):
 		self.history = util.History(name, floor, ceiling)
 		self.file = file
 	def update(self):
@@ -38,7 +38,8 @@ for name, attr in sensor_json.items():
 	sensor.append(Sensor(
 		name,
 		attr['floor'],
-		attr['ceiling']))
+		attr['ceiling'],
+		attr['file']))
 
 while True:
 	start = time.time()
