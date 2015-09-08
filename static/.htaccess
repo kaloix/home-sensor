@@ -6,7 +6,6 @@
 <IfModule mod_expires.c>
 	ExpiresActive on
 	ExpiresByType text/html "modification plus 1 minute"
-	ExpiresByType text/css "access plus 1 month"
 	<Files "favicon.png">
 		ExpiresByType image/png "access plus 1 month"
 	</Files>

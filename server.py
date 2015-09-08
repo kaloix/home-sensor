@@ -16,7 +16,7 @@ import config
 
 class Sensor:
 	def __init__(self, name, floor, ceiling):
-		self.history = util.DetailHistory(name, floor, ceiling)
+		self.history = util.DetailHistory(name, config.history_range, floor, ceiling)
 		self.name = name
 		self.history.read(config.backup_dir)
 	def update(self):

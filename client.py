@@ -12,7 +12,7 @@ import datetime
 
 class Sensor:
 	def __init__(self, name, file):
-		self.history = util.History(name)
+		self.history = util.History(name, config.history_range)
 		self.file = file
 	def update(self):
 		now = datetime.datetime.now()
