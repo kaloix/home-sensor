@@ -18,12 +18,11 @@ class Sensor:
 	def __init__(self, name, floor, ceiling):
 		self.history = util.History(name, floor, ceiling)
 		self.name = name
-		self.history.read(config.backup_dir)
+		self.history.restore(config.backup_dir)
 	def update(self):
-		self.history.read(config.data_dir)
-		now = datetime.datetime.now()
-		self.history.process(now)
-		self.history.write(config.backup_dir)
+		self.history.restore(config.data_dir)
+		self.history.process()
+		self.history.backup(config.backup_dir)
 	def markdown(self):
 		delimiter = ' | '
 		return ''.join([
@@ -95,7 +94,7 @@ def loop():
 	frame_start = now - config.detail_range
 	matplotlib.pyplot.figure(figsize=(12, 4))
 	for s in sensor:
-		matplotlib.pyplot.plot(*s.history.melt(), label=s.name)
+		matplotlib.pyplot.plot(s.history.detail.timestamp, s.history.detail.value, label=s.name)
 	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
