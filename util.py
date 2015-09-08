@@ -52,16 +52,15 @@ class Measurement:
 		return self.value == other.value
 
 class History:
-	def __init__(self, name, period):
+	def __init__(self, name):
 		self.csv = '{}.csv'.format(name)
-		self.period = period
 		self.data = collections.deque()
 	def append(self, timestamp, value):
 		if not self.data or timestamp > self.data[-1].timestamp:
 			measurement = Measurement(timestamp, value)
 			self.data.append(measurement)
 	def clear(self, now):
-		while self.data and self.data[0].timestamp < now - self.period:
+		while self.data and self.data[0].timestamp < now - config.data_period:
 			self.data.popleft()
 	def read(self, directory):
 		try:
@@ -77,8 +76,8 @@ class History:
 			writer.writerows(rows)
 
 class DetailHistory(History):
-	def __init__(self, name, period, floor, ceiling):
-		super().__init__(name, period)
+	def __init__(self, name, floor, ceiling):
+		super().__init__(name)
 		self.floor = Value(floor)
 		self.ceiling = Value(ceiling)
 	def process(self, now):
