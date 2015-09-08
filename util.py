@@ -91,10 +91,11 @@ class History:
 		self.warn_high = self.maximum.value > self.ceiling if self.maximum else None
 		self.mean = sum(self.detail.value) / len(self.detail) if self.detail else None
 	def _summarize(self, now):
+		date = self.detail[-1].timestamp.date()
 		if self.detail and now.date() > self.detail[-1].timestamp.date():
-			self.summary_min.append(self.minimum, now)
-			self.summary_avg.append(self.mean, now)
-			self.summary_max.append(self.maximum, now)
+			self.summary_min.append(*self.minimum)
+			self.summary_avg.append(self.mean, datetime.combine(date, datetime.time(12)))
+			self.summary_max.append(*self.maximum)
 	def store(self, value):
 		now = datetime.datetime.now()
 		self._summarize(now)
