@@ -45,10 +45,11 @@ class Record:
 		return Measurement(self.value[key], self.timestamp[key])
 	def __nonzero__(self):
 		return bool(self.value)
-	def append(self, item):
-		if not self.value or item.timestamp > self.timestamp[-1]:
-			self.value.append(item.value)
-			self.timestamp.append(item.timestamp)
+	def append(self, value, timestamp):
+		if not self.value or timestamp > self.timestamp[-1]:
+			self.value.append(value)
+			self.timestamp.append(timestamp)
+		assert len(self.value) == len(self.timestamp)
 	def clear(self, now):
 		while self.value and self.timestamp[0] < now - self.period:
 			self.timestamp.popleft()
@@ -62,8 +63,7 @@ class Record:
 		try:
 			with open(directory+self.csv, newline='') as csv_file:
 				for r in csv.reader(csv_file):
-					item = Measurement(float(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
-					self.append(item)
+					self.append(float(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
 		except FileNotFoundError as err:
 			print(err)
 
