@@ -1,7 +1,7 @@
 import datetime
 
-data_period = datetime.timedelta(days=1)
-summary_period = datetime.timedelta(days=365)
+data_range = datetime.timedelta(days=1)
+summary_range = datetime.timedelta(days=365)
 client_interval = datetime.timedelta(minutes=10)
 server_interval = datetime.timedelta(minutes=1)
 warning_pause = datetime.timedelta(days=1)

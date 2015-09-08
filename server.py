@@ -93,7 +93,7 @@ def loop():
 		html_file.write(html_filled)
 
 	logging.info('generate plot')
-	frame_start = now - config.history_range
+	frame_start = now - config.data_range
 	matplotlib.pyplot.figure(figsize=(12, 4))
 	for s in sensor:
 		matplotlib.pyplot.plot(*s.history.melt(), label=s.name)
