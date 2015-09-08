@@ -21,14 +21,13 @@ class Sensor:
 		self.history.restore(config.backup_dir)
 	def update(self):
 		self.history.restore(config.data_dir)
-		self.history.process()
 		self.history.backup(config.backup_dir)
 	def markdown(self):
 		delimiter = ' | '
 		return ''.join([
 			self.name,
 			delimiter,
-			str(self.history.current.value) if self.history.current else 'Fehler',
+			'{:.1f} °C'.format(self.history.current.value) if self.history.current else 'Fehler',
 			delimiter,
 			'⚠ ' if self.history.warn_low else '',
 			str(self.history.minimum) if self.history.minimum else '—',

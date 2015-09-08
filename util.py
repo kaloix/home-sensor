@@ -43,25 +43,25 @@ class Record:
 		return len(self.value)
 	def __getitem__(self, key):
 		return Measurement(self.value[key], self.timestamp[key])
-	def append(self, item, now):
+	def append(self, item):
 		if not self.value or item.timestamp > self.timestamp[-1]:
 			self.value.append(item.value)
 			self.timestamp.append(item.timestamp)
+	def clear(self, now):
 		while self.value and self.timestamp[0] < now - self.period:
 			self.timestamp.popleft()
 			self.value.popleft()
-		assert len(self.value) == len(self.timestamp)
 	def write(self, directory):
 		rows = [(data.value, timestamp(data.timestamp)) for data in self]
 		with open(directory+self.csv, mode='w', newline='') as csv_file:
 			writer = csv.writer(csv_file)
 			writer.writerows(rows)
-	def read(self, directory, now):
+	def read(self, directory):
 		try:
 			with open(directory+self.csv, newline='') as csv_file:
 				for r in csv.reader(csv_file):
 					item = Measurement(float(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
-					self.append(item, now)
+					self.append(item)
 		except FileNotFoundError as err:
 			print(err)
 
@@ -73,16 +73,12 @@ class History:
 		self.summary_min = Record(name+'-min', config.summary_range)
 		self.summary_avg = Record(name+'-avg', config.summary_range)
 		self.summary_max = Record(name+'-max', config.summary_range)
-	def store(self, value):
-		now = datetime.datetime.now()
-		if self.detail and now.date() > self.detail[-1].timestamp.date():
-			self.summary_min.append(self.minimum, now)
-			self.summary_avg.append(self.mean, now)
-			self.summary_max.append(self.maximum, now)
-		item = Measurement(value, now)
-		self.detail.append(item)
-	def process(self):
-		now = datetime.datetime.now()
+	def _clear(self, now):
+		self.detail.clear(now)
+		self.summary_min.clear(now)
+		self.summary_avg.clear(now)
+		self.summary_max.clear(now)
+	def _process(self, now):
 		if self.detail and self.detail[-1].timestamp >= now - 2*config.client_interval:
 			self.current = self.detail[-1]
 		else:
@@ -92,6 +88,17 @@ class History:
 		self.warn_low = self.minimum.value < self.floor if self.minimum else None
 		self.warn_high = self.maximum.value > self.ceiling if self.maximum else None
 		self.mean = sum(self.detail.value) / len(self.detail) if self.detail else None
+	def _summarize(self, now):
+		if self.detail and now.date() > self.detail[-1].timestamp.date():
+			self.summary_min.append(self.minimum, now)
+			self.summary_avg.append(self.mean, now)
+			self.summary_max.append(self.maximum, now)
+	def store(self, value):
+		now = datetime.datetime.now()
+		self._summarize(now)
+		self.detail.append(Measurement(value, now))
+		self._clear(now)
+		self._process(now)
 	def backup(self, directory):
 		self.detail.write(directory)
 		self.summary_min.write(directory)
@@ -99,7 +106,9 @@ class History:
 		self.summary_max.write(directory)
 	def restore(self, directory):
 		now = datetime.datetime.now()
-		self.detail.read(directory, now)
-		self.summary_min.read(directory, now)
-		self.summary_avg.read(directory, now)
-		self.summary_max.read(directory, now)
+		self.detail.read(directory)
+		self.summary_min.read(directory)
+		self.summary_avg.read(directory)
+		self.summary_max.read(directory)
+		self._clear(now)
+		self._process(now)

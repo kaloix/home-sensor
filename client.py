@@ -11,8 +11,8 @@ import config
 import datetime
 
 class Sensor:
-	def __init__(self, name, file):
-		self.history = util.History(name)
+	def __init__(self, name, floor, ceiling):
+		self.history = util.History(name, floor, ceiling)
 		self.file = file
 	def update(self):
 		now = datetime.datetime.now()
@@ -21,9 +21,8 @@ class Sensor:
 		except Exception as err:
 			logging.error('sensor failure: {}'.format(err))
 		else:
-			self.history.append(now, value)
-		self.history.clear(now)
-		self.history.write(config.data_dir)
+			self.history.store(value)
+		self.history.backup(config.data_dir)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('station', type=int)
@@ -36,7 +35,10 @@ sensor = list()
 for name, attr in sensor_json.items():
 	if attr['station'] != args.station:
 		continue
-	sensor.append(Sensor(name, attr['file']))
+	sensor.append(Sensor(
+		name,
+		attr['floor'],
+		attr['ceiling']))
 
 while True:
 	start = time.time()
