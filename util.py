@@ -61,7 +61,7 @@ class History:
 			measurement = Measurement(timestamp, value)
 			self.data.append(measurement)
 	def clear(self, now):
-		while self.data and self.data[0].timestamp < now - period:
+		while self.data and self.data[0].timestamp < now - self.period:
 			self.data.popleft()
 	def read(self, directory):
 		try:
