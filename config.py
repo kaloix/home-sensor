@@ -1,6 +1,6 @@
 import datetime
 
-data_range = datetime.timedelta(days=1)
+detail_range = datetime.timedelta(days=1)
 summary_range = datetime.timedelta(days=365)
 client_interval = datetime.timedelta(minutes=10)
 server_interval = datetime.timedelta(minutes=1)

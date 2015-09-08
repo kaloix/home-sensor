@@ -51,48 +51,95 @@ class Measurement:
 	def __eq__(self, other):
 		return self.value == other.value
 
-class History:
-	def __init__(self, name):
-		self.csv = '{}.csv'.format(name)
-		self.data = collections.deque()
-	def append(self, timestamp, value):
-		if not self.data or timestamp > self.data[-1].timestamp:
-			measurement = Measurement(timestamp, value)
-			self.data.append(measurement)
-	def clear(self, now):
-		while self.data and self.data[0].timestamp < now - config.data_range:
-			self.data.popleft()
-	def read(self, directory):
-		try:
-			with open(directory+self.csv, newline='') as csv_file:
-				for r in csv.reader(csv_file):
-					self.append(datetime.datetime.fromtimestamp(float(r[0])), float(r[1]))
-		except FileNotFoundError:
-			pass
-	def write(self, directory):
-		rows = [(timestamp(d.timestamp), d.value.value) for d in self.data]
-		with open(directory+self.csv, mode='w', newline='') as csv_file:
-			writer = csv.writer(csv_file)
-			writer.writerows(rows)
+Summary = collections.namedtuple('Summary', 'timestamp minimum mean maximum')
 
-class DetailHistory(History):
+class Record:
+	def __init__(self, period):
+		self.period = period
+		self.data = collections.deque()
+#	def __iter__(self):
+#		return self.data.__iter__()
+	def __len__(self):
+		return len(self.data)
+	def __getitem__(self, key):
+		return self.data[key]
+	def append(self, item):
+		if not self.data or item.timestamp > self.data[-1].timestamp:
+			self.data.append(item)
+	def clear(self, now):
+		while self.data and self.data[0].timestamp < now - self.period:
+			self.data.popleft()
+
+class History:
 	def __init__(self, name, floor, ceiling):
-		super().__init__(name)
+		self.name = name
 		self.floor = Value(floor)
 		self.ceiling = Value(ceiling)
+		self.detail = Record(config.detail_range)
+		print(bool(self.detail))
+		self.summary = Record(config.summary_range)
+	def store(self, value):
+		# detail record
+		now = datetime.datetime.now()
+		item = Measurement(now, value)
+		self.detail.append(item)
+		# summary record
+		if now.date() > self.summary[-1].timestamp:
+			item = Summary(timestamp.date(), self.minimum, self.mean, self.maximum)
+			self.summary.append(item)
 	def process(self, now):
-		if self.data and self.data[-1].timestamp >= now - 2*config.client_interval:
-			self.current = self.data[-1]
+		self.detail.clear(now)
+		self.summary.clear(now)
+		if self.detail and self.detail[-1].timestamp >= now - 2*config.client_interval:
+			self.current = self.detail[-1]
 		else:
 			self.current = None
-		self.minimum = min(reversed(self.data)) if self.data else None
-		self.maximum = max(reversed(self.data)) if self.data else None
+		self.minimum = min(reversed(self.detail)) if self.detail else None
+		self.maximum = max(reversed(self.detail)) if self.detail else None
 		self.warn_low = self.minimum.value < self.floor if self.minimum else None
 		self.warn_high = self.maximum.value > self.ceiling if self.maximum else None
+		self.mean = sum(self.detail) / len(self.detail) if self.detail else None
+	def write(self, directory):
+		# detail record
+		rows = [(timestamp(d.timestamp), d.value.value) for d in self.detail]
+		file = '{}{}-detail.csv'.format(directory, self.name)
+		with open(file, mode='w', newline='') as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerows(rows)
+		# summary record
+		file = '{}{}-summary.csv'.format(directory, self.name)
+		with open(file, mode='w', newline='') as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerows(self.summary)
+	def read(self, directory):
+		# detail record
+		file = '{}{}-detail.csv'.format(directory, self.name)
+		try:
+			with open(file, newline='') as csv_file:
+				for r in csv.reader(csv_file):
+					item = Measurement(
+						datetime.datetime.fromtimestamp(float(r[0])),
+						float(r[1]))
+					self.detail.append(item)
+		except FileNotFoundError:
+			pass
+		# summary record
+		file = '{}{}-summary.csv'.format(directory, self.name)
+		try:
+			with open(file, newline='') as csv_file:
+				for r in csv.reader(csv_file):
+					item = Summary(
+						datetime.datetime.fromtimestamp(float(r[0])),
+						float(r[1]),
+						float(r[2]),
+						float(r[3]))
+					self.summary.append(item)
+		except FileNotFoundError:
+			pass
 	def melt(self):
 		timestamp = list()
 		value = list()
-		for d in self.data:
+		for d in self.detail:
 			timestamp.append(d.timestamp)
 			value.append(d.value.value)
 		return timestamp, value

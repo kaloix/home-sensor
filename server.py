@@ -16,13 +16,12 @@ import config
 
 class Sensor:
 	def __init__(self, name, floor, ceiling):
-		self.history = util.DetailHistory(name, floor, ceiling)
+		self.history = util.History(name, floor, ceiling)
 		self.name = name
 		self.history.read(config.backup_dir)
 	def update(self):
 		self.history.read(config.data_dir)
 		now = datetime.datetime.now()
-		self.history.clear(now)
 		self.history.process(now)
 		self.history.write(config.backup_dir)
 	def markdown(self):
@@ -93,7 +92,7 @@ def loop():
 		html_file.write(html_filled)
 
 	logging.info('generate plot')
-	frame_start = now - config.data_range
+	frame_start = now - config.detail_range
 	matplotlib.pyplot.figure(figsize=(12, 4))
 	for s in sensor:
 		matplotlib.pyplot.plot(*s.history.melt(), label=s.name)
