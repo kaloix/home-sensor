@@ -35,9 +35,9 @@ class Sensor:
 			'⚠ ' if self.history.warn_high else '',
 			str(self.history.maximum) if self.history.maximum else '—',
 			delimiter,
-			str(self.history.floor),
+			'{:.1f} °C'.format(self.history.floor),
 			' bis ',
-			str(self.history.ceiling)])
+			'{:.1f} °C'.format(self.history.ceiling)])
 
 locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 util.init_logging()

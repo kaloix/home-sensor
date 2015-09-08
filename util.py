@@ -43,10 +43,11 @@ class Record:
 		return len(self.value)
 	def __getitem__(self, key):
 		return Measurement(self.value[key], self.timestamp[key])
-	def append(self, item):
-		if not self.value or item.timestamp > self.timestamp[-1]:
-			self.value.append(item.value)
-			self.timestamp.append(item.timestamp)
+	def append(self, value, timestamp):
+		if not self.value or timestamp > self.timestamp[-1]:
+			self.value.append(value)
+			self.timestamp.append(timestamp)
+		assert len(self.value) == len(self.timestamp)
 	def clear(self, now):
 		while self.value and self.timestamp[0] < now - self.period:
 			self.timestamp.popleft()
@@ -60,8 +61,7 @@ class Record:
 		try:
 			with open(directory+self.csv, newline='') as csv_file:
 				for r in csv.reader(csv_file):
-					item = Measurement(float(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
-					self.append(item)
+					self.append(float(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
 		except FileNotFoundError as err:
 			print(err)
 
@@ -89,14 +89,15 @@ class History:
 		self.warn_high = self.maximum.value > self.ceiling if self.maximum else None
 		self.mean = sum(self.detail.value) / len(self.detail) if self.detail else None
 	def _summarize(self, now):
-		if self.detail and now.date() > self.detail[-1].timestamp.date():
-			self.summary_min.append(self.minimum, now)
-			self.summary_avg.append(self.mean, now)
-			self.summary_max.append(self.maximum, now)
+		date = self.detail[-1].timestamp.date()
+		if self.detail and now.date() > date:
+			self.summary_min.append(self.minimum.value, date)
+			self.summary_avg.append(self.mean, date)
+			self.summary_max.append(self.maximum.value, date)
 	def store(self, value):
 		now = datetime.datetime.now()
 		self._summarize(now)
-		self.detail.append(Measurement(value, now))
+		self.detail.append(value, now)
 		self._clear(now)
 		self._process(now)
 	def backup(self, directory):
