@@ -65,8 +65,8 @@ class Record:
 			with open(directory+self.csv, newline='') as csv_file:
 				for r in csv.reader(csv_file):
 					self.append(float(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
-		except FileNotFoundError as err:
-			print(err)
+		except (IOError, OSError):
+			pass
 
 class History:
 	def __init__(self, name, floor, ceiling):
