@@ -91,7 +91,7 @@ def loop():
 
 	logging.info('generate plot')
 	frame_start = now - config.detail_range
-	matplotlib.pyplot.figure(figsize=(12, 4))
+	matplotlib.pyplot.figure(figsize=(11, 3))
 	for s in sensor:
 		matplotlib.pyplot.plot(s.history.detail.timestamp, s.history.detail.value, label=s.name)
 	matplotlib.pyplot.xlim(frame_start, now)
@@ -101,9 +101,26 @@ def loop():
 	matplotlib.pyplot.gca().yaxis.tick_right()
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
 	matplotlib.pyplot.legend(loc='best')
-	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
+	matplotlib.pyplot.savefig(filename='plot-detail.png', bbox_inches='tight')
 	matplotlib.pyplot.close()
-	os.system('cp index.html plot.png {}'.format(config.web_dir))
+
+	frame_start = now - config.sumary_range
+	matplotlib.pyplot.figure(figsize=(11, 3))
+	for s in sensor:
+		matplotlib.pyplot.plot(s.history.summary_min.timestamp, s.history.summary_min.value, label=s.name+' Minimum')
+		matplotlib.pyplot.plot(s.history.summary_avg.timestamp, s.history.summary_avg.value, label=s.name+' Mittel')
+		matplotlib.pyplot.plot(s.history.summary_max.timestamp, s.history.summary_max.value, label=s.name+' Maximum')
+	matplotlib.pyplot.xlim(frame_start, now)
+	matplotlib.pyplot.xlabel('Datum')
+	matplotlib.pyplot.ylabel('Temperatur °C')
+	matplotlib.pyplot.grid(True)
+	matplotlib.pyplot.gca().yaxis.tick_right()
+	matplotlib.pyplot.gca().yaxis.set_label_position('right')
+	matplotlib.pyplot.legend(loc='best')
+	matplotlib.pyplot.savefig(filename='plot-summary.png', bbox_inches='tight')
+	matplotlib.pyplot.close()
+
+	os.system('cp index.html plot-detail.png plot-summary.png {}'.format(config.web_dir))
 
 while True:
 	start = time.time()

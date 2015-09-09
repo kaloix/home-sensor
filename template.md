@@ -5,7 +5,10 @@ Messpunkt | Aktuell | Tagestief | Tageshoch | Zulässig
 $data
 
 ## Tagesverlauf
-![Verlauf](plot.png)
+![Verlauf](plot-detail.png)
+
+## Jahresverlauf
+![Verlauf](plot-summary.png)
 
 ---
     
