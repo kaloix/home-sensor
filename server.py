@@ -102,7 +102,7 @@ def loop():
 	matplotlib.pyplot.grid(True)
 	matplotlib.pyplot.gca().yaxis.tick_right()
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
-	#matplotlib.pyplot.legend(loc='best')
+	matplotlib.pyplot.legend(loc='best')
 
 	matplotlib.pyplot.subplot(2, 1, 2)
 	for s in sensor:
