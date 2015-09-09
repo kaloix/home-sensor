@@ -14,6 +14,7 @@ class Sensor:
 	def __init__(self, name, floor, ceiling, file):
 		self.history = util.History(name, floor, ceiling)
 		self.file = file
+		self.history.restore(config.data_dir)
 	def update(self):
 		now = datetime.datetime.now()
 		try:
