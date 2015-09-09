@@ -104,13 +104,11 @@ def loop():
 	matplotlib.pyplot.savefig(filename='plot-detail.png', bbox_inches='tight')
 	matplotlib.pyplot.close()
 
-	frame_start = now - config.sumary_range
 	matplotlib.pyplot.figure(figsize=(11, 3))
 	for s in sensor:
 		matplotlib.pyplot.plot(s.history.summary_min.timestamp, s.history.summary_min.value, label=s.name+' Minimum')
 		matplotlib.pyplot.plot(s.history.summary_avg.timestamp, s.history.summary_avg.value, label=s.name+' Mittel')
 		matplotlib.pyplot.plot(s.history.summary_max.timestamp, s.history.summary_max.value, label=s.name+' Maximum')
-	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Datum')
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	matplotlib.pyplot.grid(True)
