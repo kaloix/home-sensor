@@ -94,6 +94,9 @@ def loop():
 
 	frame_start = now - config.detail_range
 	matplotlib.pyplot.subplot(2, 1, 1)
+	night1, night2 = util.nighttime(2, now)
+	matplotlib.pyplot.axvspan(*night1, color='black', alpha=0.3)
+	matplotlib.pyplot.axvspan(*night2, color='black', alpha=0.3)
 	for s in sensor:
 		matplotlib.pyplot.plot(s.history.detail.timestamp, s.history.detail.value, marker='.', label=s.name)
 	matplotlib.pyplot.xlim(frame_start, now)
