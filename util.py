@@ -7,6 +7,9 @@ import datetime
 import csv
 import pytz
 import pysolar
+import scipy.misc
+import subprocess
+import numpy
 
 def init_logging():
 	logging.basicConfig(
@@ -118,7 +121,7 @@ class History:
 				self.summary_min.append(self.minimum, noon)
 				self.summary_avg.append(self.mean, noon)
 				self.summary_max.append(self.maximum, noon)
-				assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max), str((len(self.summary_min), len(self.summary_avg), len(self.summary_max)))
+				assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
 	def store(self, value):
 		now = datetime.datetime.now()
 		self._summarize(now)
@@ -136,6 +139,38 @@ class History:
 		self.summary_min.read(directory)
 		self.summary_avg.read(directory)
 		self.summary_max.read(directory)
-		assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max), str((len(self.summary_min), len(self.summary_avg), len(self.summary_max)))
+		assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
 		self._clear(now)
 		self._process(now)
+
+class ThermosolarOCR:
+	def _parse_segment(self, image):
+		scipy.misc.imsave('seven_segment.png', image)
+		command = ['ssocr/ssocr', '--number-digits=2', '--background=black', 'seven_segment.png']
+		try:
+			return int(subprocess.check_output(command))
+		except (subprocess.CalledProcessError, ValueError) as err:
+			logging.error(err)
+	def _parse_light(self, image):
+		hist, bin_edges = numpy.histogram(image, bins=4, range=(0,255), density=True)
+		return hist[3] > 0.006
+	def load_image(self, file):
+		image = scipy.misc.imread(file)
+		top = 11
+		left = 76
+		height = 76
+		width = 123
+		self.seven_segment = image[top:top+height, left:left+width]
+		top = 146
+		left = 128
+		length = 15
+		self.pump_light = image[top:top+length, left:left+length]
+		top = 147
+		left = 98
+		self.sensor_light = image[top:top+length, left:left+length]
+	def temperature(self):
+		return self._parse_segment(self.seven_segment)
+	def pump_active(self):
+		return self._parse_light(self.pump_light)
+	def sensor_failure(self):
+		return self._parse_light(self.sensor_light)

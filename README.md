@@ -6,6 +6,11 @@
 * [markdown](https://pythonhosted.org/Markdown/)
 * [matplotlib](http://matplotlib.org/index.html)
 
+## Installation
+### Client
+#### Seven Segment Optical Character Recognition
+    sudo apt-get install libimlib2 libimlib2-dev python3-scipy
+
 ## Client
 ### Features
 * Import relevant sensors from `sensor.json`
