@@ -49,11 +49,12 @@ class Record:
 		if not self.value or timestamp > self.timestamp[-1]:
 			self.value.append(value)
 			self.timestamp.append(timestamp)
-		assert len(self.value) == len(self.timestamp)
+			assert len(self.value) == len(self.timestamp)
 	def clear(self, now):
 		while self.value and self.timestamp[0] < now - self.period:
 			self.timestamp.popleft()
 			self.value.popleft()
+			assert len(self.value) == len(self.timestamp)
 	def write(self, directory):
 		rows = [(data.value, timestamp(data.timestamp)) for data in self]
 		with open(directory+self.csv, mode='w', newline='') as csv_file:
@@ -93,10 +94,12 @@ class History:
 	def _summarize(self, now):
 		if self.detail:
 			date = self.detail[-1].timestamp.date()
-			if now.date() > date:
-				self.summary_min.append(*self.minimum)
-				self.summary_avg.append(self.mean, datetime.datetime.combine(date, datetime.time(12)))
-				self.summary_max.append(*self.maximum)
+			if  now.date() > date:
+				noon = datetime.datetime.combine(date, datetime.time(12))
+				self.summary_min.append(self.minimum, noon)
+				self.summary_avg.append(self.mean, noon)
+				self.summary_max.append(self.maximum, noon)
+				assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max), str((len(self.summary_min), len(self.summary_avg), len(self.summary_max)))
 	def store(self, value):
 		now = datetime.datetime.now()
 		self._summarize(now)
@@ -114,5 +117,6 @@ class History:
 		self.summary_min.read(directory)
 		self.summary_avg.read(directory)
 		self.summary_max.read(directory)
+		assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max), str((len(self.summary_min), len(self.summary_avg), len(self.summary_max)))
 		self._clear(now)
 		self._process(now)
