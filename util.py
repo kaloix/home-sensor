@@ -95,7 +95,7 @@ class History:
 			date = self.detail[-1].timestamp.date()
 			if now.date() > date:
 				self.summary_min.append(*self.minimum)
-				self.summary_avg.append(self.mean, datetime.combine(date, datetime.time(12)))
+				self.summary_avg.append(self.mean, datetime.datetime.combine(date, datetime.time(12)))
 				self.summary_max.append(*self.maximum)
 	def store(self, value):
 		now = datetime.datetime.now()
