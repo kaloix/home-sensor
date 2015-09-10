@@ -9,6 +9,7 @@ import time
 import util
 import config
 import datetime
+import measurement
 
 class Sensor:
 	def __init__(self, name, floor, ceiling, file):
@@ -18,7 +19,7 @@ class Sensor:
 	def update(self):
 		now = datetime.datetime.now()
 		try:
-			value = util.parse_w1_temp(self.file)
+			value = measurement.parse_w1_temp(self.file)
 		except Exception as err:
 			logging.error('sensor failure: {}'.format(err))
 		else:
