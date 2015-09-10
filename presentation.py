@@ -4,34 +4,21 @@ import datetime
 import pysolar
 import config
 import markdown
+import util # FIXME
 
 markdown_to_html = markdown.Markdown(
 	extensions = ['markdown.extensions.tables'],
 	output_format = 'html5')
 
 def detail_table(history):
-	delimiter = ' | '
 	string = list()
 	string.append('Messpunkt | Aktuell | Tagestief | Tageshoch | Zulässig')
 	string.append('--- | --- | --- | --- | ---')
-	for h in history:
-		string.append(''.join([
-			h.name,
-			delimiter,
-			'{:.1f} °C'.format(h.current.value) if h.current else 'Fehler',
-			delimiter,
-			'⚠ ' if h.warn_low else '',
-			str(h.minimum) if h.minimum else '—',
-			delimiter,
-			'⚠ ' if h.warn_high else '',
-			str(h.maximum) if h.maximum else '—',
-			delimiter,
-			'{:.1f} °C'.format(h.floor),
-			' bis ',
-			'{:.1f} °C'.format(h.ceiling)]))
+	string.extend([str(h) for h in history])
 	return markdown_to_html.convert('\n'.join(string))
 
 def plot_history(history, file, now):
+	history = [h for h in history if type(h) is util.FloatHistory] # FIXME
 	matplotlib.pyplot.figure(figsize=(11, 6))
 	# detail record
 	matplotlib.pyplot.subplot(2, 1, 1)

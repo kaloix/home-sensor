@@ -14,26 +14,27 @@ import presentation
 
 class Temperature:
 	def __init__(self, name, floor, ceiling):
-		self.history = util.History(name, floor, ceiling)
+		self.history = util.FloatHistory(name, floor, ceiling)
 		self.history.restore(config.backup_dir)
 		self.name = name
 	def update(self):
 		self.history.restore(config.data_dir)
 		self.history.backup(config.backup_dir)
 	def check(self):
-		if not self.history.current:
-			text = 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
-			notify.warn_user(text, self.name+'s')
-		if self.history.warn_low:
-			text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n{}'.format(self.name, self.history.minimum)
-			notify.warn_user(text, self.name+'l')
-		if self.history.warn_high:
-			text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}'.format(self.name, self.history.maximum)
-			notify.warn_user(text, self.name+'h')
+		pass # TODO
+#		if not self.history.current:
+#			text = 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
+#			notify.warn_user(text, self.name+'s')
+#		if self.history.warn_low:
+#			text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n{}'.format(self.name, self.history.minimum)
+#			notify.warn_user(text, self.name+'l')
+#		if self.history.warn_high:
+#			text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}'.format(self.name, self.history.maximum)
+#			notify.warn_user(text, self.name+'h')
 
 class Switch:
-	def __init__(self, name):
-		self.history = util.BoolHistory(name)
+	def __init__(self, name, valid):
+		self.history = util.BoolHistory(name, valid)
 		self.history.restore(config.backup_dir)
 		self.name = name
 	def update(self):
@@ -59,7 +60,8 @@ for group, sensor_list in sensor_json.items():
 					attr['ceiling']))
 			elif kind == 'switch':
 				sensor[group].append(Switch(
-					attr['name']))
+					attr['name'],
+					attr['valid']))
 notify = notification.NotificationCenter()
 
 def loop(group, sensor_list):
@@ -85,7 +87,7 @@ def loop(group, sensor_list):
 while True:
 	start = time.time()
 	try:
-		for group, sensor_list in sensor:
+		for group, sensor_list in sensor.items():
 			loop(group, sensor_list)
 		util.memory_check()
 	except Exception as err:

@@ -29,7 +29,8 @@
 					"ceiling": 100
 				},
 				"switch": {
-					"name": "Pumpe"
+					"name": "Pumpe",
+					"valid": [true, false]
 				}
 			}
 		}

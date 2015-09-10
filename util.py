@@ -22,6 +22,11 @@ def memory_check():
 def timestamp(date_time):
 	return float('{:%s}'.format(date_time)) + date_time.microsecond / 1e6
 
+def bool_string(boolean):
+	if boolean is None:
+		return 'Fehler'
+	return 'Ein' if boolean else 'Aus'
+
 class Measurement(collections.namedtuple('Measurement', 'value timestamp')):
 	__slots__ = ()
 	def __str__(self):
@@ -62,7 +67,7 @@ class Record:
 		except (IOError, OSError):
 			pass
 
-class History:
+class FloatHistory:
 	def __init__(self, name, floor, ceiling):
 		self.name = name
 		self.floor = floor
@@ -71,33 +76,40 @@ class History:
 		self.summary_min = Record(name+'-min', config.summary_range)
 		self.summary_avg = Record(name+'-avg', config.summary_range)
 		self.summary_max = Record(name+'-max', config.summary_range)
+	def __str__(self):
+		now = datetime.datetime.now()
+		if self.detail and self.detail[-1].timestamp >= now - 2*config.client_interval:
+			current = self.detail[-1]
+		else:
+			current = None
+		minimum = min(reversed(self.detail)) if self.detail else None
+		maximum = max(reversed(self.detail)) if self.detail else None
+		warn_low = minimum.value < self.floor if minimum else None
+		warn_high = maximum.value > self.ceiling if maximum else None
+		return ' | '.join([
+			self.name,
+			'{:.1f} °C'.format(current.value) if current else 'Fehler',
+			('⚠ ' if warn_low else '') + str(minimum) if minimum else '—',
+			('⚠ ' if warn_high else '') + str(maximum) if maximum else '—',
+			'{:.1f} °C  bis {:.1f} °C'.format(self.floor, self.ceiling)])
 	def _process(self, now):
 		self.detail.clear(now)
 		self.summary_min.clear(now)
 		self.summary_avg.clear(now)
 		self.summary_max.clear(now)
-		if self.detail and self.detail[-1].timestamp >= now - 2*config.client_interval:
-			self.current = self.detail[-1]
-		else:
-			self.current = None
-		self.minimum = min(reversed(self.detail)) if self.detail else None
-		self.maximum = max(reversed(self.detail)) if self.detail else None
-		self.warn_low = self.minimum.value < self.floor if self.minimum else None
-		self.warn_high = self.maximum.value > self.ceiling if self.maximum else None
-		self.mean = sum(self.detail.value) / len(self.detail) if self.detail else None
-	def _summarize(self, now):
-		if self.detail:
-			date = self.detail[-1].timestamp.date()
-			if  now.date() > date:
-				noon = datetime.datetime.combine(date, datetime.time(12))
-				# FIXME: filter for exact date, improves accuracy after downtime, enables variable detail_range
-				self.summary_min.append(self.minimum.value, noon)
-				self.summary_avg.append(self.mean, noon)
-				self.summary_max.append(self.maximum.value, noon)
-				assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
+#	def _summarize(self, now):
+#		if self.detail:
+#			date = self.detail[-1].timestamp.date()
+#			if  now.date() > date:
+#				noon = datetime.datetime.combine(date, datetime.time(12))
+#				# FIXME: filter for exact date, improves accuracy after downtime, enables variable detail_range
+#				self.summary_min.append(self.minimum.value, noon)
+#				self.summary_avg.append(self.mean, noon)
+#				self.summary_max.append(self.maximum.value, noon)
+#				assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
 	def store(self, value):
 		now = datetime.datetime.now()
-		self._summarize(now)
+#		self._summarize(now)
 		self.detail.append(value, now)
 		self._process(now)
 	def backup(self, directory):
@@ -115,9 +127,23 @@ class History:
 		self._process(now)
 
 class BoolHistory:
-	def __init__(self, name):
+	def __init__(self, name, valid):
 		self.name = name
+		self.valid = valid
 		self.detail = Record(name, config.detail_range)
+		self.current = self.minimum = self.maximum = self.floor = self.ceiling = self.warn_low = self.warn_high = None
+	def __str__(self):
+		now = datetime.datetime.now()
+		if self.detail and self.detail[-1].timestamp >= now - 2*config.client_interval:
+			current = self.detail[-1]
+		else:
+			current = None
+		return ' | '.join([
+			self.name,
+			bool_string(current),
+			bool_string(False) if False in self.detail else '—',
+			bool_string(True) if True in self.detail else '—',
+			', '.join([bool_string(v) for v in self.valid])])
 	def store(self, value):
 		now = datetime.datetime.now()
 		self.detail.append(value, now)
