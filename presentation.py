@@ -12,7 +12,7 @@ markdown_to_html = markdown.Markdown(
 
 def detail_table(history):
 	string = list()
-	string.append('Messpunkt | Aktuell | Tagestief | Tageshoch | Zulässig')
+	string.append('Messpunkt | Aktuell | Tagestief | Tageshoch | Normal')
 	string.append('--- | --- | --- | --- | ---')
 	string.extend([str(h) for h in history])
 	return markdown_to_html.convert('\n'.join(string))

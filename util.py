@@ -138,11 +138,13 @@ class BoolHistory:
 			current = self.detail[-1]
 		else:
 			current = None
+		warn_low = '⚠ ' if False not in self.valid else ''
+		warn_high = '⚠ ' if True not in self.valid else ''
 		return ' | '.join([
 			self.name,
 			bool_string(current),
-			bool_string(False) if False in self.detail else '—',
-			bool_string(True) if True in self.detail else '—',
+			warn_low + bool_string(False) if False in self.detail else '—',
+			warn_high + bool_string(True) if True in self.detail else '—',
 			', '.join([bool_string(v) for v in self.valid])])
 	def store(self, value):
 		now = datetime.datetime.now()
