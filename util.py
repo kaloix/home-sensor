@@ -118,9 +118,9 @@ class History:
 			date = self.detail[-1].timestamp.date()
 			if  now.date() > date:
 				noon = datetime.datetime.combine(date, datetime.time(12))
-				self.summary_min.append(self.minimum, noon)
+				self.summary_min.append(self.minimum.value, noon)
 				self.summary_avg.append(self.mean, noon)
-				self.summary_max.append(self.maximum, noon)
+				self.summary_max.append(self.maximum.value, noon)
 				assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
 	def store(self, value):
 		now = datetime.datetime.now()
