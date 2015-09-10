@@ -33,7 +33,7 @@ def plot_history(history, file, now):
 	matplotlib.pyplot.grid(True)
 	matplotlib.pyplot.gca().yaxis.tick_right()
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
-	matplotlib.pyplot.legend(loc='best')
+	matplotlib.pyplot.legend(loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=3, frameon=False)
 	# summary records
 	matplotlib.pyplot.subplot(2, 1, 2)
 	for h in history:
