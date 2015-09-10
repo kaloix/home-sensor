@@ -80,7 +80,8 @@ def loop():
 
 	logging.info('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
-		data = markdown_data)
+		data = markdown_data,
+		group = 'Lufttemperatur')
 	html_content = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(config.client_interval.total_seconds()),

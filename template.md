@@ -1,7 +1,8 @@
-## Werte
+## $group
+### Werte
 Messpunkt | Aktuell | Tagestief | Tageshoch | Zulässig
 --- | --- | --- | --- | ---
 $data
 
-## Verlauf
+### Verlauf
 ![Verlauf](plot.png)
