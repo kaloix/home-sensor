@@ -80,14 +80,14 @@ def loop():
 
 	logging.info('write html')
 	markdown_filled = string.Template(markdown_template).substitute(
-		data = markdown_data,
-		update_time = '{:%A %d. %B %Y %X}'.format(now),
-		year = '{:%Y}'.format(now))
-	html_body = markdown_to_html.convert(markdown_filled)
+		data = markdown_data)
+	html_content = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(config.client_interval.total_seconds()),
-		body = html_body)
-	with open('index.html', mode='w') as html_file:
+		content = html_content,
+		update_time = '{:%A %d. %B %Y %X}'.format(now),
+		year = '{:%Y}'.format(now))
+	with open('luft.html', mode='w') as html_file:
 		html_file.write(html_filled)
 
 	logging.info('generate plot')
@@ -120,7 +120,7 @@ def loop():
 
 	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
 	matplotlib.pyplot.close()
-	os.system('cp index.html plot.png {}'.format(config.web_dir))
+	os.system('cp luft.html plot.png {}'.format(config.web_dir))
 
 while True:
 	start = time.time()
