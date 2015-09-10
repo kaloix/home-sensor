@@ -1,9 +1,37 @@
 {
-	"Wohnzimmer": {
-	    "type": "temperature",
-	    "floor": 10,
-	    "ceiling": 40,
-	    "file": "/sys/bus/w1/devices/28-0000071d810f/w1_slave",
-	    "station": 1
-	}
+	"Lufttemperatur": [
+		{
+			"input": {
+				"station": 1,
+				"type": "ds18b20",
+				"file": "/sys/bus/w1/devices/28-0000071d810f/w1_slave"
+			},
+			"output": {
+				"temperature": {
+					"name": "Wohnzimmer",
+					"floor": 10,
+					"ceiling": 40
+				}
+			}
+		}
+	],
+	"Solaranlage": [
+		{
+			"input": {
+				"station": 1,
+				"type": "thermosolar",
+				"file": "/media/stefan/android/pictures/current.jpg"
+			},
+			"output": {
+				"temperature": {
+					"name": "Kollektoren",
+					"floor": 0,
+					"ceiling": 100
+				},
+				"switch": {
+					"name": "Pumpe"
+				}
+			}
+		}
+	]
 }

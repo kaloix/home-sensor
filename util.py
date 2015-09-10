@@ -71,12 +71,11 @@ class History:
 		self.summary_min = Record(name+'-min', config.summary_range)
 		self.summary_avg = Record(name+'-avg', config.summary_range)
 		self.summary_max = Record(name+'-max', config.summary_range)
-	def _clear(self, now):
+	def _process(self, now):
 		self.detail.clear(now)
 		self.summary_min.clear(now)
 		self.summary_avg.clear(now)
 		self.summary_max.clear(now)
-	def _process(self, now):
 		if self.detail and self.detail[-1].timestamp >= now - 2*config.client_interval:
 			self.current = self.detail[-1]
 		else:
@@ -91,6 +90,7 @@ class History:
 			date = self.detail[-1].timestamp.date()
 			if  now.date() > date:
 				noon = datetime.datetime.combine(date, datetime.time(12))
+				# FIXME: filter for exact date, improves accuracy after downtime, enables variable detail_range
 				self.summary_min.append(self.minimum.value, noon)
 				self.summary_avg.append(self.mean, noon)
 				self.summary_max.append(self.maximum.value, noon)
@@ -99,7 +99,6 @@ class History:
 		now = datetime.datetime.now()
 		self._summarize(now)
 		self.detail.append(value, now)
-		self._clear(now)
 		self._process(now)
 	def backup(self, directory):
 		self.detail.write(directory)
@@ -113,5 +112,19 @@ class History:
 		self.summary_avg.read(directory)
 		self.summary_max.read(directory)
 		assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
-		self._clear(now)
 		self._process(now)
+
+class BoolHistory:
+	def __init__(self, name):
+		self.name = name
+		self.detail = Record(name, config.detail_range)
+	def store(self, value):
+		now = datetime.datetime.now()
+		self.detail.append(value, now)
+		self.detail.clear(now)
+	def backup(self, directory):
+		self.detail.write(directory)
+	def restore(self, directory):
+		now = datetime.datetime.now()
+		self.detail.read(directory)
+		self.detail.clear(now)
