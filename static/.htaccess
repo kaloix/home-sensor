@@ -12,4 +12,4 @@
 	ExpiresByType image/png "modification plus 1 minute"
 </IfModule>
 
-Redirect 302 "/sensor/index.html" "/sensor/luft.html"
+Redirect 302 "/sensor/index.html" "/sensor/Lufttemperatur.html"

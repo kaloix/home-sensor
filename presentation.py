@@ -16,19 +16,19 @@ def detail_table(history):
 	string.append('--- | --- | --- | --- | ---')
 	for h in history:
 		string.append(''.join([
-			self.name,
+			h.name,
 			delimiter,
-			'{:.1f} °C'.format(self.history.current.value) if self.history.current else 'Fehler',
+			'{:.1f} °C'.format(h.current.value) if h.current else 'Fehler',
 			delimiter,
-			'⚠ ' if self.history.warn_low else '',
-			str(self.history.minimum) if self.history.minimum else '—',
+			'⚠ ' if h.warn_low else '',
+			str(h.minimum) if h.minimum else '—',
 			delimiter,
-			'⚠ ' if self.history.warn_high else '',
-			str(self.history.maximum) if self.history.maximum else '—',
+			'⚠ ' if h.warn_high else '',
+			str(h.maximum) if h.maximum else '—',
 			delimiter,
-			'{:.1f} °C'.format(self.history.floor),
+			'{:.1f} °C'.format(h.floor),
 			' bis ',
-			'{:.1f} °C'.format(self.history.ceiling)]))
+			'{:.1f} °C'.format(h.ceiling)]))
 	return markdown_to_html.convert('\n'.join(string))
 
 def plot_history(history, file, now):
