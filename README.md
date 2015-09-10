@@ -42,7 +42,7 @@ The *station* parameter corresponds with the same field in the sensor list of `s
     pip install virtualenv
     virtualenv --python=python3 ve/
     source ve/bin/activate
-    pip install markdown matplotlib
+    pip install markdown matplotlib pytz
     ./server.py
     deactivate
 

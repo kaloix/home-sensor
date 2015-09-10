@@ -2,14 +2,8 @@ import logging
 import resource
 import collections
 import config
-import functools
 import datetime
 import csv
-import pytz
-import pysolar
-import scipy.misc
-import subprocess
-import numpy
 
 def init_logging():
 	logging.basicConfig(
@@ -23,32 +17,8 @@ def memory_check():
 	if memory > 100:
 		raise Exception('memory leak')
 
-def parse_w1_temp(file):
-	with open(file) as w1_file:
-		if w1_file.readline().strip().endswith('YES'):
-			return int(w1_file.readline().split('t=')[-1].strip()) / 1e3
-		else:
-			raise Exception('sensor says no')
-
 def timestamp(date_time):
 	return float('{:%s}'.format(date_time)) + date_time.microsecond / 1e6
-
-def nighttime(count, date_time):
-	# make aware
-	date_time = pytz.timezone('Europe/Berlin').localize(date_time)
-	# calculate nights
-	date_time -= datetime.timedelta(days=count)
-	sun_change = list()
-	for c in range(0, count+1):
-		date_time += datetime.timedelta(days=1)
-		sun_change.extend(pysolar.util.get_sunrise_sunset(49.2, 11.08, date_time))
-	sun_change = sun_change[1:-1]
-	night = list()
-	for r in range(0, count):
-		night.append((sun_change[2*r], sun_change[2*r+1]))
-	# make naive
-	for sunset, sunrise in night:
-		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
 
 class Measurement(collections.namedtuple('Measurement', 'value timestamp')):
 	__slots__ = ()
@@ -142,35 +112,3 @@ class History:
 		assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
 		self._clear(now)
 		self._process(now)
-
-class ThermosolarOCR:
-	def _parse_segment(self, image):
-		scipy.misc.imsave('seven_segment.png', image)
-		command = ['ssocr/ssocr', '--number-digits=2', '--background=black', 'seven_segment.png']
-		try:
-			return int(subprocess.check_output(command))
-		except (subprocess.CalledProcessError, ValueError) as err:
-			logging.error(err)
-	def _parse_light(self, image):
-		hist, bin_edges = numpy.histogram(image, bins=4, range=(0,255), density=True)
-		return hist[3] > 0.006
-	def load_image(self, file):
-		image = scipy.misc.imread(file)
-		top = 11
-		left = 76
-		height = 76
-		width = 123
-		self.seven_segment = image[top:top+height, left:left+width]
-		top = 146
-		left = 128
-		length = 15
-		self.pump_light = image[top:top+length, left:left+length]
-		top = 147
-		left = 98
-		self.sensor_light = image[top:top+length, left:left+length]
-	def temperature(self):
-		return self._parse_segment(self.seven_segment)
-	def pump_active(self):
-		return self._parse_light(self.pump_light)
-	def sensor_failure(self):
-		return self._parse_light(self.sensor_light)
