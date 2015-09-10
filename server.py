@@ -5,7 +5,6 @@ import json
 import locale
 import logging
 import markdown
-import matplotlib.pyplot
 import notification
 import os
 import string
@@ -88,40 +87,11 @@ def loop():
 		content = html_content,
 		update_time = '{:%A %d. %B %Y %X}'.format(now),
 		year = '{:%Y}'.format(now))
-	with open('luft.html', mode='w') as html_file:
+	with open(config.web_dir+'luft.html', mode='w') as html_file:
 		html_file.write(html_filled)
 
 	logging.info('generate plot')
-	matplotlib.pyplot.figure(figsize=(11, 6))
-
-	frame_start = now - config.detail_range
-	matplotlib.pyplot.subplot(2, 1, 1)
-	night1, night2 = presentation.nighttime(2, now)
-	matplotlib.pyplot.axvspan(*night1, color='black', alpha=0.3)
-	matplotlib.pyplot.axvspan(*night2, color='black', alpha=0.3)
-	for s in sensor:
-		matplotlib.pyplot.plot(s.history.detail.timestamp, s.history.detail.value, marker='.', label=s.name)
-	matplotlib.pyplot.xlim(frame_start, now)
-	matplotlib.pyplot.xlabel('Uhrzeit')
-	matplotlib.pyplot.ylabel('Temperatur °C')
-	matplotlib.pyplot.grid(True)
-	matplotlib.pyplot.gca().yaxis.tick_right()
-	matplotlib.pyplot.gca().yaxis.set_label_position('right')
-	matplotlib.pyplot.legend(loc='best')
-
-	matplotlib.pyplot.subplot(2, 1, 2)
-	for s in sensor:
-		matplotlib.pyplot.plot(s.history.summary_avg.timestamp, s.history.summary_avg.value, marker='.')
-		matplotlib.pyplot.fill_between(s.history.summary_min.timestamp, s.history.summary_min.value, s.history.summary_max.value, alpha=0.5)
-	matplotlib.pyplot.xlabel('Datum')
-	matplotlib.pyplot.ylabel('Temperatur °C')
-	matplotlib.pyplot.grid(True)
-	matplotlib.pyplot.gca().yaxis.tick_right()
-	matplotlib.pyplot.gca().yaxis.set_label_position('right')
-
-	matplotlib.pyplot.savefig(filename='plot.png', bbox_inches='tight')
-	matplotlib.pyplot.close()
-	os.system('cp luft.html plot.png {}'.format(config.web_dir))
+	presentation.plot_history([s.history for s in sensor], config.web_dir+'plot.png')
 
 while True:
 	start = time.time()
