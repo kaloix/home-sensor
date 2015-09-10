@@ -91,7 +91,7 @@ def loop():
 		html_file.write(html_filled)
 
 	logging.info('generate plot')
-	presentation.plot_history([s.history for s in sensor], config.web_dir+'plot.png')
+	presentation.plot_history([s.history for s in sensor], config.web_dir+'plot.png', now)
 
 while True:
 	start = time.time()

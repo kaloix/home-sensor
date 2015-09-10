@@ -62,6 +62,7 @@ class Record:
 
 class History:
 	def __init__(self, name, floor, ceiling):
+		self.name = name
 		self.floor = floor
 		self.ceiling = ceiling
 		self.detail = Record(name, config.detail_range)
