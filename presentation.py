@@ -3,6 +3,33 @@ import pytz
 import datetime
 import pysolar
 import config
+import markdown
+
+markdown_to_html = markdown.Markdown(
+	extensions = ['markdown.extensions.tables'],
+	output_format = 'html5')
+
+def detail_table(history):
+	delimiter = ' | '
+	string = list()
+	string.append('Messpunkt | Aktuell | Tagestief | Tageshoch | Zulässig')
+	string.append('--- | --- | --- | --- | ---')
+	for h in history:
+		string.append(''.join([
+			self.name,
+			delimiter,
+			'{:.1f} °C'.format(self.history.current.value) if self.history.current else 'Fehler',
+			delimiter,
+			'⚠ ' if self.history.warn_low else '',
+			str(self.history.minimum) if self.history.minimum else '—',
+			delimiter,
+			'⚠ ' if self.history.warn_high else '',
+			str(self.history.maximum) if self.history.maximum else '—',
+			delimiter,
+			'{:.1f} °C'.format(self.history.floor),
+			' bis ',
+			'{:.1f} °C'.format(self.history.ceiling)]))
+	return markdown_to_html.convert('\n'.join(string))
 
 def plot_history(history, file, now):
 	matplotlib.pyplot.figure(figsize=(11, 6))

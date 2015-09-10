@@ -2,9 +2,7 @@
 
 import datetime
 import json
-import locale
 import logging
-import markdown
 import notification
 import os
 import string
@@ -22,32 +20,10 @@ class Sensor:
 	def update(self):
 		self.history.restore(config.data_dir)
 		self.history.backup(config.backup_dir)
-	def markdown(self):
-		delimiter = ' | '
-		return ''.join([
-			self.name,
-			delimiter,
-			'{:.1f} °C'.format(self.history.current.value) if self.history.current else 'Fehler',
-			delimiter,
-			'⚠ ' if self.history.warn_low else '',
-			str(self.history.minimum) if self.history.minimum else '—',
-			delimiter,
-			'⚠ ' if self.history.warn_high else '',
-			str(self.history.maximum) if self.history.maximum else '—',
-			delimiter,
-			'{:.1f} °C'.format(self.history.floor),
-			' bis ',
-			'{:.1f} °C'.format(self.history.ceiling)])
 
-locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
-util.init_logging()
-with open('template.md') as markdown_file:
-	markdown_template = markdown_file.read()
+util.init()
 with open('template.html') as html_file:
 	html_template = html_file.read()
-markdown_to_html = markdown.Markdown(
-	extensions = ['markdown.extensions.tables'],
-	output_format = 'html5')
 with open('sensor.json') as json_file:
 	json_config = json_file.read()
 sensor_json = json.loads(json_config)
@@ -60,12 +36,12 @@ for name, attr in sensor_json.items():
 notify = notification.NotificationCenter()
 
 def loop():
+	group = 'Lufttemperatur'
+
 	logging.info('read csv')
 	now = datetime.datetime.now()
-	markdown_string = list()
 	for s in sensor:
 		s.update()
-		markdown_string.append(s.markdown())
 		if not s.history.current:
 			text = 'Messpunkt "{}" liefert keine Daten.'.format(s.name)
 			notify.warn_user(text, s.name+'s')
@@ -75,23 +51,19 @@ def loop():
 		if s.history.warn_high:
 			text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}'.format(s.name, s.history.maximum)
 			notify.warn_user(text, s.name+'h')
-	markdown_data = '\n'.join(markdown_string)
 
 	logging.info('write html')
-	markdown_filled = string.Template(markdown_template).substitute(
-		data = markdown_data,
-		group = 'Lufttemperatur')
-	html_content = markdown_to_html.convert(markdown_filled)
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(config.client_interval.total_seconds()),
-		content = html_content,
+		group = group,
+		values = presentation.detail_table([s.history for s in sensor]),
 		update_time = '{:%A %d. %B %Y %X}'.format(now),
 		year = '{:%Y}'.format(now))
-	with open(config.web_dir+'luft.html', mode='w') as html_file:
+	with open(config.web_dir+group+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
 
 	logging.info('generate plot')
-	presentation.plot_history([s.history for s in sensor], config.web_dir+'plot.png', now)
+	presentation.plot_history([s.history for s in sensor], config.web_dir+group+'.png', now)
 
 while True:
 	start = time.time()

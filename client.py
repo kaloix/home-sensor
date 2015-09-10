@@ -19,7 +19,7 @@ class Sensor:
 	def update(self):
 		now = datetime.datetime.now()
 		try:
-			value = measurement.parse_w1_temp(self.file)
+			value = measurement.w1_temp(self.file)
 		except Exception as err:
 			logging.error('sensor failure: {}'.format(err))
 		else:
@@ -29,7 +29,7 @@ class Sensor:
 parser = argparse.ArgumentParser()
 parser.add_argument('station', type=int)
 args = parser.parse_args()
-util.init_logging()
+util.init()
 with open('sensor.json') as json_file:
 	json_config = json_file.read()
 sensor_json = json.loads(json_config)

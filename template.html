@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="refresh" content="$refresh_seconds">
 <link rel="icon" href="favicon.png" sizes="512x512" type="image/png">
-<title>Temperatur-Anzeige</title>
+<title>$group – Sensor-Anzeige</title>
 <style>
 body {font-family: serif;}
 h1, h2, h3, h4, h5, h6 {font-family: sans-serif;}
@@ -17,19 +17,23 @@ footer {clear:both;}
 </head>
 <body>
 <header>
-<h1>Temperatur-Anzeige</h1>
+<h1>Sensor-Anzeige</h1>
 </header>
 <nav>
 <ul>
-<li><a href="luft.html">Lufttemperatur</a></li>
+<li><a href="Lufttemperatur.html">Lufttemperatur</a></li>
 </ul>
 </nav>
 <section>
-$content
+<h2>$group</h2>
+<h3>Werte</h3>
+$values
+<h3>Verlauf</h3>
+<img src="$group.png">
 </section>
 <footer>
 <hr>
-Letzte Aktualisierung $update_time • Copyright © $year Stefan Schindler
+<p>Letzte Aktualisierung $update_time • Copyright © $year Stefan Schindler</p>
 </footer>
 </body>
 </html>

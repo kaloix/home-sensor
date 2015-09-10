@@ -4,8 +4,10 @@ import collections
 import config
 import datetime
 import csv
+import locale
 
-def init_logging():
+def init():
+	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 	logging.basicConfig(
 		format = '[%(asctime)s:%(levelname)s:%(module)s] %(message)s',
 		datefmt = '%y-%m-%d-%H-%M-%S',
