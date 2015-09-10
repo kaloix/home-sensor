@@ -34,14 +34,13 @@ def detail_table(history):
 def plot_history(history, file, now):
 	matplotlib.pyplot.figure(figsize=(11, 6))
 	# detail record
-	frame_start = now - config.detail_range
 	matplotlib.pyplot.subplot(2, 1, 1)
 	night1, night2 = nighttime(2, now)
 	matplotlib.pyplot.axvspan(*night1, color='black', alpha=0.3)
 	matplotlib.pyplot.axvspan(*night2, color='black', alpha=0.3)
 	for h in history:
 		matplotlib.pyplot.plot(h.detail.timestamp, h.detail.value, marker='.', label=h.name)
-	matplotlib.pyplot.xlim(frame_start, now)
+	matplotlib.pyplot.xlim(now-config.detail_range, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	matplotlib.pyplot.grid(True)

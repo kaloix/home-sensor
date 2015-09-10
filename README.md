@@ -47,7 +47,7 @@ The *station* parameter corresponds with the same field in the sensor list of `s
     deactivate
 
 ## Acknowledgements
-* File `favicon.png` from [VeryIcon.com](http://www.veryicon.com/icons/system/icons8-metro-style/measurement-units-temperature.html) with license *Free for non-commercial use*
+* File `static/favicon.png` from [VeryIcon.com](http://www.veryicon.com/icons/system/icons8-metro-style/measurement-units-temperature.html) with license *Free for non-commercial use*
 
 ## Copyright
 Copyright © 2015 Stefan Schindler  

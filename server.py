@@ -25,8 +25,7 @@ util.init()
 with open('template.html') as html_file:
 	html_template = html_file.read()
 with open('sensor.json') as json_file:
-	json_config = json_file.read()
-sensor_json = json.loads(json_config)
+	sensor_json = json.loads(json_file.read())
 sensor = list()
 for name, attr in sensor_json.items():
 	sensor.append(Sensor(
@@ -35,9 +34,7 @@ for name, attr in sensor_json.items():
 		attr['ceiling']))
 notify = notification.NotificationCenter()
 
-def loop():
-	group = 'Lufttemperatur'
-
+def loop(group):
 	logging.info('read csv')
 	now = datetime.datetime.now()
 	for s in sensor:
@@ -68,7 +65,7 @@ def loop():
 while True:
 	start = time.time()
 	try:
-		loop()
+		loop('Lufttemperatur')
 		util.memory_check()
 	except Exception as err:
 		tb_lines = traceback.format_tb(err.__traceback__)
