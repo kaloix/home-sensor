@@ -1,15 +1,5 @@
 # Kaloix Sensor System
-> This project was made with only personal use by me in mind. Code is not commentated, maybe bad structured and the user interface is in German language.
-
-## Requirements
-* Python 3.2.3
-* [markdown](https://pythonhosted.org/Markdown/)
-* [matplotlib](http://matplotlib.org/index.html)
-
-## Installation
-### Client
-#### Seven Segment Optical Character Recognition
-    sudo apt-get install libimlib2 libimlib2-dev python3-scipy
+> **Notice:** This project was made with only personal use by me in mind. Code is not commentated, maybe bad structured and the user interface is in German language.
 
 ## Client
 ### Features
@@ -18,11 +8,22 @@
 * Export data as CSV files to folder `csv/`
 * Copy these files to the server, when new data is available
 
-### Usage
-The directory `data/` on the server must be created manually first.
+### Installation
+The base platform is  **Debian Jessie** with **Python 3.4**. Basic preparation:
+
+    sudo echo "de_DE.UTF-8 UTF-8" >> /etc/locale.gen && sudo locale-gen
+
+1-Wire temperature sensor:
 
     modprobe w1-gpio
     modprobe w1-therm
+
+Seven Segment Optical Character Recognition:
+
+    sudo apt-get install libimlib2 libimlib2-dev pyton3-numpy python3-scipy
+
+Usage:
+
     ./client.py <station>
 
 The *station* parameter corresponds with the same field in the sensor list of `sensor.json`.
