@@ -54,7 +54,7 @@ class Record:
 			self.value.popleft()
 			assert len(self.value) == len(self.timestamp)
 	def write(self, directory):
-		rows = [(data.value, timestamp(data.timestamp)) for data in self]
+		rows = [(data.value, int(timestamp(data.timestamp))) for data in self]
 		with open(directory+self.csv, mode='w', newline='') as csv_file:
 			writer = csv.writer(csv_file)
 			writer.writerows(rows)

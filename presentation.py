@@ -39,7 +39,7 @@ def plot_history(history, file, now):
 				value += [False]
 			for r in range(0, len(timestamp), 2):
 				assert value[r] and not value[r+1]
-				matplotlib.pyplot.axvspan(timestamp[r], timestamp[r+1], alpha=0.5, label=h.name)
+				matplotlib.pyplot.axvspan(timestamp[r], timestamp[r+1], alpha=0.5, label=h.name if r==0 else None)
 	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
