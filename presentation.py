@@ -19,9 +19,10 @@ def detail_table(history):
 
 def plot_history(history, file, now):
 	history = [h for h in history if type(h) is util.FloatHistory] # FIXME
-	matplotlib.pyplot.figure(figsize=(11, 6))
+#	matplotlib.pyplot.figure(figsize=(11, 6))
+	matplotlib.pyplot.figure(figsize=(11, 3))
 	# detail record
-	matplotlib.pyplot.subplot(2, 1, 1)
+#	matplotlib.pyplot.subplot(2, 1, 1)
 	night1, night2 = nighttime(2, now)
 	matplotlib.pyplot.axvspan(*night1, color='black', alpha=0.3)
 	matplotlib.pyplot.axvspan(*night2, color='black', alpha=0.3)
@@ -35,15 +36,15 @@ def plot_history(history, file, now):
 	matplotlib.pyplot.gca().yaxis.set_label_position('right')
 	matplotlib.pyplot.legend(loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=3, frameon=False)
 	# summary records
-	matplotlib.pyplot.subplot(2, 1, 2)
-	for h in history:
-		matplotlib.pyplot.plot(h.summary_avg.timestamp, h.summary_avg.value, lw=3)
-		matplotlib.pyplot.fill_between(h.summary_min.timestamp, h.summary_min.value, h.summary_max.value, alpha=0.5)
-	matplotlib.pyplot.xlabel('Datum')
-	matplotlib.pyplot.ylabel('Temperatur °C')
-	matplotlib.pyplot.grid(True)
-	matplotlib.pyplot.gca().yaxis.tick_right()
-	matplotlib.pyplot.gca().yaxis.set_label_position('right')
+#	matplotlib.pyplot.subplot(2, 1, 2)
+#	for h in history:
+#		matplotlib.pyplot.plot(h.summary_avg.timestamp, h.summary_avg.value, lw=3)
+#		matplotlib.pyplot.fill_between(h.summary_min.timestamp, h.summary_min.value, h.summary_max.value, alpha=0.5)
+#	matplotlib.pyplot.xlabel('Datum')
+#	matplotlib.pyplot.ylabel('Temperatur °C')
+#	matplotlib.pyplot.grid(True)
+#	matplotlib.pyplot.gca().yaxis.tick_right()
+#	matplotlib.pyplot.gca().yaxis.set_label_position('right')
 	# save file
 	matplotlib.pyplot.savefig(filename=file, bbox_inches='tight')
 	matplotlib.pyplot.close()
