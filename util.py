@@ -33,9 +33,10 @@ class Measurement(collections.namedtuple('Measurement', 'value timestamp')):
 		return '{:.1f} °C um {:%H:%M} Uhr'.format(self.value, self.timestamp)
 
 class Record:
-	def __init__(self, name, period):
+	def __init__(self, name, period, parser):
 		self.csv = '{}.csv'.format(name)
 		self.period = period
+		self.parser = parser
 		self.value = collections.deque()
 		self.timestamp = collections.deque()
 	def __len__(self):
@@ -63,7 +64,7 @@ class Record:
 		try:
 			with open(directory+self.csv, newline='') as csv_file:
 				for r in csv.reader(csv_file):
-					self.append(float(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
+					self.append(self.parser(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
 		except (IOError, OSError):
 			pass
 
@@ -72,10 +73,10 @@ class FloatHistory:
 		self.name = name
 		self.floor = floor
 		self.ceiling = ceiling
-		self.float = Record(name, config.detail_range)
-		self.summary_min = Record(name+'-min', config.summary_range)
-		self.summary_avg = Record(name+'-avg', config.summary_range)
-		self.summary_max = Record(name+'-max', config.summary_range)
+		self.float = Record(name, config.detail_range, float)
+		self.summary_min = Record(name+'-min', config.summary_range, float)
+		self.summary_avg = Record(name+'-avg', config.summary_range, float)
+		self.summary_max = Record(name+'-max', config.summary_range, float)
 	def __str__(self):
 		now = datetime.datetime.now()
 		if self.float and self.float[-1].timestamp >= now - 2*config.client_interval:
@@ -130,7 +131,7 @@ class BoolHistory:
 	def __init__(self, name, valid):
 		self.name = name
 		self.valid = valid
-		self.boolean = Record(name, config.detail_range)
+		self.boolean = Record(name, config.detail_range, lamda bool_str: bool_str=='True')
 	def __str__(self):
 		now = datetime.datetime.now()
 		if self.boolean and self.boolean[-1].timestamp >= now - 2*config.client_interval:

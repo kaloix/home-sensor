@@ -1,6 +1,7 @@
 import scipy.misc
 import subprocess
 import numpy
+import random # FIXME
 
 def w1_temp(file):
 	with open(file) as w1_file:
@@ -25,6 +26,5 @@ def thermosolar_ocr(file):
 	seven_segment = image[top:top+height, left:left+width]
 	top, left, length = 146, 128, 15
 	pump_light = image[top:top+length, left:left+length]
-	top, left = 147, 98
-	sensor_light = image[top:top+length, left:left+length]
-	return parse_segment(seven_segment), parse_light(pump_light), parse_light(sensor_light)
+#	return parse_segment(seven_segment), parse_light(pump_light) # FIXME
+	return random.randrange(23, 43), bool(random.randrange(0, 2))

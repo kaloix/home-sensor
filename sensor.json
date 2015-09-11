@@ -18,7 +18,7 @@
 	"Solaranlage": [
 		{
 			"input": {
-				"station": 0,
+				"station": 1,
 				"type": "thermosolar",
 				"file": "/media/stefan/android/pictures/current.jpg"
 			},
