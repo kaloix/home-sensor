@@ -29,9 +29,11 @@ def plot_history(history, file, now):
 		if hasattr(h, 'float') and h.float:
 			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
 		elif hasattr(h, 'boolean') and h.boolean:
+			timestamp = list(h.boolean.timestamp)
+			value = list(h.boolean.value)
 			if not h.boolean.value[0]:
-				timestamp = [frame_start] + list(h.boolean.timestamp)
-				value = [True] + list(h.boolean.value)
+				timestamp = [frame_start] + timestamp
+				value = [True] + timestamp
 			if h.boolean.value[-1]:
 				timestamp += [now]
 				value += [False]
