@@ -147,9 +147,10 @@ class BoolHistory:
 			warn_high + bool_string(True) if True in self.boolean else '—',
 			', '.join([bool_string(v) for v in self.valid])])
 	def store(self, value):
-		now = datetime.datetime.now()
-		self.boolean.append(value, now)
-		self.boolean.clear(now)
+		if not self.boolean or value != self.boolean[-1]:
+			now = datetime.datetime.now()
+			self.boolean.append(value, now)
+			self.boolean.clear(now)
 	def backup(self, directory):
 		self.boolean.write(directory)
 	def restore(self, directory):
