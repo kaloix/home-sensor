@@ -4,7 +4,6 @@ import datetime
 import pysolar
 import config
 import markdown
-import util # FIXME
 
 markdown_to_html = markdown.Markdown(
 	extensions = ['markdown.extensions.tables'],
@@ -18,17 +17,28 @@ def detail_table(history):
 	return markdown_to_html.convert('\n'.join(string))
 
 def plot_history(history, file, now):
-	history = [h for h in history if type(h) is util.FloatHistory] # FIXME
 #	matplotlib.pyplot.figure(figsize=(11, 6))
 	matplotlib.pyplot.figure(figsize=(11, 3))
 	# detail record
+	frame_start = now - config.detail_range
 #	matplotlib.pyplot.subplot(2, 1, 1)
 	night1, night2 = nighttime(2, now)
 	matplotlib.pyplot.axvspan(*night1, color='black', alpha=0.3)
 	matplotlib.pyplot.axvspan(*night2, color='black', alpha=0.3)
 	for h in history:
-		matplotlib.pyplot.plot(h.detail.timestamp, h.detail.value, lw=3, label=h.name)
-	matplotlib.pyplot.xlim(now-config.detail_range, now)
+		if hasattr(h, 'float'):
+			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
+		elif hasattr(h, 'boolean'):
+			if not h.boolean.value[0]:
+				timestamp = [frame_start] + list(h.boolean.timestamp)
+				value = [True] + list(h.boolean.value)
+			if h.boolean.value[-1]:
+				timestamp += [now]
+				value += [False]
+			for r in range(0, len(timestamp), 2):
+				assert value[r] and not value[r+1]
+				matplotlib.pyplot.axvspan(timestamp[r], timestamp[r+1], alpha=0.5, label=h.name)
+	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	matplotlib.pyplot.grid(True)
