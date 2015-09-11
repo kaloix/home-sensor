@@ -9,9 +9,7 @@
 * Copy these files to the server, when new data is available
 
 ### Installation
-The base platform is  **Debian Jessie** with **Python 3.4**. Basic preparation:
-
-    sudo echo "de_DE.UTF-8 UTF-8" >> /etc/locale.gen && sudo locale-gen
+The base platform is  **Debian Jessie** with **Python 3.4**. Install german locale by uncommenting `de_DE.UTF-8 UTF-8` in `/etc/locale.gen` and run `sudo locale-gen`.
 
 1-Wire temperature sensor:
 
@@ -20,7 +18,7 @@ The base platform is  **Debian Jessie** with **Python 3.4**. Basic preparation:
 
 Seven Segment Optical Character Recognition:
 
-    sudo apt-get install libimlib2 libimlib2-dev pyton3-numpy python3-scipy
+    sudo apt-get install libimlib2 libimlib2-dev pyton3-numpy python3-scipy python3-pil
 
 Usage:
 
