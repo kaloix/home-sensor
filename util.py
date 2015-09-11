@@ -131,7 +131,7 @@ class BoolHistory:
 	def __init__(self, name, valid):
 		self.name = name
 		self.valid = valid
-		self.boolean = Record(name, config.detail_range, lamda bool_str: bool_str=='True')
+		self.boolean = Record(name, config.detail_range, lambda bool_str: bool_str=='True')
 	def __str__(self):
 		now = datetime.datetime.now()
 		if self.boolean and self.boolean[-1].timestamp >= now - 2*config.client_interval:

@@ -26,9 +26,9 @@ def plot_history(history, file, now):
 	matplotlib.pyplot.axvspan(*night1, color='black', alpha=0.3)
 	matplotlib.pyplot.axvspan(*night2, color='black', alpha=0.3)
 	for h in history:
-		if hasattr(h, 'float'):
+		if hasattr(h, 'float') and h.float:
 			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
-		elif hasattr(h, 'boolean'):
+		elif hasattr(h, 'boolean') and h.boolean:
 			if not h.boolean.value[0]:
 				timestamp = [frame_start] + list(h.boolean.timestamp)
 				value = [True] + list(h.boolean.value)
