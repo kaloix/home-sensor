@@ -24,12 +24,12 @@
 			},
 			"output": {
 				"temperature": {
-					"name": "Kollektoren",
+					"name": "Test A",
 					"floor": 0,
 					"ceiling": 100
 				},
 				"switch": {
-					"name": "Pumpe",
+					"name": "Test B",
 					"valid": [true, false]
 				}
 			}
