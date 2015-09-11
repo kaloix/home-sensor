@@ -91,7 +91,7 @@ class FloatHistory:
 			'{:.1f} °C'.format(current.value) if current else 'Fehler',
 			('⚠ ' if warn_low else '') + str(minimum) if minimum else '—',
 			('⚠ ' if warn_high else '') + str(maximum) if maximum else '—',
-			'{:.1f} °C  bis {:.1f} °C'.format(self.floor, self.ceiling)])
+			'{:.0f} °C  bis {:.0f} °C'.format(self.floor, self.ceiling)])
 	def _process(self, now):
 		self.detail.clear(now)
 		self.summary_min.clear(now)

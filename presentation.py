@@ -26,7 +26,7 @@ def plot_history(history, file, now):
 	matplotlib.pyplot.axvspan(*night1, color='black', alpha=0.3)
 	matplotlib.pyplot.axvspan(*night2, color='black', alpha=0.3)
 	for h in history:
-		matplotlib.pyplot.plot(h.detail.timestamp, h.detail.value, marker='.', label=h.name)
+		matplotlib.pyplot.plot(h.detail.timestamp, h.detail.value, lw=3, label=h.name)
 	matplotlib.pyplot.xlim(now-config.detail_range, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
@@ -37,7 +37,7 @@ def plot_history(history, file, now):
 	# summary records
 	matplotlib.pyplot.subplot(2, 1, 2)
 	for h in history:
-		matplotlib.pyplot.plot(h.summary_avg.timestamp, h.summary_avg.value, marker='.')
+		matplotlib.pyplot.plot(h.summary_avg.timestamp, h.summary_avg.value, lw=3)
 		matplotlib.pyplot.fill_between(h.summary_min.timestamp, h.summary_min.value, h.summary_max.value, alpha=0.5)
 	matplotlib.pyplot.xlabel('Datum')
 	matplotlib.pyplot.ylabel('Temperatur °C')
