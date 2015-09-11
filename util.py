@@ -142,12 +142,12 @@ class BoolHistory:
 		warn_high = '⚠ ' if True not in self.valid else ''
 		return ' | '.join([
 			self.name,
-			bool_string(current),
-			warn_low + bool_string(False) if False in self.boolean else '—',
-			warn_high + bool_string(True) if True in self.boolean else '—',
+			bool_string(current.value),
+			warn_low + bool_string(False) if False in self.boolean.value else '—',
+			warn_high + bool_string(True) if True in self.boolean.value else '—',
 			', '.join([bool_string(v) for v in self.valid])])
 	def store(self, value):
-		if not self.boolean or value != self.boolean[-1]:
+		if not self.boolean or value != self.boolean[-1].value:
 			now = datetime.datetime.now()
 			self.boolean.append(value, now)
 			self.boolean.clear(now)
