@@ -31,11 +31,11 @@ def plot_history(history, file, now):
 		elif hasattr(h, 'boolean') and h.boolean:
 			timestamp = list(h.boolean.timestamp)
 			value = list(h.boolean.value)
-			if not h.boolean.value[0]:
-				timestamp = [frame_start] + timestamp
-				value = [True] + timestamp
-			if h.boolean.value[-1]:
-				timestamp += [now]
+			if not value[0]:
+				timestamp = timestamp[1:]
+				value = value[1:]
+			if value[-1]:
+				timestamp += [timestamp[-1] + config.allowed_downtime]
 				value += [False]
 			for r in range(0, len(timestamp), 2):
 				assert value[r] and not value[r+1]

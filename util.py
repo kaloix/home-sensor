@@ -23,8 +23,6 @@ def timestamp(date_time):
 	return float('{:%s}'.format(date_time)) + date_time.microsecond / 1e6
 
 def bool_string(boolean):
-	if boolean is None:
-		return 'Fehler'
 	return 'Ein' if boolean else 'Aus'
 
 class Measurement(collections.namedtuple('Measurement', 'value timestamp')):
@@ -79,7 +77,7 @@ class FloatHistory:
 		self.summary_max = Record(name+'-max', config.summary_range, float)
 	def __str__(self):
 		now = datetime.datetime.now()
-		if self.float and self.float[-1].timestamp >= now - 2*config.client_interval:
+		if self.float and self.float[-1].timestamp >= now - config.allowed_downtime:
 			current = self.float[-1]
 		else:
 			current = None
@@ -134,7 +132,7 @@ class BoolHistory:
 		self.boolean = Record(name, config.detail_range, lambda bool_str: bool_str=='True')
 	def __str__(self):
 		now = datetime.datetime.now()
-		if self.boolean and self.boolean[-1].timestamp >= now - 2*config.client_interval:
+		if self.boolean and self.boolean[-1].timestamp >= now - config.allowed_downtime:
 			current = self.boolean[-1]
 		else:
 			current = None
@@ -142,7 +140,7 @@ class BoolHistory:
 		warn_high = '⚠ ' if True not in self.valid else ''
 		return ' | '.join([
 			self.name,
-			bool_string(current.value),
+			bool_string(current.value) if current else 'Fehler',
 			warn_low + bool_string(False) if False in self.boolean.value else '—',
 			warn_high + bool_string(True) if True in self.boolean.value else '—',
 			', '.join([bool_string(v) for v in self.valid])])
