@@ -13,7 +13,7 @@ import measurement
 
 class DS18B20:
 	def __init__(self, file, name):
-		self.history = util.History(name)
+		self.history = util.FloatHistory(name, None, None)
 		self.history.restore(config.data_dir)
 		self.file = file
 	def update(self):
@@ -27,14 +27,14 @@ class DS18B20:
 
 class Thermosolar:
 	def __init__(self, file, temperature_name, pump_name):
-		self.temp_hist = util.History(temperature_name, floor, ceiling)
+		self.temp_hist = util.FloatHistory(temperature_name, None, None)
 		self.temp_hist.restore(config.data_dir)
-		self.pump_hist = util.BoolHistory(pump_name)
+		self.pump_hist = util.BoolHistory(pump_name, None)
 		self.pump_hist.restore(config.data_dir)
 		self.file = file
 	def update(self):
 		try:
-			temp, pump = thermosolar_ocr(self.file)
+			temp, pump = measurement.thermosolar_ocr(self.file)
 		except Exception as err:
 			logging.error('parse failure: {}'.format(err))
 		else:
@@ -58,7 +58,7 @@ for group, sensor_list in sensor_json.items():
 			sensor.append(DS18B20(
 				s['input']['file'],
 				s['output']['temperature']['name']))
-		elif sensor['input']['type'] == 'thermosolar':
+		elif s['input']['type'] == 'thermosolar':
 			sensor.append(Thermosolar(
 				s['input']['file'],
 				s['output']['temperature']['name'],
