@@ -29,17 +29,10 @@ def plot_history(history, file, now):
 		if hasattr(h, 'float') and h.float:
 			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
 		elif hasattr(h, 'boolean') and h.boolean:
-			timestamp = list(h.boolean.timestamp)
-			value = list(h.boolean.value)
-			if not value[0]:
-				timestamp = timestamp[1:]
-				value = value[1:]
-			if value[-1]:
-				timestamp += [timestamp[-1] + config.allowed_downtime]
-				value += [False]
-			for r in range(0, len(timestamp), 2):
-				assert value[r] and not value[r+1]
-				matplotlib.pyplot.axvspan(timestamp[r], timestamp[r+1], alpha=0.5, label=h.name if r==0 else None)
+			first = True
+			for start, end in prepare_bool_plot(h.boolean)
+				matplotlib.pyplot.axvspan(start, end, alpha=0.5, label=h.name if first else None)
+				first = False
 	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
@@ -77,3 +70,17 @@ def nighttime(count, date_time):
 	# make naive
 	for sunset, sunrise in night:
 		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
+
+def prepare_bool_plot(boolean):
+	expect = True
+	for value, timestamp in boolean:
+		if value != expect:
+			continue
+		if expect:
+			start = timestamp
+			expect = False
+		else:
+			yield start, timestamp
+			expect = True
+	if not expect:
+		yield start, timestamp + config.allowed_downtime

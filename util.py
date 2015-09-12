@@ -44,10 +44,18 @@ class Record:
 	def __nonzero__(self):
 		return bool(self.value)
 	def append(self, value, timestamp):
-		if not self.value or timestamp > self.timestamp[-1]:
-			self.value.append(value)
-			self.timestamp.append(timestamp)
-			assert len(self.value) == len(self.timestamp)
+		# only accept newer values
+		if self.timestamp and timestamp <= self.timestamp[-1]:
+			return
+		self.value.append(value)
+		self.timestamp.append(timestamp)
+		# delete center of three equal values
+		if len(self.value) >= 3 and self.value[-3] == self.value[-2] == self.value[-1]:
+			# keep some values
+			if self.timestamp[-2] - self.timestamp[-3] < config.client_interval:
+				del self.value[-2]
+				del self.timestamp[-2]
+		assert len(self.value) == len(self.timestamp)
 	def clear(self, now):
 		while self.value and self.timestamp[0] < now - self.period:
 			self.timestamp.popleft()
@@ -145,10 +153,9 @@ class BoolHistory:
 			warn_high + bool_string(True) if True in self.boolean.value else '—',
 			', '.join([bool_string(v) for v in self.valid])])
 	def store(self, value):
-		if not self.boolean or value != self.boolean[-1].value:
-			now = datetime.datetime.now()
-			self.boolean.append(value, now)
-			self.boolean.clear(now)
+		now = datetime.datetime.now()
+		self.boolean.append(value, now)
+		self.boolean.clear(now)
 	def backup(self, directory):
 		self.boolean.write(directory)
 	def restore(self, directory):
