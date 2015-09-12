@@ -30,7 +30,7 @@ def plot_history(history, file, now):
 			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
 		elif hasattr(h, 'boolean') and h.boolean:
 			first = True
-			for start, end in prepare_bool_plot(h.boolean)
+			for start, end in prepare_bool_plot(h.boolean):
 				matplotlib.pyplot.axvspan(start, end, alpha=0.5, label=h.name if first else None)
 				first = False
 	matplotlib.pyplot.xlim(frame_start, now)
