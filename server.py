@@ -75,7 +75,7 @@ def loop(group, sensor_list):
 
 	logging.info('write html')
 	html_filled = string.Template(html_template).substitute(
-		refresh_seconds = int(config.client_interval.total_seconds()),
+		refresh_seconds = int(config.transmit_interval.total_seconds()),
 		group = group,
 		values = presentation.detail_table([s.history for s in sensor_list]),
 		update_time = '{:%A %d. %B %Y %X}'.format(now),

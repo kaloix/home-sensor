@@ -9,7 +9,7 @@
 * Copy these files to the server, when new data is available
 
 ### Installation
-The base platform is  **Debian Jessie** with **Python 3.4**. Install german locale by uncommenting `de_DE.UTF-8 UTF-8` in `/etc/locale.gen` and run `sudo locale-gen`.
+The base platform is  **Debian Jessie** with **Python 3.4**. Install German locale by uncommenting `de_DE.UTF-8 UTF-8` in `/etc/locale.gen` and run `sudo locale-gen`.
 
 1-Wire temperature sensor:
 

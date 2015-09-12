@@ -52,7 +52,7 @@ class Record:
 		# delete center of three equal values
 		if len(self.value) >= 3 and self.value[-3] == self.value[-2] == self.value[-1]:
 			# keep some values
-			if self.timestamp[-2] - self.timestamp[-3] < config.client_interval:
+			if self.timestamp[-2] - self.timestamp[-3] < config.transmit_interval:
 				del self.value[-2]
 				del self.timestamp[-2]
 		assert len(self.value) == len(self.timestamp)

@@ -75,4 +75,4 @@ while True:
 	util.memory_check()
 	logging.info('sleep, duration was {}s'.format(
 		round(time.time() - start)))
-	time.sleep(config.client_interval.total_seconds())
+	time.sleep(config.transmit_interval.total_seconds())
