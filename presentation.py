@@ -22,17 +22,18 @@ def plot_history(history, file, now):
 	# detail record
 	frame_start = now - config.detail_range
 #	matplotlib.pyplot.subplot(2, 1, 1)
-	night1, night2 = nighttime(2, now)
-	matplotlib.pyplot.axvspan(*night1, color='black', alpha=0.3)
-	matplotlib.pyplot.axvspan(*night2, color='black', alpha=0.3)
 	for h in history:
 		if hasattr(h, 'float') and h.float:
 			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
 		elif hasattr(h, 'boolean') and h.boolean:
-			first = True
-			for start, end in prepare_bool_plot(h.boolean):
-				matplotlib.pyplot.axvspan(start, end, alpha=0.5, label=h.name if first else None)
-				first = False
+			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
+				label = h.name if index == 0 else None
+				matplotlib.pyplot.axvspan(start, end, alpha=0.33, label=label)
+		matplotlib.pyplot.gca()._get_lines.color_cycle.__next__()
+	nights = int(config.detail_range / datetime.timedelta(days=1)) + 2
+	for index, (sunset, sunrise) in enumerate(nighttime(nights, now)):
+		label = 'Nacht' if index == 0 else None
+		matplotlib.pyplot.axvspan(sunset, sunrise, color='black', alpha=0.17, label=label)
 	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
