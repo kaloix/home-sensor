@@ -50,18 +50,20 @@ with open('sensor.json') as json_file:
 	sensor_json = json.loads(json_file.read())
 sensor = dict()
 for group, sensor_list in sensor_json.items():
-	sensor[group] = list()
+	temp = list()
+	switch = list()
 	for s in sensor_list:
 		for kind, attr in s['output'].items():
 			if kind == 'temperature':
-				sensor[group].append(Temperature(
+				temp.append(Temperature(
 					attr['name'],
 					attr['floor'],
 					attr['ceiling']))
 			elif kind == 'switch':
-				sensor[group].append(Switch(
+				switch.append(Switch(
 					attr['name'],
 					attr['valid']))
+	sensor[group] = temp + switch
 notify = notification.NotificationCenter()
 
 def loop(group, sensor_list):

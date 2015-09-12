@@ -26,10 +26,10 @@ def plot_history(history, file, now):
 		if hasattr(h, 'float') and h.float:
 			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
 		elif hasattr(h, 'boolean') and h.boolean:
+			color = matplotlib.pyplot.gca()._get_lines.color_cycle.__next__()
 			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
 				label = h.name if index == 0 else None
-				matplotlib.pyplot.axvspan(start, end, alpha=0.33, label=label)
-		matplotlib.pyplot.gca()._get_lines.color_cycle.__next__()
+				matplotlib.pyplot.axvspan(start, end, color=color ,alpha=0.33, label=label)
 	nights = int(config.detail_range / datetime.timedelta(days=1)) + 2
 	for index, (sunset, sunrise) in enumerate(nighttime(nights, now)):
 		label = 'Nacht' if index == 0 else None
