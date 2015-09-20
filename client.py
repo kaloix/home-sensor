@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import datetime
 import json
 import logging
 import os
@@ -32,39 +33,44 @@ def main():
 					s['input']['file'],
 					s['output']['temperature']['name'],
 					s['output']['switch']['name']))
+	transmit = util.Timer(config.transmit_interval)
 	while True:
 		start = time.time()
 		logging.info('collect data')
 		for s in sensor:
 			s.update()
-		logging.info('copy to webserver')
-		if os.system('scp {0}* {1}{0}'.format(
-				config.data_dir, config.client_server)):
-			logging.error('scp failed')
-		util.memory_check()
+		if transmit.check():
+			logging.info('copy to webserver')
+			if os.system('scp {0}* {1}{0}'.format(
+					config.data_dir, config.client_server)):
+				logging.error('scp failed')
+			util.memory_check()
 		logging.info('sleep, duration was {}s'.format(
 			round(time.time() - start)))
-		time.sleep(config.transmit_interval.total_seconds())
+		time.sleep(config.sampling_interval.total_seconds())
 
 
-class DS18B20:
+class DS18B20(object):
 
 	def __init__(self, file, name):
 		self.history = util.FloatHistory(name, None, None)
 		self.history.restore(config.data_dir)
 		self.file = file
+		self.timer = util.Timer(datetime.timedelta(minutes=10))
 
 	def update(self):
+		if not self.timer.check():
+			return
 		try:
 			temperature = measurement.w1_temp(self.file)
 		except Exception as err:
 			logging.error('DS18B20 failure: {}'.format(err))
-		else:
-			self.history.store(temperature)
-			self.history.backup(config.data_dir)
+			return
+		self.history.store(temperature)
+		self.history.backup(config.data_dir)
 
 
-class Thermosolar:
+class Thermosolar(object):
 
 	def __init__(self, file, temperature_name, pump_name):
 		self.temp_hist = util.FloatHistory(temperature_name, None, None)
@@ -72,8 +78,11 @@ class Thermosolar:
 		self.pump_hist = util.BoolHistory(pump_name, None)
 		self.pump_hist.restore(config.data_dir)
 		self.file = file
+		self.timer = util.Timer(datetime.timedelta(seconds=10))
 
 	def update(self):
+		if not self.timer.check():
+			return
 		try:
 			temp, pump = measurement.thermosolar_ocr(self.file)
 		except Exception as err:
