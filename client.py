@@ -36,12 +36,11 @@ def main():
 	transmit = util.Timer(config.transmit_interval)
 	while True:
 		start = time.time()
-		logging.info('collect data')
 		for s in sensor:
 			s.update()
 		if transmit.check():
 			logging.info('copy to webserver')
-			if os.system('scp {0}* {1}{0}'.format(
+			if os.system('scp -q {0}* {1}{0}'.format(
 					config.data_dir, config.client_server)):
 				logging.error('scp failed')
 			util.memory_check()
@@ -56,11 +55,13 @@ class DS18B20(object):
 		self.history = util.FloatHistory(name, None, None)
 		self.history.restore(config.data_dir)
 		self.file = file
+		self.name = name
 		self.timer = util.Timer(datetime.timedelta(minutes=10))
 
 	def update(self):
 		if not self.timer.check():
 			return
+		logging.info('update DS18B20 {}'.format(self.name))
 		try:
 			temperature = measurement.w1_temp(self.file)
 		except Exception as err:
@@ -78,11 +79,13 @@ class Thermosolar(object):
 		self.pump_hist = util.BoolHistory(pump_name, None)
 		self.pump_hist.restore(config.data_dir)
 		self.file = file
+		self.name = '{}+{}'.format(temperature_name, pump_name)
 		self.timer = util.Timer(datetime.timedelta(seconds=10))
 
 	def update(self):
 		if not self.timer.check():
 			return
+		logging.info('update Thermosolar {}'.format(self.name))
 		try:
 			temp, pump = measurement.thermosolar_ocr(self.file)
 		except Exception as err:

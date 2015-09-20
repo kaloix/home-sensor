@@ -16,7 +16,8 @@ def _parse_segment(image):
 		ssocr_output = subprocess.check_output([
 			'./ssocr',
 			'--number-digits=2',
-			'--background=black',
+			'--threshold=98',
+			'invert',
 			'seven_segment.png'])
 	except subprocess.CalledProcessError as err:
 		logging.error(err)
@@ -36,11 +37,12 @@ def thermosolar_ocr(file):
 	if subprocess.call([
 			'fswebcam',
 			'--device', file,
+			'--quiet',
 			'thermosolar.jpg']):
 		raise Exception('camera failure')
 	image = scipy.misc.imread('thermosolar.jpg')
-	top, left, height, width = 11, 76, 76, 123
-	seven_segment = image[top:top+height, left:left+width]
-	top, left, length = 146, 128, 15
-	pump_light = image[top:top+length, left:left+length]
+	left, top, right, bottom = 67, 53, 160, 118
+	seven_segment = image[top:bottom, left:right]
+	left, top, right, bottom = 106, 157, 116, 166
+	pump_light = image[top:bottom, left:right]
 	return _parse_segment(seven_segment), _parse_light(pump_light)
