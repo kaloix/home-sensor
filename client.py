@@ -10,6 +10,41 @@ import util
 import config
 import datetime
 import measurement
+logging.info(3)
+
+def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('station', type=int)
+	args = parser.parse_args()
+	util.init()
+	with open('sensor.json') as json_file:
+		sensor_json = json.loads(json_file.read())
+	sensor = list()
+	for group, sensor_list in sensor_json.items():
+		for s in sensor_list:
+			if s['input']['station'] != args.station:
+				continue
+			if s['input']['type'] == 'ds18b20':
+				sensor.append(DS18B20(
+					s['input']['file'],
+					s['output']['temperature']['name']))
+			elif s['input']['type'] == 'thermosolar':
+				sensor.append(Thermosolar(
+					s['input']['file'],
+					s['output']['temperature']['name'],
+					s['output']['switch']['name']))
+	while True:
+		start = time.time()
+		logging.info('collect data')
+		for s in sensor:
+			s.update()
+		logging.info('copy to webserver')
+		if os.system('scp {0}* {1}{0}'.format(config.data_dir, config.client_server)):
+			logging.error('scp failed')
+		util.memory_check()
+		logging.info('sleep, duration was {}s'.format(
+			round(time.time() - start)))
+		time.sleep(config.transmit_interval.total_seconds())
 
 class DS18B20:
 	def __init__(self, file, name):
@@ -37,42 +72,13 @@ class Thermosolar:
 			temp, pump = measurement.thermosolar_ocr(self.file)
 		except Exception as err:
 			logging.error('Thermosolar failure: {}'.format(err))
-		else:
+			return
+		if temp is not None:
 			self.temp_hist.store(temp)
 			self.temp_hist.backup(config.data_dir)
+		if pump is not None:
 			self.pump_hist.store(pump)
 			self.pump_hist.backup(config.data_dir)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('station', type=int)
-args = parser.parse_args()
-util.init()
-with open('sensor.json') as json_file:
-	sensor_json = json.loads(json_file.read())
-sensor = list()
-for group, sensor_list in sensor_json.items():
-	for s in sensor_list:
-		if s['input']['station'] != args.station:
-			continue
-		if s['input']['type'] == 'ds18b20':
-			sensor.append(DS18B20(
-				s['input']['file'],
-				s['output']['temperature']['name']))
-		elif s['input']['type'] == 'thermosolar':
-			sensor.append(Thermosolar(
-				s['input']['file'],
-				s['output']['temperature']['name'],
-				s['output']['switch']['name']))
-
-while True:
-	start = time.time()
-	logging.info('collect data')
-	for s in sensor:
-		s.update()
-	logging.info('copy to webserver')
-	if os.system('scp {0}* {1}{0}'.format(config.data_dir, config.client_server)):
-		logging.error('scp failed')
-	util.memory_check()
-	logging.info('sleep, duration was {}s'.format(
-		round(time.time() - start)))
-	time.sleep(config.transmit_interval.total_seconds())
+if __name__ == "__main__":
+	main()

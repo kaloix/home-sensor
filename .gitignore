@@ -2,3 +2,6 @@ __pycache__/
 ve/
 data/
 backup/
+ssocr*
+*.jpg
+*.png

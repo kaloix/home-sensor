@@ -13,13 +13,18 @@ def w1_temp(file):
 def _parse_segment(image):
 	scipy.misc.imsave('seven_segment.png', image)
 	try:
-		return int(subprocess.check_output([
+		ssocr_output = subprocess.check_output([
 			'./ssocr',
 			'--number-digits=2',
 			'--background=black',
-			'seven_segment.png']))
-	except (subprocess.CalledProcessError, ValueError) as err:
-		logging.error('{}: {}'.format(type(err).__name__, err))
+			'seven_segment.png'])
+	except subprocess.CalledProcessError as err:
+		logging.error(err)
+		return None
+	try:
+		return int(ssocr_output)
+	except ValueError as err:
+		logging.error(err)
 		return None
 
 def _parse_light(image):
