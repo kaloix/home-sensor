@@ -1,7 +1,11 @@
 import logging
 import subprocess
-import scipy.misc
+
 import numpy
+import scipy.misc
+
+import config
+
 
 def w1_temp(file):
 	with open(file) as w1_file:
@@ -10,11 +14,13 @@ def w1_temp(file):
 		else:
 			raise Exception('sensor says no')
 
+
 def _parse_segment(image):
 	scipy.misc.imsave('seven_segment.png', image)
 	try:
 		ssocr_output = subprocess.check_output([
 			'./ssocr',
+			'--debug-image=seven_segment_debug.png', # FIXME
 			'--number-digits=2',
 			'--threshold=98',
 			'invert',
@@ -28,21 +34,29 @@ def _parse_segment(image):
 		logging.error(err)
 		return None
 
+
 def _parse_light(image):
 	hist, bin_edges = numpy.histogram(
 		image, bins=4, range=(0,255), density=True)
-	return hist[3] > 0.006
+	decider = round(hist[3], ndigits=5)
+	threshold = 0.006
+	result = decider > threshold
+	logging.debug('parse_light: {} with decider={} threshold={}'.format(
+		'ON' if result else 'OFF', decider, threshold))
+	return result
+
 
 def thermosolar_ocr(file):
 	if subprocess.call([
 			'fswebcam',
 			'--device', file,
 			'--quiet',
-			'thermosolar.jpg']):
+			config.data_dir+'thermosolar.jpg']): # FIXME
 		raise Exception('camera failure')
-	image = scipy.misc.imread('thermosolar.jpg')
+	image = scipy.misc.imread(config.data_dir+'thermosolar.jpg')
 	left, top, right, bottom = 67, 53, 160, 118
 	seven_segment = image[top:bottom, left:right]
 	left, top, right, bottom = 106, 157, 116, 166
 	pump_light = image[top:bottom, left:right]
+	scipy.misc.imsave('pump_light.png', pump_light) # FIXME
 	return _parse_segment(seven_segment), _parse_light(pump_light)
