@@ -51,6 +51,7 @@ def thermosolar_ocr(file):
 			'fswebcam',
 			'--device', file,
 			'--quiet',
+			'--title', 'Thermosolar',
 			config.data_dir+'thermosolar.jpg']): # FIXME
 		raise Exception('camera failure')
 	image = scipy.misc.imread(config.data_dir+'thermosolar.jpg')
