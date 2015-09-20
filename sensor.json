@@ -15,7 +15,7 @@
 			}
 		}
 	],
-	"Test": [
+	"Solaranlage": [
 		{
 			"input": {
 				"station": 1,
@@ -24,12 +24,12 @@
 			},
 			"output": {
 				"temperature": {
-					"name": "Test A",
+					"name": "Kollektoren",
 					"floor": 0,
 					"ceiling": 100
 				},
 				"switch": {
-					"name": "Test B",
+					"name": "Pumpe",
 					"valid": [true, false]
 				}
 			}

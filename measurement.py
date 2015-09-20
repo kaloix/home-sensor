@@ -16,6 +16,7 @@ def _parse_segment(image):
 		return int(subprocess.check_output(command))
 	except (subprocess.CalledProcessError, ValueError) as err:
 		logging.error(err)
+		return None
 
 def _parse_light(image):
 	hist, bin_edges = numpy.histogram(image, bins=4, range=(0,255), density=True)
