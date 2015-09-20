@@ -11,6 +11,7 @@ import traceback
 import util
 import config
 import presentation
+import gc # FIXME
 
 class Temperature:
 	def __init__(self, name, floor, ceiling):
@@ -72,6 +73,8 @@ def loop(group, sensor_list):
 	for s in sensor_list:
 		s.update()
 		s.check()
+	if os.system('cp {}{} {}'.format(config.data_dir, 'thermosolar.jpg', config.web_dir)):
+		logging.error('cp thermosolar.jpg failed')
 
 	logging.info('write html')
 	html_filled = string.Template(html_template).substitute(
@@ -91,6 +94,7 @@ while True:
 	try:
 		for group, sensor_list in sensor.items():
 			loop(group, sensor_list)
+		gc.collect() # FIXME
 		util.memory_check()
 	except Exception as err:
 		tb_lines = traceback.format_tb(err.__traceback__)
