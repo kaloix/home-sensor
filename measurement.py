@@ -1,5 +1,6 @@
-import scipy.misc
+import logging
 import subprocess
+import scipy.misc
 import numpy
 
 def w1_temp(file):
@@ -11,23 +12,30 @@ def w1_temp(file):
 
 def _parse_segment(image):
 	scipy.misc.imsave('seven_segment.png', image)
-	command = ['ssocr/ssocr', '--number-digits=2', '--background=black', 'seven_segment.png']
 	try:
-		return int(subprocess.check_output(command))
+		return int(subprocess.check_output([
+			'./ssocr',
+			'--number-digits=2',
+			'--background=black',
+			'seven_segment.png']))
 	except (subprocess.CalledProcessError, ValueError) as err:
-		logging.error(err)
+		logging.error('{}: {}'.format(type(err).__name__, err))
 		return None
 
 def _parse_light(image):
-	hist, bin_edges = numpy.histogram(image, bins=4, range=(0,255), density=True)
+	hist, bin_edges = numpy.histogram(
+		image, bins=4, range=(0,255), density=True)
 	return hist[3] > 0.006
 
 def thermosolar_ocr(file):
-	if subprocess.call(['fswebcam', '--device', file, 'thermosolar.jpg']):
+	if subprocess.call([
+			'fswebcam',
+			'--device', file,
+			'thermosolar.jpg']):
 		raise Exception('camera failure')
 	image = scipy.misc.imread('thermosolar.jpg')
 	top, left, height, width = 11, 76, 76, 123
 	seven_segment = image[top:top+height, left:left+width]
 	top, left, length = 146, 128, 15
 	pump_light = image[top:top+length, left:left+length]
-	return parse_segment(seven_segment), parse_light(pump_light)
+	return _parse_segment(seven_segment), _parse_light(pump_light)

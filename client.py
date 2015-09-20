@@ -20,7 +20,7 @@ class DS18B20:
 		try:
 			temperature = measurement.w1_temp(self.file)
 		except Exception as err:
-			logging.error('parse failure: {}'.format(err))
+			logging.error('DS18B20 failure: {}'.format(err))
 		else:
 			self.history.store(temperature)
 			self.history.backup(config.data_dir)
@@ -36,7 +36,7 @@ class Thermosolar:
 		try:
 			temp, pump = measurement.thermosolar_ocr(self.file)
 		except Exception as err:
-			logging.error('parse failure: {}'.format(err))
+			logging.error('Thermosolar failure: {}'.format(err))
 		else:
 			self.temp_hist.store(temp)
 			self.temp_hist.backup(config.data_dir)
