@@ -20,7 +20,7 @@
 			"input": {
 				"station": 1,
 				"type": "thermosolar",
-				"file": "/media/stefan/android/pictures/current.jpg"
+				"file": "/dev/video0"
 			},
 			"output": {
 				"temperature": {

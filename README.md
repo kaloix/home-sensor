@@ -18,7 +18,7 @@ The base platform is  **Debian Jessie** with **Python 3.4**. Install German loca
 
 Seven Segment Optical Character Recognition:
 
-    sudo apt-get install libimlib2 libimlib2-dev pyton3-numpy python3-scipy python3-pil
+    sudo apt-get install fswebcam libimlib2 libimlib2-dev pyton3-numpy python3-scipy python3-pil
 
 Usage:
 
