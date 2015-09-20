@@ -9,8 +9,8 @@
 			"output": {
 				"temperature": {
 					"name": "Wohnzimmer",
-					"floor": 17,
-					"ceiling": 33
+					"floor": 19,
+					"ceiling": 27
 				}
 			}
 		}

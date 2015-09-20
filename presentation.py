@@ -18,19 +18,18 @@ def detail_table(history):
 
 def plot_history(history, file, now):
 #	matplotlib.pyplot.figure(figsize=(11, 6))
-	matplotlib.pyplot.figure(figsize=(11, 3))
+	matplotlib.pyplot.figure(figsize=(11, 4))
 	# detail record
 	frame_start = now - config.detail_range
 #	matplotlib.pyplot.subplot(2, 1, 1)
-	minimum = list()
-	maximum = list()
+	minimum, maximum = list(), list()
 	for h in history:
 		if hasattr(h, 'float') and h.float:
 			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
-			minimum.append(h.minimum)
+			minimum.append(min(h.float.value)-1)
 			minimum.append(h.floor)
-			maximum.append(h.maximum)
-			maximum.append(h.ceil)
+			maximum.append(max(h.float.value)+1)
+			maximum.append(h.ceiling)
 		elif hasattr(h, 'boolean') and h.boolean:
 			color = matplotlib.pyplot.gca()._get_lines.color_cycle.__next__()
 			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
