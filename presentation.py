@@ -22,9 +22,15 @@ def plot_history(history, file, now):
 	# detail record
 	frame_start = now - config.detail_range
 #	matplotlib.pyplot.subplot(2, 1, 1)
+	minimum = list()
+	maximum = list()
 	for h in history:
 		if hasattr(h, 'float') and h.float:
 			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
+			minimum.append(h.minimum)
+			minimum.append(h.floor)
+			maximum.append(h.maximum)
+			maximum.append(h.ceil)
 		elif hasattr(h, 'boolean') and h.boolean:
 			color = matplotlib.pyplot.gca()._get_lines.color_cycle.__next__()
 			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
@@ -35,6 +41,7 @@ def plot_history(history, file, now):
 		label = 'Nacht' if index == 0 else None
 		matplotlib.pyplot.axvspan(sunset, sunrise, color='black', alpha=0.17, label=label)
 	matplotlib.pyplot.xlim(frame_start, now)
+	matplotlib.pyplot.ylim(min(minimum), max(maximum))
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	matplotlib.pyplot.grid(True)
