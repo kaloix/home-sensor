@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
-import collections
 import json
 import logging
 import os
 import time
-import util
+
 import config
-import datetime
 import measurement
-logging.info(3)
+import util
+
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -39,18 +38,22 @@ def main():
 		for s in sensor:
 			s.update()
 		logging.info('copy to webserver')
-		if os.system('scp {0}* {1}{0}'.format(config.data_dir, config.client_server)):
+		if os.system('scp {0}* {1}{0}'.format(
+				config.data_dir, config.client_server)):
 			logging.error('scp failed')
 		util.memory_check()
 		logging.info('sleep, duration was {}s'.format(
 			round(time.time() - start)))
 		time.sleep(config.transmit_interval.total_seconds())
 
+
 class DS18B20:
+
 	def __init__(self, file, name):
 		self.history = util.FloatHistory(name, None, None)
 		self.history.restore(config.data_dir)
 		self.file = file
+
 	def update(self):
 		try:
 			temperature = measurement.w1_temp(self.file)
@@ -60,13 +63,16 @@ class DS18B20:
 			self.history.store(temperature)
 			self.history.backup(config.data_dir)
 
+
 class Thermosolar:
+
 	def __init__(self, file, temperature_name, pump_name):
 		self.temp_hist = util.FloatHistory(temperature_name, None, None)
 		self.temp_hist.restore(config.data_dir)
 		self.pump_hist = util.BoolHistory(pump_name, None)
 		self.pump_hist.restore(config.data_dir)
 		self.file = file
+
 	def update(self):
 		try:
 			temp, pump = measurement.thermosolar_ocr(self.file)
@@ -79,6 +85,7 @@ class Thermosolar:
 		if pump is not None:
 			self.pump_hist.store(pump)
 			self.pump_hist.backup(config.data_dir)
+
 
 if __name__ == "__main__":
 	main()
