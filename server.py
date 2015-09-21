@@ -34,8 +34,8 @@ class Temperature:
 #			notify.warn_user(text, self.name+'h')
 
 class Switch:
-	def __init__(self, name, valid):
-		self.history = util.BoolHistory(name, valid)
+	def __init__(self, name):
+		self.history = util.BoolHistory(name)
 		self.history.restore(config.backup_dir)
 		self.name = name
 	def update(self):
@@ -62,8 +62,7 @@ for group, sensor_list in sensor_json.items():
 					attr['ceiling']))
 			elif kind == 'switch':
 				switch.append(Switch(
-					attr['name'],
-					attr['valid']))
+					attr['name']))
 	sensor[group] = temp + switch
 notify = notification.NotificationCenter()
 

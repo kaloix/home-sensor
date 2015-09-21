@@ -162,9 +162,8 @@ class FloatHistory(object):
 
 class BoolHistory(object):
 
-	def __init__(self, name, valid):
+	def __init__(self, name):
 		self.name = name
-		self.valid = valid
 		self.boolean = Record(name, config.detail_range, lambda bool_str: bool_str=='True')
 
 	def __str__(self):
@@ -173,14 +172,17 @@ class BoolHistory(object):
 			current = self.boolean[-1]
 		else:
 			current = None
-		warn_low = '⚠ ' if False not in self.valid else ''
-		warn_high = '⚠ ' if True not in self.valid else ''
+		last_false = last_true = None
+		for measurement in self.boolean:
+			if measurement.value:
+				last_true = measurement
+			else:
+				last_false = measurement
 		return ' | '.join([
 			self.name,
 			bool_string(current.value) if current else 'Fehler',
-			warn_low + bool_string(False) if False in self.boolean.value else '—',
-			warn_high + bool_string(True) if True in self.boolean.value else '—',
-			', '.join([bool_string(v) for v in self.valid])])
+			'{:%H:%M} Uhr'.format(last_false.timestamp) if last_false is not None else '—',
+			'{:%H:%M} Uhr'.format(last_true.timestamp) if last_true is not None else '—'])
 
 	def store(self, value):
 		now = datetime.datetime.now()

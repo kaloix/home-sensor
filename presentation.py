@@ -11,11 +11,24 @@ markdown_to_html = markdown.Markdown(
 	extensions = ['markdown.extensions.tables'],
 	output_format = 'html5')
 
-def detail_table(history):
+def detail_table(histories):
+	float_table = list()
+	float_table.append('Messpunkt | Aktuell | Tagestief | Tageshoch | Normalbereich')
+	float_table.append('--- | --- | --- | --- | ---')
+	bool_table = list()
+	bool_table.append('Messpunkt | Aktuell | Zuletzt Aus | Zuletzt Ein')
+	bool_table.append('--- | --- | --- | ---')
+	for history in histories:
+		if hasattr(history, 'float') and history.float:
+			float_table.append(str(history))
+		elif hasattr(history, 'boolean') and history.boolean:
+			bool_table.append(str(history))
 	string = list()
-	string.append('Messpunkt | Aktuell | Tagestief | Tageshoch | Normal')
-	string.append('--- | --- | --- | --- | ---')
-	string.extend([str(h) for h in history])
+	if len(float_table) > 2:
+		string.extend(float_table)
+		string.append('')
+	if len(bool_table) > 2:
+		string.extend(bool_table)
 	return markdown_to_html.convert('\n'.join(string))
 
 def plot_history(history, file, now):
