@@ -35,7 +35,7 @@ def _parse_segment(image):
 	try:
 		ssocr_output = subprocess.check_output([
 			'./ssocr',
-			'--debug-image=seven_segment_{:%X}.png'.format(datetime.datetime.now()), # FIXME
+			'--debug-image=seven_segment_{:%y-%m-%d_%X}.png'.format(datetime.datetime.now()), # FIXME
 			'--number-digits=2',
 			'--number-pixels=3',
 			'--one-ratio=2.3',
