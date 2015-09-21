@@ -5,6 +5,8 @@ import pysolar
 import config
 import markdown
 
+COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+
 markdown_to_html = markdown.Markdown(
 	extensions = ['markdown.extensions.tables'],
 	output_format = 'html5')
@@ -17,21 +19,29 @@ def detail_table(history):
 	return markdown_to_html.convert('\n'.join(string))
 
 def plot_history(history, file, now):
-#	matplotlib.pyplot.figure(figsize=(11, 6))
-	matplotlib.pyplot.figure(figsize=(11, 4))
+	matplotlib.pyplot.figure(figsize=(12, 4))
 	# detail record
 	frame_start = now - config.detail_range
 #	matplotlib.pyplot.subplot(2, 1, 1)
 	minimum, maximum = list(), list()
+	color_iter = iter(COLOR_CYCLE)
 	for h in history:
+		color = next(color_iter)
 		if hasattr(h, 'float') and h.float:
-			matplotlib.pyplot.plot(h.float.timestamp, h.float.value, lw=3, label=h.name)
+			parts = list()
+			for measurement in h.float:
+				if not parts or measurement.timestamp - parts[-1][-1].timestamp > config.allowed_downtime:
+					parts.append(list())
+				parts[-1].append(measurement)
+			for index, part in enumerate(parts):
+				values, timestamps = zip(*part)
+				label = h.name if index == 0 else None
+				matplotlib.pyplot.plot(timestamps, values, linewidth=3, color=color, label=label)
 			minimum.append(min(h.float.value)-1)
 			minimum.append(h.floor)
 			maximum.append(max(h.float.value)+1)
 			maximum.append(h.ceiling)
 		elif hasattr(h, 'boolean') and h.boolean:
-			color = matplotlib.pyplot.gca()._get_lines.color_cycle.__next__()
 			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
 				label = h.name if index == 0 else None
 				matplotlib.pyplot.axvspan(start, end, color=color ,alpha=0.33, label=label)
