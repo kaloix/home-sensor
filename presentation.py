@@ -53,11 +53,11 @@ def plot_history(history, file, now):
 		elif hasattr(h, 'boolean') and h.boolean:
 			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
 				label = h.name if index == 0 else None
-				matplotlib.pyplot.axvspan(start, end, color=color ,alpha=0.33, label=label)
+				matplotlib.pyplot.axvspan(start, end, color=color ,alpha=0.5, label=label)
 	nights = int(config.detail_range / datetime.timedelta(days=1)) + 2
 	for index, (sunset, sunrise) in enumerate(nighttime(nights, now)):
 		label = 'Nacht' if index == 0 else None
-		matplotlib.pyplot.axvspan(sunset, sunrise, color='black', alpha=0.17, label=label)
+		matplotlib.pyplot.axvspan(sunset, sunrise, color='black', alpha=0.2, label=label)
 	matplotlib.pyplot.xlim(frame_start, now)
 	matplotlib.pyplot.ylim(min(minimum), max(maximum))
 	matplotlib.pyplot.xlabel('Uhrzeit')
