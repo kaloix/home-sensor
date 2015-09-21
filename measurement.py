@@ -1,6 +1,7 @@
+import datetime # FIXME
 import logging
 import subprocess
-import datetime # FIXME
+import time
 
 import numpy
 import scipy.misc
@@ -64,7 +65,7 @@ def _parse_light(image):
 	return result
 
 
-def thermosolar_ocr(file):
+def _thermosolar_ocr_single(file):
 	# capture image
 	if subprocess.call([
 			'fswebcam',
@@ -85,3 +86,10 @@ def thermosolar_ocr(file):
 	# export boxes
 	scipy.misc.imsave(config.data_dir+'thermosolar.jpg', image) # FIXME
 	return _parse_segment(seven_segment), _parse_light(pump_light)
+
+def thermosolar_ocr(file):
+	result = _thermosolar_ocr_single(file)
+	time.sleep(1)
+	if _thermosolar_ocr_single(file) != result:
+		raise Exception('bad picture during transition')
+	return result
