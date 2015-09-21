@@ -28,10 +28,6 @@ def timestamp(date_time):
 	return float('{:%s}'.format(date_time)) + date_time.microsecond / 1e6
 
 
-def bool_string(boolean):
-	return 'Ein' if boolean else 'Aus'
-
-
 class Measurement(collections.namedtuple('Measurement', 'value timestamp')):
 
 	__slots__ = ()
@@ -166,10 +162,11 @@ class BoolHistory(object):
 		self.name = name
 		self.boolean = Record(name, config.detail_range, lambda bool_str: bool_str=='True')
 
-	def __str__(self):
+	def html(self):
 		now = datetime.datetime.now()
-		if self.boolean and self.boolean[-1].timestamp >= now - config.allowed_downtime:
-			current = self.boolean[-1]
+		if self.boolean and \
+				self.boolean[-1].timestamp >= now - config.allowed_downtime:
+			current = self.boolean[-1].value
 		else:
 			current = None
 		last_false = last_true = None
@@ -178,11 +175,25 @@ class BoolHistory(object):
 				last_true = measurement
 			else:
 				last_false = measurement
-		return ' | '.join([
-			self.name,
-			bool_string(current.value) if current else 'Fehler',
-			'{:%H:%M} Uhr'.format(last_false.timestamp) if last_false is not None else '—',
-			'{:%H:%M} Uhr'.format(last_true.timestamp) if last_true is not None else '—'])
+		string = list()
+		string.append('<b>')
+		string.append(self.name)
+		string.append(':</b> ')
+		if current is None:
+			string.append('Fehler.')
+		elif current:
+			string.append('Ein.')
+		else:
+			string.append('Aus.')
+		if last_true or last_false:
+			string.append(' –')
+		if last_true and (current is None or not current):
+			string.append(' Zuletzt Ein um {:%H:%M} Uhr.'.format(
+				last_true.timestamp))
+		if last_false and (current is None or current):
+			string.append(' Zuletzt Aus um {:%H:%M} Uhr.'.format(
+				last_false.timestamp))
+		return ''.join(string)
 
 	def store(self, value):
 		now = datetime.datetime.now()
