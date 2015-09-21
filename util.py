@@ -172,9 +172,9 @@ class BoolHistory(object):
 		last_false = last_true = None
 		for measurement in self.boolean:
 			if measurement.value:
-				last_true = measurement
+				last_true = measurement.timestamp
 			else:
-				last_false = measurement
+				last_false = measurement.timestamp
 		string = list()
 		string.append('<b>')
 		string.append(self.name)
@@ -188,11 +188,9 @@ class BoolHistory(object):
 		if last_true or last_false:
 			string.append(' –')
 		if last_true and (current is None or not current):
-			string.append(' Zuletzt Ein um {:%H:%M} Uhr.'.format(
-				last_true.timestamp))
+			string.append(' Zuletzt Ein am {:%A um %H:%M} Uhr.'.format(last_true))
 		if last_false and (current is None or current):
-			string.append(' Zuletzt Aus um {:%H:%M} Uhr.'.format(
-				last_false.timestamp))
+			string.append(' Zuletzt Aus am {:%A um %H:%M} Uhr.'.format(last_false))
 		return ''.join(string)
 
 	def store(self, value):
