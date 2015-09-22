@@ -54,7 +54,7 @@
 	pip install virtualenv
 	virtualenv --python=python3 ve/
 	source ve/bin/activate
-	pip install markdown matplotlib pytz
+	pip install matplotlib pytz
 	./server.py
 	deactivate
 

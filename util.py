@@ -24,16 +24,7 @@ def memory_check():
 		raise Exception('memory leak')
 
 
-def timestamp(date_time):
-	return float('{:%s}'.format(date_time)) + date_time.microsecond / 1e6
-
-
-class Measurement(collections.namedtuple('Measurement', 'value timestamp')):
-
-	__slots__ = ()
-
-	def __str__(self):
-		return '{:.1f} °C um {:%H:%M} Uhr'.format(self.value, self.timestamp)
+Measurement = collections.namedtuple('Measurement', 'value timestamp')
 
 
 class Record(object):
@@ -75,7 +66,7 @@ class Record(object):
 			assert len(self.value) == len(self.timestamp)
 
 	def write(self, directory):
-		rows = [(data.value, int(timestamp(data.timestamp))) for data in self]
+		rows = [(data.value, int(data.timestamp.timestamp())) for data in self]
 		with open(directory+self.csv, mode='w', newline='') as csv_file:
 			writer = csv.writer(csv_file)
 			writer.writerows(rows)
@@ -100,22 +91,43 @@ class FloatHistory(object):
 		self.summary_avg = Record(name+'-avg', config.summary_range, float)
 		self.summary_max = Record(name+'-max', config.summary_range, float)
 
-	def __str__(self):
+	def html(self):
 		now = datetime.datetime.now()
-		if self.float and self.float[-1].timestamp >= now - config.allowed_downtime:
+		if self.float and \
+				self.float[-1].timestamp >= now - config.allowed_downtime:
 			current = self.float[-1]
 		else:
 			current = None
 		minimum = min(reversed(self.float)) if self.float else None
 		maximum = max(reversed(self.float)) if self.float else None
-		warn_low = minimum.value < self.floor if minimum else None
-		warn_high = maximum.value > self.ceiling if maximum else None
-		return ' | '.join([
-			self.name,
-			'{:.1f} °C'.format(current.value) if current else 'Fehler',
-			('⚠ ' if warn_low else '') + str(minimum) if minimum else '—',
-			('⚠ ' if warn_high else '') + str(maximum) if maximum else '—',
-			'{:.0f} °C  bis {:.0f} °C'.format(self.floor, self.ceiling)])
+		string = list()
+		string.append('<b>{}:</b> '.format(self.name))
+		if current is None:
+			string.append('Fehler ⚠')
+		else:
+			string.append('{:.1f} °C'.format(current.value))
+			if current.value < self.floor or current.value > self.ceiling:
+				string.append(' ⚠')
+		string.append('<ul>\n')
+		if minimum:
+			string.append(
+				'<li>Minimum bei {:.0f} °C am {:%A um %H:%M} Uhr.'.format(
+					*minimum))
+			if minimum.value < self.floor:
+				string.append(' ⚠')
+			string.append('</li>\n')
+		if maximum:
+			string.append(
+				'<li>Maximum bei {:.0f} °C am {:%A um %H:%M} Uhr.'.format(
+					*maximum))
+			if maximum.value > self.ceiling:
+				string.append(' ⚠')
+			string.append('</li>\n')
+		string.append(
+			'<li>Normalbereich von {:.0f} °C  bis {:.0f} °C.</li>\n'.format(
+				self.floor, self.ceiling))
+		string.append('</ul>')
+		return ''.join(string)
 
 	def _process(self, now):
 		self.float.clear(now)
@@ -123,20 +135,8 @@ class FloatHistory(object):
 		self.summary_avg.clear(now)
 		self.summary_max.clear(now)
 
-#	def _summarize(self, now):
-#		if self.float:
-#			date = self.float[-1].timestamp.date()
-#			if  now.date() > date:
-#				noon = datetime.datetime.combine(date, datetime.time(12))
-#				# FIXME: filter for exact date, improves accuracy after downtime, enables variable detail_range
-#				self.summary_min.append(self.minimum.value, noon)
-#				self.summary_avg.append(self.mean, noon)
-#				self.summary_max.append(self.maximum.value, noon)
-#				assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
-
 	def store(self, value):
 		now = datetime.datetime.now()
-#		self._summarize(now)
 		self.float.append(value, now)
 		self._process(now)
 
@@ -176,21 +176,23 @@ class BoolHistory(object):
 			else:
 				last_false = measurement.timestamp
 		string = list()
-		string.append('<b>')
-		string.append(self.name)
-		string.append(':</b> ')
+		string.append('<b>{}:</b> '.format(self.name))
 		if current is None:
-			string.append('Fehler.')
+			string.append('Fehler')
 		elif current:
-			string.append('Ein.')
+			string.append('Ein')
 		else:
-			string.append('Aus.')
-		if last_true or last_false:
-			string.append(' –')
+			string.append('Aus')
+		string.append('<ul>\n')
 		if last_true and (current is None or not current):
-			string.append(' Zuletzt Ein am {:%A um %H:%M} Uhr.'.format(last_true))
+			string.append(
+				'<li>Zuletzt Ein am {:%A um %H:%M} Uhr.</li>\n'.format(
+					last_true))
 		if last_false and (current is None or current):
-			string.append(' Zuletzt Aus am {:%A um %H:%M} Uhr.'.format(last_false))
+			string.append(
+				'<li>Zuletzt Aus am {:%A um %H:%M} Uhr.</li>\n'.format(
+					last_false))
+		string.append('</ul>')
 		return ''.join(string)
 
 	def store(self, value):

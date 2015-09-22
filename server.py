@@ -79,7 +79,7 @@ def loop(group, sensor_list):
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(config.transmit_interval.total_seconds()),
 		group = group,
-		values = presentation.detail_table([s.history for s in sensor_list]),
+		values = presentation.detail_html([s.history for s in sensor_list]),
 		update_time = '{:%A %d. %B %Y %X}'.format(now),
 		year = '{:%Y}'.format(now))
 	with open(config.web_dir+group+'.html', mode='w') as html_file:
