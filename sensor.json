@@ -9,8 +9,8 @@
 			"temperature": {
 				"name": "Wohnzimmer",
 				"group": "Lufttemperatur",
-				"floor": 19,
-				"ceiling": 27
+				"usual": [21, 25],
+				"warn": [18, 30]
 			}
 		}
 	},
@@ -24,8 +24,8 @@
 			"temperature": {
 				"name": "Kollektoren",
 				"group": "Solaranlage",
-				"floor": 10,
-				"ceiling": 80
+				"usual": [20, 80],
+				"warn": [0, 90]
 			},
 			"switch": {
 				"name": "Pumpe",

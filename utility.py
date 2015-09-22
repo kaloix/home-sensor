@@ -93,10 +93,10 @@ class Record(object):
 
 class FloatHistory(object):
 
-	def __init__(self, name, floor, ceiling, max_age):
+	def __init__(self, name, usual, warn, max_age):
 		self.name = name
-		self.floor = floor
-		self.ceiling = ceiling
+		self.usual = usual
+		self.warn = warn
 		self.float = Record(name, DETAIL_RANGE, float, max_age)
 		max_age = datetime.timedelta(days=2)
 		self.summary_min = Record(name+'-min', SUMMARY_RANGE, float, max_age)
@@ -113,26 +113,26 @@ class FloatHistory(object):
 			string.append('Fehler ⚠')
 		else:
 			string.append('{:.1f} °C'.format(current))
-			if current < self.floor or current > self.ceiling:
+			if current < self.warn[0] or current > self.warn[1]:
 				string.append(' ⚠')
 		string.append('<ul>\n')
 		if minimum:
 			string.append(
 				'<li>Minimum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
 					*minimum))
-			if minimum.value < self.floor:
+			if minimum.value < self.warn[0]:
 				string.append(' ⚠')
 			string.append('</li>\n')
 		if maximum:
 			string.append(
 				'<li>Maximum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
 					*maximum))
-			if maximum.value > self.ceiling:
+			if maximum.value > self.warn[1]:
 				string.append(' ⚠')
 			string.append('</li>\n')
 		string.append(
-			'<li>Normalbereich von {:.0f} °C  bis {:.0f} °C.</li>\n'.format(
-				self.floor, self.ceiling))
+			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C.</li>\n'.format(
+				*self.warn))
 		string.append('</ul>')
 		return ''.join(string)
 

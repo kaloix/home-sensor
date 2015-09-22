@@ -41,8 +41,8 @@ def main():
 			if kind == 'temperature':
 				sensors[attr['group']].append(Temperature(
 					attr['name'],
-					attr['floor'],
-					attr['ceiling']))
+					tuple(attr['usual']),
+					tuple(attr['warn'])))
 			elif kind == 'switch':
 				sensors[attr['group']].append(Switch(
 					attr['name']))
@@ -116,10 +116,10 @@ def plot_history(history, file, now):
 				label = h.name if index == 0 else None
 				matplotlib.pyplot.plot(
 					timestamps, values, linewidth=3, color=color, label=label)
-			minimum.append(min(h.float.value)-1)
-			minimum.append(h.floor)
-			maximum.append(max(h.float.value)+1)
-			maximum.append(h.ceiling)
+			minimum.append(min(h.float.value))
+			minimum.append(h.usual[0])
+			maximum.append(max(h.float.value))
+			maximum.append(h.usual[1])
 		elif hasattr(h, 'boolean') and h.boolean:
 			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
 				label = h.name if index == 0 else None
@@ -183,11 +183,11 @@ def prepare_bool_plot(boolean):
 
 class Temperature(object):
 
-	def __init__(self, name, floor, ceiling):
-		self.history = utility.FloatHistory(
-			name, floor, ceiling, ALLOWED_DOWNTIME)
-		self.history.restore(BACKUP_DIR)
+	def __init__(self, name, usual, warn):
 		self.name = name
+		self.history = utility.FloatHistory(
+			name, usual, warn, ALLOWED_DOWNTIME)
+		self.history.restore(BACKUP_DIR)
 
 	def update(self):
 		self.history.restore(DATA_DIR)
