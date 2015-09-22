@@ -89,7 +89,7 @@ def _thermosolar_ocr_single(file):
 
 def thermosolar_ocr(file):
 	result = _thermosolar_ocr_single(file)
-	time.sleep(1)
+	time.sleep(0.5)
 	if _thermosolar_ocr_single(file) != result:
 		raise Exception('bad picture during transition')
 	return result

@@ -74,9 +74,9 @@ class DS18B20(object):
 class Thermosolar(object):
 
 	def __init__(self, file, temperature_name, pump_name):
-		self.temp_hist = utility.FloatHistory(temperature_name, None, None)
+		self.temp_hist = utility.FloatHistory(temperature_name, None, None) # FIXME
 		self.temp_hist.restore(config.data_dir)
-		self.pump_hist = utility.BoolHistory(pump_name, None)
+		self.pump_hist = utility.BoolHistory(pump_name)
 		self.pump_hist.restore(config.data_dir)
 		self.file = file
 		self.name = '{}+{}'.format(temperature_name, pump_name)
