@@ -16,7 +16,7 @@ import utility
 
 
 def main():
-	util.init()
+	utility.init()
 	with open('template.html') as html_file:
 		html_template = html_file.read()
 	with open('sensor.json') as json_file:
@@ -42,9 +42,9 @@ def main():
 		start = time.time()
 		try:
 			for group, sensor_list in sensor.items():
-				loop(group, sensor_list)
+				loop(group, sensor_list, html_template)
 			gc.collect() # FIXME
-			util.memory_check()
+			utility.memory_check()
 		except Exception as err:
 			tb_lines = traceback.format_tb(err.__traceback__)
 			notify.warn_admin(
@@ -55,7 +55,7 @@ def main():
 		time.sleep(config.server_interval.total_seconds())
 
 
-def loop(group, sensor_list):
+def loop(group, sensor_list, html_template):
 	logging.info('read csv')
 	now = datetime.datetime.now()
 	for s in sensor_list:
@@ -78,10 +78,10 @@ def loop(group, sensor_list):
 	presentation.plot_history([s.history for s in sensor_list], config.web_dir+group+'.png', now)
 
 
-class Temperature:
+class Temperature(object):
 
 	def __init__(self, name, floor, ceiling):
-		self.history = util.FloatHistory(name, floor, ceiling)
+		self.history = utility.FloatHistory(name, floor, ceiling)
 		self.history.restore(config.backup_dir)
 		self.name = name
 
@@ -100,6 +100,18 @@ class Temperature:
 #		if self.history.warn_high:
 #			text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}'.format(self.name, self.history.maximum)
 #			notify.warn_user(text, self.name+'h')
+
+
+class Switch(object):
+	def __init__(self, name):
+		self.history = utility.BoolHistory(name)
+		self.history.restore(config.backup_dir)
+		self.name = name
+	def update(self):
+		self.history.restore(config.data_dir)
+		self.history.backup(config.backup_dir)
+	def check(self):
+		pass
 
 
 if __name__ == "__main__":

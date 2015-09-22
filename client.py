@@ -16,7 +16,7 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('station', type=int)
 	args = parser.parse_args()
-	util.init()
+	utility.init()
 	with open('sensor.json') as json_file:
 		sensor_json = json.loads(json_file.read())
 	sensor = list()
@@ -33,7 +33,7 @@ def main():
 					s['input']['file'],
 					s['output']['temperature']['name'],
 					s['output']['switch']['name']))
-	transmit = util.Timer(config.transmit_interval)
+	transmit = utility.Timer(config.transmit_interval)
 	while True:
 		start = time.time()
 		for s in sensor:
@@ -43,7 +43,7 @@ def main():
 			if os.system('scp -q {0}* {1}{0}'.format(
 					config.data_dir, config.client_server)):
 				logging.error('scp failed')
-			util.memory_check()
+			utility.memory_check()
 		logging.info('sleep, duration was {}s'.format(
 			round(time.time() - start)))
 		time.sleep(config.sampling_interval.total_seconds())
@@ -52,11 +52,11 @@ def main():
 class DS18B20(object):
 
 	def __init__(self, file, name):
-		self.history = util.FloatHistory(name, None, None)
+		self.history = utility.FloatHistory(name, None, None)
 		self.history.restore(config.data_dir)
 		self.file = file
 		self.name = name
-		self.timer = util.Timer(datetime.timedelta(minutes=10))
+		self.timer = utility.Timer(datetime.timedelta(minutes=10))
 
 	def update(self):
 		if not self.timer.check():
@@ -74,13 +74,13 @@ class DS18B20(object):
 class Thermosolar(object):
 
 	def __init__(self, file, temperature_name, pump_name):
-		self.temp_hist = util.FloatHistory(temperature_name, None, None)
+		self.temp_hist = utility.FloatHistory(temperature_name, None, None)
 		self.temp_hist.restore(config.data_dir)
-		self.pump_hist = util.BoolHistory(pump_name, None)
+		self.pump_hist = utility.BoolHistory(pump_name, None)
 		self.pump_hist.restore(config.data_dir)
 		self.file = file
 		self.name = '{}+{}'.format(temperature_name, pump_name)
-		self.timer = util.Timer(datetime.timedelta(seconds=10))
+		self.timer = utility.Timer(datetime.timedelta(seconds=10))
 
 	def update(self):
 		if not self.timer.check():
