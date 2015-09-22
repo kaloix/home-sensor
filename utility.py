@@ -11,6 +11,8 @@ DETAIL_RANGE = datetime.timedelta(days=1)
 SUMMARY_RANGE = datetime.timedelta(days=365)
 TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
 
+Measurement = collections.namedtuple('Measurement', 'value timestamp')
+
 
 def init():
 	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
@@ -25,9 +27,6 @@ def memory_check():
 	logging.debug('using {:.0f} megabytes of memory'.format(memory))
 	if memory > 100:
 		raise Exception('memory leak')
-
-
-Measurement = collections.namedtuple('Measurement', 'value timestamp')
 
 
 class Record(object):
