@@ -25,30 +25,28 @@ def main():
 	args = parser.parse_args()
 	utility.init()
 	with open('sensor.json') as json_file:
-		sensor_json = json.loads(json_file.read())
-	sensor = list()
-	for group, sensor_list in sensor_json.items():
-		for s in sensor_list:
-			if s['input']['station'] != args.station:
-				continue
-			if s['input']['type'] == 'ds18b20':
-				sensor.append(DS18B20(
-					s['input']['file'],
-					s['output']['temperature']['name']))
-			elif s['input']['type'] == 'thermosolar':
-				sensor.append(Thermosolar(
-					s['input']['file'],
-					s['output']['temperature']['name'],
-					s['output']['switch']['name']))
+		sensor_json = json_file.read()
+	sensors = list()
+	for device in json.loads(sensor_json):
+		if device['input']['station'] != args.station:
+			continue
+		if device['input']['type'] == 'ds18b20':
+			sensors.append(DS18B20(
+				device['input']['file'],
+				device['output']['temperature']['name']))
+		elif device['input']['type'] == 'thermosolar':
+			sensors.append(Thermosolar(
+				device['input']['file'],
+				device['output']['temperature']['name'],
+				device['output']['switch']['name']))
 	transmit = utility.Timer(utility.TRANSMIT_INTERVAL)
 	while True:
 		start = time.time()
-		for s in sensor:
-			s.update()
+		for sensor in sensors:
+			sensor.update()
 		if transmit.check():
 			logging.info('copy to webserver')
-			if os.system('scp -q {0}* {1}{0}'.format(
-					DATA_DIR, CLIENT_SERVER)):
+			if os.system('scp -q {0}* {1}{0}'.format(DATA_DIR, CLIENT_SERVER)):
 				logging.error('scp failed')
 			utility.memory_check()
 		logging.info('sleep, duration was {}s'.format(
