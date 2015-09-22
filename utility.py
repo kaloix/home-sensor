@@ -95,7 +95,7 @@ class FloatHistory(object):
 		now = datetime.datetime.now()
 		if self.float and \
 				self.float[-1].timestamp >= now - config.allowed_downtime:
-			current = self.float[-1]
+			current = self.float[-1].value
 		else:
 			current = None
 		minimum = min(reversed(self.float)) if self.float else None
@@ -105,20 +105,20 @@ class FloatHistory(object):
 		if current is None:
 			string.append('Fehler ⚠')
 		else:
-			string.append('{:.1f} °C'.format(current.value))
-			if current.value < self.floor or current.value > self.ceiling:
+			string.append('{:.1f} °C'.format(current))
+			if current < self.floor or current > self.ceiling:
 				string.append(' ⚠')
 		string.append('<ul>\n')
 		if minimum:
 			string.append(
-				'<li>Minimum bei {:.0f} °C am {:%A um %H:%M} Uhr.'.format(
+				'<li>Minimum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
 					*minimum))
 			if minimum.value < self.floor:
 				string.append(' ⚠')
 			string.append('</li>\n')
 		if maximum:
 			string.append(
-				'<li>Maximum bei {:.0f} °C am {:%A um %H:%M} Uhr.'.format(
+				'<li>Maximum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
 					*maximum))
 			if maximum.value > self.ceiling:
 				string.append(' ⚠')
