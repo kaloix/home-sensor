@@ -7,13 +7,12 @@ import smtplib
 WARNING_PAUSE = datetime.timedelta(days=1)
 ADMIN_ADDRESS = 'stefan@kaloix.de'
 USER_ADDRESS = 'stefan@kaloix.de'
-ENABLE_EMAIL = False
+ENABLE_EMAIL = True
 
 
 class NotificationCenter:
 	def __init__(self):
 		self.warning_pause = dict()
-		self.warn_admin('initial test mail')
 
 	def _send_email(self, message, address):
 		if not ENABLE_EMAIL:
