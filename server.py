@@ -115,7 +115,16 @@ def plot_history(history, file, now):
 				values, timestamps = zip(*part)
 				label = h.name if index == 0 else None
 				matplotlib.pyplot.plot(
-					timestamps, values, linewidth=3, color=color, label=label)
+					timestamps, values, label=label,
+					linewidth=3, color=color, zorder=3)
+				matplotlib.pyplot.fill_between(
+					timestamps, values, h.warn[0],
+					where = [value<h.warn[0] for value in values],
+					interpolate=True, color='r', zorder=2, alpha=0.7)
+				matplotlib.pyplot.fill_between(
+					timestamps, values, h.warn[1],
+					where = [value>h.warn[1] for value in values],
+					interpolate=True, color='r', zorder=2, alpha=0.7)
 			minimum.append(min(h.float.value))
 			minimum.append(h.usual[0])
 			maximum.append(max(h.float.value))
@@ -124,12 +133,13 @@ def plot_history(history, file, now):
 			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
 				label = h.name if index == 0 else None
 				matplotlib.pyplot.axvspan(
-					start, end, color=color ,alpha=0.5, label=label)
+					start, end, label=label, color=color, alpha=0.5, zorder=1)
 	nights = int(utility.DETAIL_RANGE / datetime.timedelta(days=1)) + 2
 	for index, (sunset, sunrise) in enumerate(nighttime(nights, now)):
 		label = 'Nacht' if index == 0 else None
 		matplotlib.pyplot.axvspan(
-			sunset, sunrise, color='black', alpha=0.2, label=label)
+			sunset, sunrise, label=label,
+			hatch='//', color='black', alpha=0.1, zorder=0)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
 	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator())
 	ax.yaxis.get_major_formatter().set_useOffset(False)
