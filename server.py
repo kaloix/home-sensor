@@ -93,7 +93,7 @@ def detail_html(histories):
 	string = list()
 	string.append('<ul>')
 	for history in histories:
-		string.append('<li>{}</li>'.format(history.html()))
+		string.append('<li>{}</li>'.format(history))
 	string.append('</ul>')
 	return '\n'.join(string)
 
@@ -185,7 +185,8 @@ def prepare_bool_plot(boolean):
 class Temperature(object):
 
 	def __init__(self, name, floor, ceiling):
-		self.history = utility.FloatHistory(name, floor, ceiling)
+		self.history = utility.FloatHistory(
+			name, floor, ceiling, ALLOWED_DOWNTIME)
 		self.history.restore(BACKUP_DIR)
 		self.name = name
 
@@ -207,13 +208,16 @@ class Temperature(object):
 
 
 class Switch(object):
+
 	def __init__(self, name):
-		self.history = utility.BoolHistory(name)
+		self.history = utility.BoolHistory(name, ALLOWED_DOWNTIME)
 		self.history.restore(BACKUP_DIR)
 		self.name = name
+
 	def update(self):
 		self.history.restore(DATA_DIR)
 		self.history.backup(BACKUP_DIR)
+
 	def check(self):
 		pass
 

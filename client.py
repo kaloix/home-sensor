@@ -146,7 +146,7 @@ def thermosolar_ocr(file):
 class DS18B20(object):
 
 	def __init__(self, file, name):
-		self.history = utility.FloatHistory(name, None, None)
+		self.history = utility.FloatHistory(name, None, None, None) # FIXME
 		self.history.restore(DATA_DIR)
 		self.file = file
 		self.name = name
@@ -168,9 +168,9 @@ class DS18B20(object):
 class Thermosolar(object):
 
 	def __init__(self, file, temperature_name, pump_name):
-		self.temp_hist = utility.FloatHistory(temperature_name, None, None) # FIXME
+		self.temp_hist = utility.FloatHistory(temperature_name, None, None, None) # FIXME
 		self.temp_hist.restore(DATA_DIR)
-		self.pump_hist = utility.BoolHistory(pump_name)
+		self.pump_hist = utility.BoolHistory(pump_name, None) # FIXME
 		self.pump_hist.restore(DATA_DIR)
 		self.file = file
 		self.name = '{}+{}'.format(temperature_name, pump_name)

@@ -32,10 +32,11 @@ Measurement = collections.namedtuple('Measurement', 'value timestamp')
 
 class Record(object):
 
-	def __init__(self, name, period, parser):
+	def __init__(self, name, period, parser, max_age):
 		self.csv = '{}.csv'.format(name)
 		self.period = period
 		self.parser = parser
+		self.max_age = max_age
 		self.value = collections.deque()
 		self.timestamp = collections.deque()
 
@@ -47,6 +48,14 @@ class Record(object):
 
 	def __nonzero__(self):
 		return bool(self.value)
+
+	@property
+	def current(self):
+		now = datetime.datetime.now()
+		if self.timestamp and self.timestamp[-1] >= now - self.max_age:
+			return self.value[-1]
+		else:
+			return None
 
 	def append(self, value, timestamp):
 		# only accept newer values
@@ -85,22 +94,18 @@ class Record(object):
 
 class FloatHistory(object):
 
-	def __init__(self, name, floor, ceiling):
+	def __init__(self, name, floor, ceiling, max_age):
 		self.name = name
 		self.floor = floor
 		self.ceiling = ceiling
-		self.float = Record(name, DETAIL_RANGE, float)
-		self.summary_min = Record(name+'-min', SUMMARY_RANGE, float)
-		self.summary_avg = Record(name+'-avg', SUMMARY_RANGE, float)
-		self.summary_max = Record(name+'-max', SUMMARY_RANGE, float)
+		self.float = Record(name, DETAIL_RANGE, float, max_age)
+		max_age = datetime.timedelta(days=2)
+		self.summary_min = Record(name+'-min', SUMMARY_RANGE, float, max_age)
+		self.summary_avg = Record(name+'-avg', SUMMARY_RANGE, float, max_age)
+		self.summary_max = Record(name+'-max', SUMMARY_RANGE, float, max_age)
 
-	def html(self):
-		now = datetime.datetime.now()
-		if self.float and \
-				self.float[-1].timestamp >= now - ALLOWED_DOWNTIME:
-			current = self.float[-1].value
-		else:
-			current = None
+	def __str__(self):
+		current = self.float.current
 		minimum = min(reversed(self.float)) if self.float else None
 		maximum = max(reversed(self.float)) if self.float else None
 		string = list()
@@ -161,17 +166,13 @@ class FloatHistory(object):
 
 class BoolHistory(object):
 
-	def __init__(self, name):
+	def __init__(self, name, max_age):
 		self.name = name
-		self.boolean = Record(name, DETAIL_RANGE, lambda bool_str: bool_str=='True')
+		self.boolean = Record(
+			name, DETAIL_RANGE, lambda bool_str: bool_str=='True', max_age)
 
-	def html(self):
-		now = datetime.datetime.now()
-		if self.boolean and \
-				self.boolean[-1].timestamp >= now - ALLOWED_DOWNTIME:
-			current = self.boolean[-1].value
-		else:
-			current = None
+	def __str__(self):
+		current = self.boolean.current
 		last_false = last_true = None
 		for measurement in self.boolean:
 			if measurement.value:
