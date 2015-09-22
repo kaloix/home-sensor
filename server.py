@@ -14,15 +14,15 @@ import matplotlib.pyplot
 import pysolar
 import pytz
 
-import config
 import notification
 import utility
 
 
+ALLOWED_DOWNTIME = 2 * utility.TRANSMIT_INTERVAL
 BACKUP_DIR = 'backup/'
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
-SERVER_INTERVAL = datetime.timedelta(minutes=1)
+SERVER_INTERVAL = datetime.timedelta(minutes=3)
 WEB_DIR = '/home/kaloix/html/sensor/'
 
 
@@ -77,7 +77,7 @@ def loop(group, sensor_list, html_template):
 
 	logging.info('write html')
 	html_filled = string.Template(html_template).substitute(
-		refresh_seconds = int(config.transmit_interval.total_seconds()),
+		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
 		group = group,
 		values = detail_html([s.history for s in sensor_list]),
 		update_time = '{:%A %d. %B %Y %X}'.format(now),
@@ -100,7 +100,7 @@ def detail_html(histories):
 
 def plot_history(history, file, now):
 	fig, ax = matplotlib.pyplot.subplots(figsize=(12, 4))
-	frame_start = now - config.detail_range
+	frame_start = now - utility.DETAIL_RANGE
 	minimum, maximum = list(), list()
 	color_iter = iter(COLOR_CYCLE)
 	for h in history:
@@ -109,7 +109,7 @@ def plot_history(history, file, now):
 			parts = list()
 			for measurement in h.float:
 				if not parts or measurement.timestamp - \
-						parts[-1][-1].timestamp > config.allowed_downtime:
+						parts[-1][-1].timestamp > ALLOWED_DOWNTIME:
 					parts.append(list())
 				parts[-1].append(measurement)
 			for index, part in enumerate(parts):
@@ -126,7 +126,7 @@ def plot_history(history, file, now):
 				label = h.name if index == 0 else None
 				matplotlib.pyplot.axvspan(
 					start, end, color=color ,alpha=0.5, label=label)
-	nights = int(config.detail_range / datetime.timedelta(days=1)) + 2
+	nights = int(utility.DETAIL_RANGE / datetime.timedelta(days=1)) + 2
 	for index, (sunset, sunrise) in enumerate(nighttime(nights, now)):
 		label = 'Nacht' if index == 0 else None
 		matplotlib.pyplot.axvspan(
@@ -179,7 +179,7 @@ def prepare_bool_plot(boolean):
 			yield start, timestamp
 			expect = True
 	if not expect:
-		yield start, timestamp + config.allowed_downtime
+		yield start, timestamp + ALLOWED_DOWNTIME
 
 
 class Temperature(object):

@@ -2,7 +2,13 @@ import datetime
 import email.mime.text
 import logging
 import smtplib
-import config
+
+
+WARNING_PAUSE = datetime.timedelta(days=1)
+ADMIN_ADDRESS = 'stefan@kaloix.de'
+USER_ADDRESS = 'stefan@kaloix.de'
+ENABLE_EMAIL = False
+
 
 class NotificationCenter:
 	def __init__(self):
@@ -10,7 +16,7 @@ class NotificationCenter:
 		self.warn_admin('initial test mail')
 
 	def _send_email(self, message, address):
-		if not config.enable_email:
+		if not ENABLE_EMAIL:
 			logging.info('send email disabled')
 			return
 		logging.info('send email')
@@ -30,7 +36,7 @@ class NotificationCenter:
 	def warn_admin(self, message):
 		logging.error(message)
 		text = 'Administrator-Meldung:\n{}'.format(message)
-		self._send_email(text, config.admin_address)
+		self._send_email(text, ADMIN_ADDRESS)
 	
 	def warn_user(self, message, key):
 		logging.warning(message)
@@ -39,5 +45,5 @@ class NotificationCenter:
 		if key in self.warning_pause and self.warning_pause[key] > now:
 			logging.info('suppress email')
 			return
-		self._send_email(message, config.user_address)
-		self.warning_pause[key] = now + config.warning_pause
+		self._send_email(message, USER_ADDRESS)
+		self.warning_pause[key] = now + WARNING_PAUSE

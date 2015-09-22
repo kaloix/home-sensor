@@ -11,10 +11,10 @@ import time
 import numpy
 import scipy.misc
 
-import config
 import utility
 
 
+CLIENT_SERVER = 'kaloix@adhara.uberspace.de:home-sensor/'
 DATA_DIR = 'data/'
 SAMPLING_INTERVAL = datetime.timedelta(minutes=1)
 
@@ -40,7 +40,7 @@ def main():
 					s['input']['file'],
 					s['output']['temperature']['name'],
 					s['output']['switch']['name']))
-	transmit = utility.Timer(config.transmit_interval)
+	transmit = utility.Timer(utility.TRANSMIT_INTERVAL)
 	while True:
 		start = time.time()
 		for s in sensor:
@@ -48,7 +48,7 @@ def main():
 		if transmit.check():
 			logging.info('copy to webserver')
 			if os.system('scp -q {0}* {1}{0}'.format(
-					DATA_DIR, config.client_server)):
+					DATA_DIR, CLIENT_SERVER)):
 				logging.error('scp failed')
 			utility.memory_check()
 		logging.info('sleep, duration was {}s'.format(

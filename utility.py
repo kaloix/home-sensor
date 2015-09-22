@@ -6,7 +6,10 @@ import logging
 import resource
 import time
 
-import config
+
+DETAIL_RANGE = datetime.timedelta(days=1)
+SUMMARY_RANGE = datetime.timedelta(days=365)
+TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
 
 
 def init():
@@ -54,7 +57,7 @@ class Record(object):
 		# delete center of three equal values
 		if len(self.value) >= 3 and self.value[-3] == self.value[-2] == self.value[-1]:
 			# keep some values
-			if self.timestamp[-2] - self.timestamp[-3] < config.transmit_interval:
+			if self.timestamp[-2] - self.timestamp[-3] < TRANSMIT_INTERVAL:
 				del self.value[-2]
 				del self.timestamp[-2]
 		assert len(self.value) == len(self.timestamp)
@@ -86,15 +89,15 @@ class FloatHistory(object):
 		self.name = name
 		self.floor = floor
 		self.ceiling = ceiling
-		self.float = Record(name, config.detail_range, float)
-		self.summary_min = Record(name+'-min', config.summary_range, float)
-		self.summary_avg = Record(name+'-avg', config.summary_range, float)
-		self.summary_max = Record(name+'-max', config.summary_range, float)
+		self.float = Record(name, DETAIL_RANGE, float)
+		self.summary_min = Record(name+'-min', SUMMARY_RANGE, float)
+		self.summary_avg = Record(name+'-avg', SUMMARY_RANGE, float)
+		self.summary_max = Record(name+'-max', SUMMARY_RANGE, float)
 
 	def html(self):
 		now = datetime.datetime.now()
 		if self.float and \
-				self.float[-1].timestamp >= now - config.allowed_downtime:
+				self.float[-1].timestamp >= now - ALLOWED_DOWNTIME:
 			current = self.float[-1].value
 		else:
 			current = None
@@ -160,12 +163,12 @@ class BoolHistory(object):
 
 	def __init__(self, name):
 		self.name = name
-		self.boolean = Record(name, config.detail_range, lambda bool_str: bool_str=='True')
+		self.boolean = Record(name, DETAIL_RANGE, lambda bool_str: bool_str=='True')
 
 	def html(self):
 		now = datetime.datetime.now()
 		if self.boolean and \
-				self.boolean[-1].timestamp >= now - config.allowed_downtime:
+				self.boolean[-1].timestamp >= now - ALLOWED_DOWNTIME:
 			current = self.boolean[-1].value
 		else:
 			current = None
