@@ -1,37 +1,36 @@
-{
-	"Lufttemperatur": [
-		{
-			"input": {
-				"station": 1,
-				"type": "ds18b20",
-				"file": "/sys/bus/w1/devices/28-0000071d810f/w1_slave"
-			},
-			"output": {
-				"temperature": {
-					"name": "Wohnzimmer",
-					"floor": 19,
-					"ceiling": 27
-				}
+[
+	{
+		"input": {
+			"station": 1,
+			"type": "ds18b20",
+			"file": "/sys/bus/w1/devices/28-0000071d810f/w1_slave"
+		},
+		"output": {
+			"temperature": {
+				"name": "Wohnzimmer",
+				"group": "Lufttemperatur",
+				"floor": 19,
+				"ceiling": 27
 			}
 		}
-	],
-	"Solaranlage": [
-		{
-			"input": {
-				"station": 1,
-				"type": "thermosolar",
-				"file": "/dev/video0"
+	},
+	{
+		"input": {
+			"station": 1,
+			"type": "thermosolar",
+			"file": "/dev/video0"
+		},
+		"output": {
+			"temperature": {
+				"name": "Kollektoren",
+				"group": "Solaranlage",
+				"floor": 10,
+				"ceiling": 80
 			},
-			"output": {
-				"temperature": {
-					"name": "Kollektoren",
-					"floor": 10,
-					"ceiling": 80
-				},
-				"switch": {
-					"name": "Pumpe"
-				}
+			"switch": {
+				"name": "Pumpe",
+				"group": "Solaranlage"
 			}
 		}
-	]
-}
+	}
+]

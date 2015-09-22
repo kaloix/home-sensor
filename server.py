@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import collections
 import datetime
 import gc # FIXME
 import json
@@ -31,28 +32,26 @@ def main():
 	with open('template.html') as html_file:
 		html_template = html_file.read()
 	with open('sensor.json') as json_file:
-		sensor_json = json.loads(json_file.read())
-	sensor = dict()
-	for group, sensor_list in sensor_json.items():
-		temp = list()
-		switch = list()
-		for s in sensor_list:
-			for kind, attr in s['output'].items():
-				if kind == 'temperature':
-					temp.append(Temperature(
-						attr['name'],
-						attr['floor'],
-						attr['ceiling']))
-				elif kind == 'switch':
-					switch.append(Switch(
-						attr['name']))
-		sensor[group] = temp + switch
+		sensor_json = json_file.read()
+	devices = json.loads(
+		sensor_json, object_pairs_hook=collections.OrderedDict)
+	sensors = collections.defaultdict(list)
+	for device in devices:
+		for kind, attr in device['output'].items():
+			if kind == 'temperature':
+				sensors[attr['group']].append(Temperature(
+					attr['name'],
+					attr['floor'],
+					attr['ceiling']))
+			elif kind == 'switch':
+				sensors[attr['group']].append(Switch(
+					attr['name']))
 	notify = notification.NotificationCenter()
 
 	while True:
 		start = time.time()
 		try:
-			for group, sensor_list in sensor.items():
+			for group, sensor_list in sensors.items():
 				loop(group, sensor_list, html_template)
 			gc.collect() # FIXME
 			utility.memory_check()
