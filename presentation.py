@@ -48,18 +48,21 @@ def plot_history(history, file, now):
 		label = 'Nacht' if index == 0 else None
 		matplotlib.pyplot.axvspan(
 			sunset, sunrise, color='black', alpha=0.2, label=label)
-	matplotlib.pyplot.xlim(frame_start, now)
-	matplotlib.pyplot.ylim(min(minimum), max(maximum))
-	matplotlib.pyplot.xlabel('Uhrzeit')
-	matplotlib.pyplot.ylabel('Temperatur °C')
-	matplotlib.pyplot.grid(True)
-	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator())
+	# formatting
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
-	ax.yaxis.tick_right()
+	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator())
+	ax.yaxis.get_major_formatter().set_useOffset(False)
 	ax.yaxis.set_label_position('right')
+	ax.yaxis.tick_right()
+	matplotlib.pyplot.xlabel('Uhrzeit')
+	matplotlib.pyplot.xlim(frame_start, now)
+	matplotlib.pyplot.ylabel('Temperatur °C')
+	matplotlib.pyplot.ylim(min(minimum), max(maximum))
+	matplotlib.pyplot.grid(True)
 	matplotlib.pyplot.legend(
-		loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=3,
+		loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=5,
 		frameon=False)
+	# export
 	matplotlib.pyplot.savefig(filename=file, bbox_inches='tight')
 	matplotlib.pyplot.close()
 
