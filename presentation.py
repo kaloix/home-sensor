@@ -1,4 +1,5 @@
 import matplotlib.pyplot
+import matplotlib.dates
 import pytz
 import datetime
 import pysolar
@@ -15,7 +16,7 @@ def detail_html(histories):
 	return '\n'.join(string)
 
 def plot_history(history, file, now):
-	matplotlib.pyplot.figure(figsize=(12, 4))
+	fig, ax = matplotlib.pyplot.subplots(figsize=(12, 4))
 	frame_start = now - config.detail_range
 	minimum, maximum = list(), list()
 	color_iter = iter(COLOR_CYCLE)
@@ -52,8 +53,10 @@ def plot_history(history, file, now):
 	matplotlib.pyplot.xlabel('Uhrzeit')
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	matplotlib.pyplot.grid(True)
-	matplotlib.pyplot.gca().yaxis.tick_right()
-	matplotlib.pyplot.gca().yaxis.set_label_position('right')
+	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator())
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
+	ax.yaxis.tick_right()
+	ax.yaxis.set_label_position('right')
 	matplotlib.pyplot.legend(
 		loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=3,
 		frameon=False)
