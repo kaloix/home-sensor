@@ -8,8 +8,8 @@ import time
 
 
 DETAIL_RANGE = datetime.timedelta(days=1)
-SUMMARY_RANGE = datetime.timedelta(days=365)
 TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
+ALLOWED_DOWNTIME = 2 * TRANSMIT_INTERVAL
 
 Measurement = collections.namedtuple('Measurement', 'value timestamp')
 
@@ -29,13 +29,21 @@ def memory_check():
 		raise Exception('memory leak')
 
 
+def format_timedelta(td):
+	string = list()
+	hours = td.days*24 + td.seconds//3600
+	if hours:
+		string.append('{} Stunden'.format(hours))
+	string.append('{} Minuten'.format((td.seconds//60) % 60))
+	return ', '.join(string)
+
+
 class Record(object):
 
-	def __init__(self, name, period, parser, max_age):
+	def __init__(self, name, period, parser):
 		self.csv = '{}.csv'.format(name)
 		self.period = period
 		self.parser = parser
-		self.max_age = max_age
 		self.value = collections.deque()
 		self.timestamp = collections.deque()
 
@@ -51,7 +59,7 @@ class Record(object):
 	@property
 	def current(self):
 		now = datetime.datetime.now()
-		if self.timestamp and self.timestamp[-1] >= now - self.max_age:
+		if self.timestamp and self.timestamp[-1] >= now - ALLOWED_DOWNTIME:
 			return self.value[-1]
 		else:
 			return None
@@ -93,15 +101,11 @@ class Record(object):
 
 class FloatHistory(object):
 
-	def __init__(self, name, usual, warn, max_age):
+	def __init__(self, name, usual, warn):
 		self.name = name
 		self.usual = usual
 		self.warn = warn
-		self.float = Record(name, DETAIL_RANGE, float, max_age)
-		max_age = datetime.timedelta(days=2)
-		self.summary_min = Record(name+'-min', SUMMARY_RANGE, float, max_age)
-		self.summary_avg = Record(name+'-avg', SUMMARY_RANGE, float, max_age)
-		self.summary_max = Record(name+'-max', SUMMARY_RANGE, float, max_age)
+		self.float = Record(name, DETAIL_RANGE, float)
 
 	def __str__(self):
 		current = self.float.current
@@ -110,7 +114,7 @@ class FloatHistory(object):
 		string = list()
 		string.append('<b>{}:</b> '.format(self.name))
 		if current is None:
-			string.append('Fehler ⚠')
+			string.append('Fehler')
 		else:
 			string.append('{:.1f} °C'.format(current))
 			if current < self.warn[0] or current > self.warn[1]:
@@ -138,9 +142,6 @@ class FloatHistory(object):
 
 	def _process(self, now):
 		self.float.clear(now)
-		self.summary_min.clear(now)
-		self.summary_avg.clear(now)
-		self.summary_max.clear(now)
 
 	def store(self, value):
 		now = datetime.datetime.now()
@@ -149,26 +150,19 @@ class FloatHistory(object):
 
 	def backup(self, directory):
 		self.float.write(directory)
-		self.summary_min.write(directory)
-		self.summary_avg.write(directory)
-		self.summary_max.write(directory)
 
 	def restore(self, directory):
 		now = datetime.datetime.now()
 		self.float.read(directory)
-		self.summary_min.read(directory)
-		self.summary_avg.read(directory)
-		self.summary_max.read(directory)
-		assert len(self.summary_min) == len(self.summary_avg) == len(self.summary_max)
 		self._process(now)
 
 
 class BoolHistory(object):
 
-	def __init__(self, name, max_age):
+	def __init__(self, name):
 		self.name = name
 		self.boolean = Record(
-			name, DETAIL_RANGE, lambda bool_str: bool_str=='True', max_age)
+			name, DETAIL_RANGE, lambda bool_str: bool_str=='True')
 
 	def __str__(self):
 		current = self.boolean.current
@@ -195,8 +189,35 @@ class BoolHistory(object):
 			string.append(
 				'<li>Zuletzt Aus am {:%A um %H:%M} Uhr.</li>\n'.format(
 					last_false))
+		if self.boolean:
+			string.append(
+				'<li>Insgesamt {} Einschaltdauer.</li>\n'.format(
+					format_timedelta(self.uptime)))
 		string.append('</ul>')
 		return ''.join(string)
+
+	@property
+	def segments(self):
+		expect = True
+		for value, timestamp in self.boolean:
+			if value != expect:
+				continue
+			if expect:
+				start = timestamp
+				expect = False
+			else:
+				yield start, timestamp
+				expect = True
+		if not expect:
+			now = datetime.datetime.now()
+			yield start, min(timestamp+ALLOWED_DOWNTIME, now)
+
+	@property
+	def uptime(self):
+		total = datetime.timedelta()
+		for start, stop in self.segments:
+			total += stop - start
+		return total
 
 	def store(self, value):
 		now = datetime.datetime.now()

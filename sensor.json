@@ -9,7 +9,7 @@
 			"temperature": {
 				"name": "Wohnzimmer",
 				"group": "Lufttemperatur",
-				"usual": [21, 25],
+				"usual": [21, 24],
 				"warn": [18, 30]
 			}
 		}

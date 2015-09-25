@@ -2,7 +2,7 @@
 
 import collections
 import datetime
-import gc # FIXME
+#import gc # FIXME
 import json
 import logging
 import os
@@ -19,7 +19,6 @@ import notification
 import utility
 
 
-ALLOWED_DOWNTIME = 2 * utility.TRANSMIT_INTERVAL
 BACKUP_DIR = 'backup/'
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
@@ -53,7 +52,7 @@ def main():
 		try:
 			for group, sensor_list in sensors.items():
 				loop(group, sensor_list, html_template)
-			gc.collect() # FIXME
+			#gc.collect() # FIXME with gc: 48MB
 			utility.memory_check()
 		except Exception as err:
 			tb_lines = traceback.format_tb(err.__traceback__)
@@ -108,7 +107,7 @@ def plot_history(history, file, now):
 			parts = list()
 			for measurement in h.float:
 				if not parts or measurement.timestamp - \
-						parts[-1][-1].timestamp > ALLOWED_DOWNTIME:
+						parts[-1][-1].timestamp > utility.ALLOWED_DOWNTIME:
 					parts.append(list())
 				parts[-1].append(measurement)
 			for index, part in enumerate(parts):
@@ -130,7 +129,7 @@ def plot_history(history, file, now):
 			maximum.append(max(h.float.value))
 			maximum.append(h.usual[1])
 		elif hasattr(h, 'boolean') and h.boolean:
-			for index, (start, end) in enumerate(prepare_bool_plot(h.boolean)):
+			for index, (start, end) in enumerate(h.segments):
 				label = h.name if index == 0 else None
 				matplotlib.pyplot.axvspan(
 					start, end, label=label, color=color, alpha=0.5, zorder=1)
@@ -176,27 +175,11 @@ def nighttime(count, date_time):
 		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
 
 
-def prepare_bool_plot(boolean):
-	expect = True
-	for value, timestamp in boolean:
-		if value != expect:
-			continue
-		if expect:
-			start = timestamp
-			expect = False
-		else:
-			yield start, timestamp
-			expect = True
-	if not expect:
-		yield start, timestamp + ALLOWED_DOWNTIME
-
-
 class Temperature(object):
 
 	def __init__(self, name, usual, warn):
 		self.name = name
-		self.history = utility.FloatHistory(
-			name, usual, warn, ALLOWED_DOWNTIME)
+		self.history = utility.FloatHistory(name, usual, warn)
 		self.history.restore(BACKUP_DIR)
 
 	def update(self):
@@ -219,7 +202,7 @@ class Temperature(object):
 class Switch(object):
 
 	def __init__(self, name):
-		self.history = utility.BoolHistory(name, ALLOWED_DOWNTIME)
+		self.history = utility.BoolHistory(name)
 		self.history.restore(BACKUP_DIR)
 		self.name = name
 
