@@ -1,8 +1,8 @@
-# http://httpd.apache.org/docs/2.2/mod/core.html#files
-# http://httpd.apache.org/docs/2.2/mod/mod_expires.html
-# https://github.com/h5bp/html5-boilerplate/blob/master/dist/.htaccess#L835
-# https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching#cache-control
-
+## Set Cache-Control and Expires headers
+#  http://httpd.apache.org/docs/2.4/mod/core.html#files
+#  http://httpd.apache.org/docs/2.4/mod/mod_expires.html
+#  https://github.com/h5bp/html5-boilerplate/blob/master/dist/.htaccess#L835
+#  https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching#cache-control
 <IfModule mod_expires.c>
 	ExpiresActive on
 	ExpiresByType text/html "modification plus 1 minute"
@@ -12,4 +12,6 @@
 	ExpiresByType image/png "modification plus 1 minute"
 </IfModule>
 
-Redirect 302 "/sensor/index.html" "/sensor/Lufttemperatur.html"
+## Redirect sensor landing page
+#  http://httpd.apache.org/docs/2.2/mod/mod_alias.html#redirect
+Redirect temp "/sensor/index.html" "/sensor/Lufttemperatur.html"
