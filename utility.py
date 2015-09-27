@@ -71,7 +71,8 @@ class Record(object):
 		self.value.append(value)
 		self.timestamp.append(timestamp)
 		# delete center of three equal values
-		if len(self.value) >= 3 and self.value[-3] == self.value[-2] == self.value[-1]:
+		if len(self.value) >= 3 and \
+				self.value[-3] == self.value[-2] == self.value[-1]:
 			# keep some values
 			if self.timestamp[-2] - self.timestamp[-3] < TRANSMIT_INTERVAL:
 				del self.value[-2]
@@ -94,7 +95,9 @@ class Record(object):
 		try:
 			with open(directory+self.csv, newline='') as csv_file:
 				for r in csv.reader(csv_file):
-					self.append(self.parser(r[0]), datetime.datetime.fromtimestamp(float(r[1])))
+					self.append(
+						self.parser(r[0]),
+						datetime.datetime.fromtimestamp(float(r[1])))
 		except (IOError, OSError):
 			pass
 
@@ -135,8 +138,8 @@ class FloatHistory(object):
 				string.append(' ⚠')
 			string.append('</li>\n')
 		string.append(
-			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C.</li>\n'.format(
-				*self.warn))
+			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C.</li>\n'
+				.format(*self.warn))
 		string.append('</ul>')
 		return ''.join(string)
 

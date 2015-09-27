@@ -147,11 +147,8 @@ class DS18B20(object):
 		self.history.restore(DATA_DIR)
 		self.file = file
 		self.name = name
-		self.timer = utility.Timer(datetime.timedelta(minutes=10))
 
 	def update(self):
-		if not self.timer.check():
-			return
 		logging.info('update DS18B20 {}'.format(self.name))
 		try:
 			temperature = w1_temp(self.file)
@@ -165,17 +162,15 @@ class DS18B20(object):
 class Thermosolar(object):
 
 	def __init__(self, file, temperature_name, pump_name):
-		self.temp_hist = utility.FloatHistory(temperature_name, None, None, None) # FIXME
+		self.temp_hist = utility.FloatHistory(
+			temperature_name, None, None, None) # FIXME
 		self.temp_hist.restore(DATA_DIR)
 		self.pump_hist = utility.BoolHistory(pump_name, None) # FIXME
 		self.pump_hist.restore(DATA_DIR)
 		self.file = file
 		self.name = '{}+{}'.format(temperature_name, pump_name)
-		self.timer = utility.Timer(datetime.timedelta(seconds=10))
 
 	def update(self):
-		if not self.timer.check():
-			return
 		logging.info('update Thermosolar {}'.format(self.name))
 		try:
 			temp, pump = thermosolar_ocr(self.file)

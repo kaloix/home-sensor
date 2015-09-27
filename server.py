@@ -2,7 +2,6 @@
 
 import collections
 import datetime
-#import gc # FIXME
 import json
 import logging
 import os
@@ -52,12 +51,11 @@ def main():
 		try:
 			for group, sensor_list in sensors.items():
 				loop(group, sensor_list, html_template)
-			#gc.collect() # FIXME with gc: 48MB
 			utility.memory_check()
 		except Exception as err:
 			tb_lines = traceback.format_tb(err.__traceback__)
-			notify.warn_admin(
-				'{}: {}\n{}'.format(type(err).__name__, err, ''.join(tb_lines)))
+			notify.warn_admin('{}: {}\n{}'.format(
+				type(err).__name__, err, ''.join(tb_lines)))
 			break
 		logging.info('sleep, duration was {}s'.format(
 			round(time.time() - start)))
@@ -188,14 +186,16 @@ class Temperature(object):
 
 	def check(self):
 		pass # TODO
-#		if not self.history.current:
+		if not self.history.current:
 #			text = 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
 #			notify.warn_user(text, self.name+'s')
 #		if self.history.warn_low:
-#			text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n{}'.format(self.name, self.history.minimum)
+#			text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n{}' \
+#				.format(self.name, self.history.minimum)
 #			notify.warn_user(text, self.name+'l')
 #		if self.history.warn_high:
-#			text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}'.format(self.name, self.history.maximum)
+#			text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}' \
+#				.format(self.name, self.history.maximum)
 #			notify.warn_user(text, self.name+'h')
 
 
