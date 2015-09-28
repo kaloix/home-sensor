@@ -33,25 +33,24 @@ def main():
 		sensor_json = json_file.read()
 	devices = json.loads(
 		sensor_json, object_pairs_hook=collections.OrderedDict)
-	sensors = collections.defaultdict(list)
+	series = collections.defaultdict(list)
 	for device in devices:
 		for kind, attr in device['output'].items():
 			if kind == 'temperature':
-				sensors[attr['group']].append(Temperature(
+				series[attr['group']].append(Temperature(
 					attr['name'],
 					tuple(attr['usual']),
 					tuple(attr['warn'])))
 			elif kind == 'switch':
-				sensors[attr['group']].append(Switch(
+				series[attr['group']].append(Switch(
 					attr['name']))
 	notify = notification.NotificationCenter()
 
 	while True:
 		start = time.time()
 		try:
-			for group, sensor_list in sensors.items():
-				loop(group, sensor_list, html_template)
-			utility.memory_check()
+			for group, series_list in series.items():
+				loop(group, series_list, html_template)
 		except Exception as err:
 			tb_lines = traceback.format_tb(err.__traceback__)
 			notify.warn_admin('{}: {}\n{}'.format(
@@ -62,7 +61,7 @@ def main():
 		time.sleep(SERVER_INTERVAL.total_seconds())
 
 
-def loop(group, sensor_list, html_template):
+def loop(group, series_list, html_template):
 	logging.info('read csv')
 	now = datetime.datetime.now()
 	for s in sensor_list:
@@ -75,60 +74,62 @@ def loop(group, sensor_list, html_template):
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
 		group = group,
-		values = detail_html([s.history for s in sensor_list]),
+		values = detail_html(series_list),
 		update_time = '{:%A %d. %B %Y %X}'.format(now),
 		year = '{:%Y}'.format(now))
 	with open(WEB_DIR+group+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
 
 	logging.info('generate plot')
-	plot_history([s.history for s in sensor_list], WEB_DIR+group+'.png', now)
+	plot_history(series_list, '{}{}.png'.format(WEB_DIR, group), now)
 
 
-def detail_html(histories):
+def detail_html(series_list):
 	ret = list()
 	ret.append('<ul>')
-	for history in histories:
-		ret.append('<li>{}</li>'.format(history))
+	for series in series_list:
+		ret.append('<li>{}</li>'.format(series))
 	ret.append('</ul>')
 	return '\n'.join(ret)
 
 
-def plot_history(history, file, now):
+def plot_history(series_list, file, now):
 	fig, ax = matplotlib.pyplot.subplots(figsize=(12, 4))
 	frame_start = now - utility.DETAIL_RANGE
 	minimum, maximum = list(), list()
 	color_iter = iter(COLOR_CYCLE)
-	for h in history:
+	for series in series_list:
+		if not series.records:
+			continue
 		color = next(color_iter)
-		if hasattr(h, 'float') and h.float:
+		if type(series) is Temperature:
 			parts = list()
-			for measurement in h.float:
-				if not parts or measurement.timestamp-parts[-1][-1].timestamp \
-						> utility.ALLOWED_DOWNTIME:
+			for record in series:
+				if not parts or record.timestamp-parts[-1][-1].timestamp > \
+						utility.ALLOWED_DOWNTIME:
 					parts.append(list())
-				parts[-1].append(measurement)
+				parts[-1].append(record)
 			for index, part in enumerate(parts):
 				values, timestamps = zip(*part)
-				label = h.name if index == 0 else None
+				label = series.name if index == 0 else None
 				matplotlib.pyplot.plot(
 					timestamps, values, label=label,
 					linewidth=3, color=color, zorder=3)
 				matplotlib.pyplot.fill_between(
-					timestamps, values, h.warn[0],
-					where = [value<h.warn[0] for value in values],
+					timestamps, values, series.warn[0],
+					where = [value<series.warn[0] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
 				matplotlib.pyplot.fill_between(
-					timestamps, values, h.warn[1],
-					where = [value>h.warn[1] for value in values],
+					timestamps, values, series.warn[1],
+					where = [value>series.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
-			minimum.append(min(h.float).value)
-			minimum.append(h.usual[0])
-			maximum.append(max(h.float).value)
-			maximum.append(h.usual[1])
-		elif hasattr(h, 'boolean') and h.boolean:
-			for index, (start, end) in enumerate(h.segments):
-				label = h.name if index == 0 else None
+			minimum.append(min(series.records).value)
+			minimum.append(series.usual[0])
+			maximum.append(max(series.records).value)
+			maximum.append(series.usual[1])
+		elif type(series) is Switch:
+			for index, (start, end) in enumerate(series.segments):
+				label = series.name if index == 0 else None
 				matplotlib.pyplot.axvspan(
 					start, end, label=label, color=color, alpha=0.5, zorder=1)
 	nights = int(utility.DETAIL_RANGE / datetime.timedelta(days=1)) + 2
@@ -173,16 +174,103 @@ def nighttime(count, date_time):
 		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
 
 
-class Temperature(object):
+def _universal_parser(value):
+	if value == 'False':
+		return False
+	elif value == 'True':
+		return True
+	else:
+		return float(value)
 
-	def __init__(self, name, usual, warn):
+
+class Series(object):
+
+	def __init__(self, name):
 		self.name = name
-		self.history = utility.FloatHistory(name, usual, warn)
-		self.history.restore(BACKUP_DIR)
+		self.records = collections.deque()
+		self.year = int()
+		for file in sorted(os.listdir(DATA_DIR)):
+			match = re.search(r'(?P<name>\S+)_(?P<year>\d+).csv', file)
+			if match and match.group('name') == self.name:
+				year = int(match.group('year'))
+				self._read(year)
+				self.year = year
+
+	def _append(self, value, timestamp):
+		if self.records and timestamp <= self.records[-1].timestamp:
+			return
+		self.records.append(Record(value, timestamp))
+		# delete center of three equal values while keeping some
+		if len(self.records) >= 3 and self.records[-3].value == self.records[-2].value \
+				== self.records[-1].value and self.records[-2].timestamp- \
+				self.records[-3].timestamp < TRANSMIT_INTERVAL:
+			del self.records[-2]
+
+	def _read(self, year):
+		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
+		try:
+			with open(filename, newline='') as csv_file:
+				for row in csv.reader(csv_file):
+					self._append(_universal_parser(row[1]),
+					             datetime.datetime.fromtimestamp(int(row[0])))
+		except OSError:
+			pass
+
+	@property
+	def current(self):
+		now = datetime.datetime.now()
+		if self.records and self.records[-1].timestamp >= now-ALLOWED_DOWNTIME:
+			return self.records[-1].value
+		else:
+			return None
 
 	def update(self):
-		self.history.restore(DATA_DIR)
-		self.history.backup(BACKUP_DIR)
+		now = datetime.datetime.now()
+		if self.year < now.year:
+			self._read(self.year)
+			self.year = now.year
+		self._read(now.year)
+
+
+class Temperature(Series):
+
+	def __init__(self, name, usual, warn):
+		super().__init__(name)
+		self.usual = usual
+		self.warn = warn
+
+	def __str__(self):
+		current = self.current
+		minimum = min(reversed(self.records)) if self.records else None
+		maximum = max(reversed(self.records)) if self.records else None
+		ret = list()
+		ret.append('<b>{}:</b> '.format(self.name))
+		if current is None:
+			ret.append('Fehler')
+		else:
+			ret.append('{:.1f} °C'.format(current))
+			if current < self.warn[0] or current > self.warn[1]:
+				ret.append(' ⚠')
+		ret.append('<ul>\n')
+		if minimum:
+			ret.append(
+				'<li>Minimum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
+					*minimum))
+			if minimum.value < self.warn[0]:
+				ret.append(' ⚠')
+			ret.append('</li>\n')
+		if maximum:
+			ret.append(
+				'<li>Maximum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
+					*maximum))
+			if maximum.value > self.warn[1]:
+				ret.append(' ⚠')
+			ret.append('</li>\n')
+		ret.append(
+			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C.</li>\n'
+				.format(*self.warn))
+		ret.append('</ul>')
+		return ''.join(ret)
 
 	def check(self):
 		pass # TODO
@@ -199,16 +287,65 @@ class Temperature(object):
 #			notify.warn_user(text, self.name+'h')
 
 
-class Switch(object):
+class Switch(Series):
 
 	def __init__(self, name):
-		self.history = utility.BoolHistory(name)
-		self.history.restore(BACKUP_DIR)
-		self.name = name
+		super().__init__(name)
 
-	def update(self):
-		self.history.restore(DATA_DIR)
-		self.history.backup(BACKUP_DIR)
+	def __str__(self):
+		current = self.current
+		last_false = last_true = None
+		for value, timestamp in self.records:
+			if value:
+				last_true = timestamp
+			else:
+				last_false = timestamp
+		ret = list()
+		ret.append('<b>{}:</b> '.format(self.name))
+		if current is None:
+			ret.append('Fehler')
+		elif current:
+			ret.append('Ein')
+		else:
+			ret.append('Aus')
+		ret.append('<ul>\n')
+		if last_true and (current is None or not current):
+			ret.append(
+				'<li>Zuletzt Ein am {:%A um %H:%M} Uhr.</li>\n'.format(
+					last_true))
+		if last_false and (current is None or current):
+			ret.append(
+				'<li>Zuletzt Aus am {:%A um %H:%M} Uhr.</li>\n'.format(
+					last_false))
+		if self.records:
+			ret.append(
+				'<li>Insgesamt {} Einschaltdauer.</li>\n'.format(
+					utility.format_timedelta(self.uptime)))
+		ret.append('</ul>')
+		return ''.join(ret)
+
+	@property
+	def segments(self):
+		expect = True
+		for value, timestamp in self.records:
+			if value != expect:
+				continue
+			if expect:
+				start = timestamp
+				expect = False
+			else:
+				yield start, timestamp
+				expect = True
+		if not expect:
+			now = datetime.datetime.now()
+			yield start, min(timestamp+ALLOWED_DOWNTIME, now)
+
+	@property
+	def uptime(self):
+		total = datetime.timedelta()
+		for start, stop in self.segments:
+			total += stop - start
+		return total
 
 	def check(self):
 		pass

@@ -32,13 +32,13 @@ def main():
 			continue
 		if device['input']['type'] == 'ds18b20':
 			sensors.append(DS18B20(
-				device['input']['file'],
-				device['output']['temperature']['name']))
+				device['output']['temperature']['name'],
+				device['input']['file']))
 		elif device['input']['type'] == 'thermosolar':
 			sensors.append(Thermosolar(
-				device['input']['file'],
 				device['output']['temperature']['name'],
-				device['output']['switch']['name']))
+				device['output']['switch']['name'],
+				device['input']['file']))
 	transmit = utility.Timer(utility.TRANSMIT_INTERVAL)
 	while True:
 		start = time.time()
@@ -55,11 +55,14 @@ def main():
 
 
 def w1_temp(file):
-	with open(file) as w1_file:
-		if w1_file.readline().strip().endswith('YES'):
-			return int(w1_file.readline().split('t=')[-1].strip()) / 1e3
-		else:
-			raise Exception('sensor says no')
+	try:
+		with open(file) as w1_file:
+			if w1_file.readline().strip().endswith('YES'):
+				return int(w1_file.readline().split('t=')[-1].strip()) / 1e3
+			else:
+				raise SensorError('w1 sensor says no')
+	except (OSError, ValueError) as err:
+		raise SensorError('invalid w1 file') from err
 
 
 def _make_box(image, left, top, right, bottom):
@@ -88,14 +91,12 @@ def _parse_segment(image):
 			'invert',
 			'seven_segment.png'])
 	except subprocess.CalledProcessError as err:
-		logging.error(err)
-		return None
+		raise SensorError('ssocr failure') from err
 	logging.debug('parse_segment: ssocr_output={}'.format(ssocr_output))
 	try:
 		return int(ssocr_output)
 	except ValueError as err:
-		logging.error(err)
-		return None
+		raise SensorError('invalid ssocr output') from err
 
 
 def _parse_light(image):
@@ -117,7 +118,7 @@ def _thermosolar_ocr_single(file):
 			'--quiet',
 			'--title', 'Thermosolar',
 			'thermosolar.jpg']):
-		raise Exception('camera failure')
+		raise SensorError('camera failure')
 	image = scipy.misc.imread('thermosolar.jpg')
 	# crop seven segment
 	left, top, right, bottom = 67, 53, 160, 118
@@ -136,15 +137,31 @@ def thermosolar_ocr(file):
 	result = _thermosolar_ocr_single(file)
 	time.sleep(0.5)
 	if _thermosolar_ocr_single(file) != result:
-		raise Exception('bad picture during transition')
+		raise SensorError('ocr results differ')
 	return result
+
+
+class SensorError(Exception):
+	pass
+
+
+class Series(object):
+
+	def __init__(self, name):
+		self.name = name
+
+	def write(self, value):
+		now = datetime.datetime.now()
+		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
+		with open(filename, mode='a', newline='') as csv_file:
+			self.writer = csv.writer(csv_file)
+			self.writer.writerow((value, int(now.timestamp())))
 
 
 class DS18B20(object):
 
-	def __init__(self, file, name):
-		self.history = utility.FloatHistory(name, None, None) # FIXME
-		self.history.restore(DATA_DIR)
+	def __init__(self, name, file):
+		self.history = Series(name)
 		self.file = file
 		self.name = name
 
@@ -152,36 +169,29 @@ class DS18B20(object):
 		logging.info('update DS18B20 {}'.format(self.name))
 		try:
 			temperature = w1_temp(self.file)
-		except Exception as err:
+		except SensorError as err:
 			logging.error('DS18B20 failure: {}'.format(err))
-			return
-		self.history.store(temperature)
-		self.history.backup(DATA_DIR)
+		else:
+			self.history.write(temperature)
 
 
 class Thermosolar(object):
 
-	def __init__(self, file, temperature_name, pump_name):
-		self.temp_hist = utility.FloatHistory(temperature_name, None, None) # FIXME
-		self.temp_hist.restore(DATA_DIR)
-		self.pump_hist = utility.BoolHistory(pump_name)
-		self.pump_hist.restore(DATA_DIR)
+	def __init__(self, temperature_name, pump_name, file):
+		self.temp_hist = Series(temperature_name)
+		self.pump_hist = Series(pump_name)
 		self.file = file
-		self.name = '{}+{}'.format(temperature_name, pump_name)
+		self.name = '{}-{}'.format(temperature_name, pump_name)
 
 	def update(self):
 		logging.info('update Thermosolar {}'.format(self.name))
 		try:
 			temp, pump = thermosolar_ocr(self.file)
-		except Exception as err:
+		except SensorError as err:
 			logging.error('Thermosolar failure: {}'.format(err))
-			return
-		if temp is not None:
-			self.temp_hist.store(temp)
-			self.temp_hist.backup(DATA_DIR)
-		if pump is not None:
-			self.pump_hist.store(pump)
-			self.pump_hist.backup(DATA_DIR)
+		else:
+			self.temp_hist.write(temp)
+			self.pump_hist.write(pump)
 
 
 if __name__ == "__main__":
