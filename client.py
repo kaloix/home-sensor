@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import csv
 import datetime
 import json
 import logging
@@ -48,7 +49,6 @@ def main():
 			logging.info('copy to webserver')
 			if os.system('scp -q {0}* {1}{0}'.format(DATA_DIR, CLIENT_SERVER)):
 				logging.error('scp failed')
-			utility.memory_check()
 		logging.info('sleep, duration was {}s'.format(
 			round(time.time() - start)))
 		time.sleep(SAMPLING_INTERVAL.total_seconds())

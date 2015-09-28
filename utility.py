@@ -1,5 +1,3 @@
-import collections
-import csv
 import datetime
 import locale
 import logging
@@ -8,9 +6,6 @@ import time
 
 DETAIL_RANGE = datetime.timedelta(days=1)
 TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
-ALLOWED_DOWNTIME = 2 * TRANSMIT_INTERVAL
-
-Record = collections.namedtuple('Record', 'value timestamp')
 
 
 def init():

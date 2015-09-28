@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import collections
+import csv
 import datetime
 import json
 import logging
@@ -18,11 +19,14 @@ import notification
 import utility
 
 
+ALLOWED_DOWNTIME = 2 * utility.TRANSMIT_INTERVAL
 BACKUP_DIR = 'backup/'
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
 SERVER_INTERVAL = datetime.timedelta(minutes=3)
 WEB_DIR = '/home/kaloix/html/sensor/'
+
+Record = collections.namedtuple('Record', 'value timestamp')
 
 
 def main():
@@ -203,7 +207,7 @@ class Series(object):
 		# delete center of three equal values while keeping some
 		if len(self.records) >= 3 and self.records[-3].value == self.records[-2].value \
 				== self.records[-1].value and self.records[-2].timestamp- \
-				self.records[-3].timestamp < TRANSMIT_INTERVAL:
+				self.records[-3].timestamp < utility.TRANSMIT_INTERVAL:
 			del self.records[-2]
 
 	def _read(self, year):
