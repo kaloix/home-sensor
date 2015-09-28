@@ -299,19 +299,19 @@ class Temperature(Series):
 				ret.append(' ⚠')
 		ret.append('<ul>\n')
 		if minimum:
-			ret.append('<li>Minimum bei {:.1f} °C {}.'.format(
+			ret.append('<li>24-Stunden-Tief bei {:.1f} °C {}'.format(
 				minimum.value, _format_timestamp(minimum.timestamp, now)))
 			if minimum.value < self.warn[0]:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		if maximum:
-			ret.append('<li>Maximum bei {:.1f} °C {}.'.format(
+			ret.append('<li>24-Stunden-Hoch bei {:.1f} °C {}'.format(
 				maximum.value, _format_timestamp(minimum.timestamp, now)))
 			if maximum.value > self.warn[1]:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		ret.append(
-			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C.</li>\n'
+			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
 				.format(*self.warn))
 		ret.append('</ul>')
 		return ''.join(ret)
@@ -340,11 +340,15 @@ class Switch(Series):
 		now = datetime.datetime.now()
 		current = self.current
 		last_false = last_true = None
-		for value, timestamp in self.records:
+		for value, timestamp in reversed(self.records):
 			if value:
-				last_true = timestamp
+				if not last_true:
+					last_true = timestamp
 			else:
-				last_false = timestamp
+				if not last_false:
+					last_false = timestamp
+			if last_false and last_true:
+				break
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
@@ -355,21 +359,22 @@ class Switch(Series):
 			ret.append('Aus')
 		ret.append('<ul>\n')
 		if last_true and (current is None or not current):
-			ret.append('<li>Zuletzt Ein {}.</li>\n'.format(
+			ret.append('<li>Zuletzt Ein {}</li>\n'.format(
 				_format_timestamp(last_true, now)))
 		if last_false and (current is None or current):
-			ret.append('<li>Zuletzt Aus {}.</li>\n'.format(
+			ret.append('<li>Zuletzt Aus {}</li>\n'.format(
 				_format_timestamp(last_false, now)))
 		if self.records:
-			ret.append('<li>Insgesamt {} Einschaltdauer.</li>\n'.format(
-				_format_timedelta(self.uptime)))
+			ret.append(
+				'<li>{} Einschaltdauer in den letzten 24 Stunden</li>\n'
+					.format(_format_timedelta(self.uptime)))
 		ret.append('</ul>')
 		return ''.join(ret)
 
 	@property
 	def segments(self):
 		expect = True
-		for value, timestamp in self.records:
+		for value, timestamp in self.tail:
 			if value != expect:
 				continue
 			if expect:

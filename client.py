@@ -16,7 +16,7 @@ import utility
 
 CLIENT_SERVER = 'kaloix@adhara.uberspace.de:home-sensor/'
 DATA_DIR = 'data/'
-SAMPLING_INTERVAL = datetime.timedelta(minutes=1)
+SAMPLING_INTERVAL = datetime.timedelta(minutes=3)
 
 
 def main():
