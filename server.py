@@ -103,12 +103,13 @@ def plot_history(series_list, file, now):
 	minimum, maximum = list(), list()
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
-		if not series.tail:
+		tail = series.tail
+		if not tail:
 			continue
 		color = next(color_iter)
 		if type(series) is Temperature:
 			parts = list()
-			for record in series.tail:
+			for record in tail:
 				if not parts or record.timestamp-parts[-1][-1].timestamp > \
 						ALLOWED_DOWNTIME:
 					parts.append(list())
@@ -127,9 +128,9 @@ def plot_history(series_list, file, now):
 					timestamps, values, series.warn[1],
 					where = [value>series.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
-			minimum.append(min(series.tail).value)
+			minimum.append(min(tail).value)
 			minimum.append(series.usual[0])
-			maximum.append(max(series.tail).value)
+			maximum.append(max(tail).value)
 			maximum.append(series.usual[1])
 		elif type(series) is Switch:
 			for index, (start, end) in enumerate(series.segments):
@@ -258,8 +259,9 @@ class Temperature(Series):
 
 	def __str__(self):
 		current = self.current
-		minimum = min(reversed(self.tail)) if self.records else None
-		maximum = max(reversed(self.tail)) if self.records else None
+		rev_tail = reversed(self.tail)
+		minimum = min(rev_tail) if rev_tail else None
+		maximum = max(rev_tail) if rev_tail else None
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
