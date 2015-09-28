@@ -189,6 +189,18 @@ def _universal_parser(value):
 		return float(value)
 
 
+def _format_timedelta(td):
+	ret = list()
+	hours = td.days*24 + td.seconds//3600
+	if hours:
+		ret.append(str(hours))
+		ret.append('Stunde' if hours==1 else 'Stunden')
+	minutes = (td.seconds//60) % 60
+	ret.append(str(minutes))
+	ret.append('Minute' if minutes==1 else 'Minuten')
+	return ' '.join(ret)
+
+
 class Series(object):
 
 	def __init__(self, name):
@@ -340,7 +352,7 @@ class Switch(Series):
 		if self.records:
 			ret.append(
 				'<li>Insgesamt {} Einschaltdauer.</li>\n'.format(
-					utility.format_timedelta(self.uptime)))
+					_format_timedelta(self.uptime)))
 		ret.append('</ul>')
 		return ''.join(ret)
 

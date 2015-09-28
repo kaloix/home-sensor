@@ -39,7 +39,7 @@ def main():
 				device['output']['temperature']['name'],
 				device['output']['switch']['name'],
 				device['input']['file']))
-	transmit = utility.Timer(utility.TRANSMIT_INTERVAL)
+	transmit = Timer(utility.TRANSMIT_INTERVAL)
 	while True:
 		start = time.time()
 		for sensor in sensors:
@@ -193,6 +193,21 @@ class Thermosolar(object):
 		else:
 			self.temp_hist.write(temp)
 			self.pump_hist.write(pump)
+
+
+class Timer(object):
+
+	def __init__(self, interval):
+		self.interval = interval.total_seconds()
+		self.next_ = int()
+
+	def check(self):
+		now = time.perf_counter()
+		if now < self.next_:
+			return False
+		else:
+			self.next_ = now + self.interval
+			return True
 
 
 if __name__ == "__main__":
