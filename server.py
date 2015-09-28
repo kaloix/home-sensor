@@ -104,8 +104,8 @@ def plot_history(history, file, now):
 		if hasattr(h, 'float') and h.float:
 			parts = list()
 			for measurement in h.float:
-				if not parts or measurement.timestamp - \
-						parts[-1][-1].timestamp > utility.ALLOWED_DOWNTIME:
+				if not parts or measurement.timestamp-parts[-1][-1].timestamp \
+						> utility.ALLOWED_DOWNTIME:
 					parts.append(list())
 				parts[-1].append(measurement)
 			for index, part in enumerate(parts):

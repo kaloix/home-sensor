@@ -33,8 +33,11 @@ def format_timedelta(td):
 	ret = list()
 	hours = td.days*24 + td.seconds//3600
 	if hours:
-		ret.append('{} Stunden'.format(hours))
-	ret.append('{} Minuten'.format((td.seconds//60) % 60))
+		ret.append(str(hours))
+		ret.append('Stunde' if hours==1 else 'Stunden')
+	minutes = (td.seconds//60) % 60
+	ret.append(str(minutes))
+	ret.append('Minute' if minutes==1 else 'Minuten')
 	return ' '.join(ret)
 
 
@@ -53,13 +56,13 @@ class Record(object):
 		return self.data[key]
 
 	def _clear(self, now):
-		while self.data and self.data[0].timestamp < now - self.period:
+		while self.data and self.data[0].timestamp < now-self.period:
 			self.data.popleft()
 
 	@property
 	def current(self):
 		now = datetime.datetime.now()
-		if self.data and self.data[-1].timestamp >= now - ALLOWED_DOWNTIME:
+		if self.data and self.data[-1].timestamp >= now-ALLOWED_DOWNTIME:
 			return self.data[-1].value
 		else:
 			return None
@@ -69,7 +72,7 @@ class Record(object):
 		self.data.append(Measurement(value, now))
 		# delete center of three equal values while keeping some
 		if len(self.data) >= 3 and self.data[-3].value == self.data[-2].value \
-				== self.data[-1].value and self.data[-2].timestamp - \
+				== self.data[-1].value and self.data[-2].timestamp- \
 				self.data[-3].timestamp < TRANSMIT_INTERVAL:
 			del self.data[-2]
 		self._clear(now)
@@ -136,14 +139,12 @@ class FloatHistory(object):
 		return ''.join(ret)
 
 	def store(self, value):
-		now = datetime.datetime.now()
-		self.float.append(value, now)
+		self.float.store(value)
 
 	def backup(self, directory):
 		self.float.write(directory)
 
 	def restore(self, directory):
-		now = datetime.datetime.now()
 		self.float.read(directory)
 
 
@@ -210,14 +211,12 @@ class BoolHistory(object):
 		return total
 
 	def store(self, value):
-		now = datetime.datetime.now()
-		self.boolean.append(value, now)
+		self.boolean.store(value)
 
 	def backup(self, directory):
 		self.boolean.write(directory)
 
 	def restore(self, directory):
-		now = datetime.datetime.now()
 		self.boolean.read(directory)
 
 
