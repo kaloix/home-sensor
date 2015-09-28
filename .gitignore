@@ -2,6 +2,7 @@ __pycache__/
 ve/
 data/
 backup/
+test.py
 ssocr*
 thermosolar.jpg
 seven_segment.png

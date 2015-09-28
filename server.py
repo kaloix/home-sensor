@@ -122,9 +122,9 @@ def plot_history(history, file, now):
 					timestamps, values, h.warn[1],
 					where = [value>h.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
-			minimum.append(min(h.float.value))
+			minimum.append(min(h.float).value)
 			minimum.append(h.usual[0])
-			maximum.append(max(h.float.value))
+			maximum.append(max(h.float).value)
 			maximum.append(h.usual[1])
 		elif hasattr(h, 'boolean') and h.boolean:
 			for index, (start, end) in enumerate(h.segments):
@@ -186,7 +186,7 @@ class Temperature(object):
 
 	def check(self):
 		pass # TODO
-		if not self.history.current:
+#		if not self.history.current:
 #			text = 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
 #			notify.warn_user(text, self.name+'s')
 #		if self.history.warn_low:

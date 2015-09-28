@@ -44,49 +44,41 @@ class Record(object):
 		self.csv = '{}.csv'.format(name)
 		self.period = period
 		self.parser = parser
-		self.value = collections.deque()
-		self.timestamp = collections.deque()
+		self.data = collections.deque()
 
 	def __len__(self):
-		return len(self.value)
+		return len(self.data)
 
 	def __getitem__(self, key):
-		return Measurement(self.value[key], self.timestamp[key])
-
-	def __nonzero__(self):
-		return bool(self.value)
+		return self.data[key]
 
 	@property
 	def current(self):
 		now = datetime.datetime.now()
-		if self.timestamp and self.timestamp[-1] >= now - ALLOWED_DOWNTIME:
-			return self.value[-1]
+		if self.data and self.data[-1].timestamp >= now - ALLOWED_DOWNTIME:
+			return self.data[-1].value
 		else:
 			return None
 
 	def append(self, value, timestamp):
 		# only accept newer values
-		if self.timestamp and timestamp <= self.timestamp[-1]:
+		if self.data and timestamp <= self.data[-1].timestamp:
 			return
-		self.value.append(value)
-		self.timestamp.append(timestamp)
+		self.data.append(Measurement(value, timestamp.replace(microsecond=0)))
 		# delete center of three equal values
-		if len(self.value) >= 3 and \
-				self.value[-3] == self.value[-2] == self.value[-1]:
+		if len(self.data) >= 3 and self.data[-3].value == self.data[-2].value \
+				== self.data[-1].value:
 			# keep some values
-			if self.timestamp[-2] - self.timestamp[-3] < TRANSMIT_INTERVAL:
-				del self.value[-2]
-				del self.timestamp[-2]
-		assert len(self.value) == len(self.timestamp)
+			if self.data[-2].timestamp - self.data[-3].timestamp \
+					< TRANSMIT_INTERVAL:
+				del self.data[-2]
 
 	def clear(self, now):
-		while self.value and self.timestamp[0] < now - self.period:
-			self.timestamp.popleft()
-			self.value.popleft()
-			assert len(self.value) == len(self.timestamp)
+		while self.data and self.data[0].timestamp < now - self.period:
+			self.data.popleft()
 
 	def write(self, directory):
-		rows = [(data.value, int(data.timestamp.timestamp())) for data in self]
+		rows = [(d.value, int(d.timestamp.timestamp())) for d in self.data]
 		with open(directory+self.csv, mode='w', newline='') as csv_file:
 			writer = csv.writer(csv_file)
 			writer.writerows(rows)
@@ -95,10 +87,9 @@ class Record(object):
 		try:
 			with open(directory+self.csv, newline='') as csv_file:
 				for r in csv.reader(csv_file):
-					self.append(
-						self.parser(r[0]),
-						datetime.datetime.fromtimestamp(float(r[1])))
-		except (IOError, OSError):
+					self.append(self.parser(r[0]),
+					            datetime.datetime.fromtimestamp(float(r[1])))
+		except OSError:
 			pass
 
 
