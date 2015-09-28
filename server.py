@@ -86,12 +86,12 @@ def loop(group, sensor_list, html_template):
 
 
 def detail_html(histories):
-	string = list()
-	string.append('<ul>')
+	ret = list()
+	ret.append('<ul>')
 	for history in histories:
-		string.append('<li>{}</li>'.format(history))
-	string.append('</ul>')
-	return '\n'.join(string)
+		ret.append('<li>{}</li>'.format(history))
+	ret.append('</ul>')
+	return '\n'.join(ret)
 
 
 def plot_history(history, file, now):

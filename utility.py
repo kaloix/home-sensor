@@ -30,12 +30,12 @@ def memory_check():
 
 
 def format_timedelta(td):
-	string = list()
+	ret = list()
 	hours = td.days*24 + td.seconds//3600
 	if hours:
-		string.append('{} Stunden'.format(hours))
-	string.append('{} Minuten'.format((td.seconds//60) % 60))
-	return ', '.join(string)
+		ret.append('{} Stunden'.format(hours))
+	ret.append('{} Minuten'.format((td.seconds//60) % 60))
+	return ' '.join(ret)
 
 
 class Record(object):
@@ -114,34 +114,34 @@ class FloatHistory(object):
 		current = self.float.current
 		minimum = min(reversed(self.float)) if self.float else None
 		maximum = max(reversed(self.float)) if self.float else None
-		string = list()
-		string.append('<b>{}:</b> '.format(self.name))
+		ret = list()
+		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
-			string.append('Fehler')
+			ret.append('Fehler')
 		else:
-			string.append('{:.1f} °C'.format(current))
+			ret.append('{:.1f} °C'.format(current))
 			if current < self.warn[0] or current > self.warn[1]:
-				string.append(' ⚠')
-		string.append('<ul>\n')
+				ret.append(' ⚠')
+		ret.append('<ul>\n')
 		if minimum:
-			string.append(
+			ret.append(
 				'<li>Minimum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
 					*minimum))
 			if minimum.value < self.warn[0]:
-				string.append(' ⚠')
-			string.append('</li>\n')
+				ret.append(' ⚠')
+			ret.append('</li>\n')
 		if maximum:
-			string.append(
+			ret.append(
 				'<li>Maximum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
 					*maximum))
 			if maximum.value > self.warn[1]:
-				string.append(' ⚠')
-			string.append('</li>\n')
-		string.append(
+				ret.append(' ⚠')
+			ret.append('</li>\n')
+		ret.append(
 			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C.</li>\n'
 				.format(*self.warn))
-		string.append('</ul>')
-		return ''.join(string)
+		ret.append('</ul>')
+		return ''.join(ret)
 
 	def _process(self, now):
 		self.float.clear(now)
@@ -175,29 +175,29 @@ class BoolHistory(object):
 				last_true = measurement.timestamp
 			else:
 				last_false = measurement.timestamp
-		string = list()
-		string.append('<b>{}:</b> '.format(self.name))
+		ret = list()
+		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
-			string.append('Fehler')
+			ret.append('Fehler')
 		elif current:
-			string.append('Ein')
+			ret.append('Ein')
 		else:
-			string.append('Aus')
-		string.append('<ul>\n')
+			ret.append('Aus')
+		ret.append('<ul>\n')
 		if last_true and (current is None or not current):
-			string.append(
+			ret.append(
 				'<li>Zuletzt Ein am {:%A um %H:%M} Uhr.</li>\n'.format(
 					last_true))
 		if last_false and (current is None or current):
-			string.append(
+			ret.append(
 				'<li>Zuletzt Aus am {:%A um %H:%M} Uhr.</li>\n'.format(
 					last_false))
 		if self.boolean:
-			string.append(
+			ret.append(
 				'<li>Insgesamt {} Einschaltdauer.</li>\n'.format(
 					format_timedelta(self.uptime)))
-		string.append('</ul>')
-		return ''.join(string)
+		ret.append('</ul>')
+		return ''.join(ret)
 
 	@property
 	def segments(self):
