@@ -193,7 +193,7 @@ class Series(object):
 
 	def __init__(self, name):
 		self.name = name
-		self.records = collections.deque()
+		self.records = list()
 		self.year = int()
 		for file in sorted(os.listdir(DATA_DIR)):
 			match = re.search(r'(?P<name>\S+)_(?P<year>\d+).csv', file)
@@ -235,13 +235,13 @@ class Series(object):
 	def tail(self):
 		now = datetime.datetime.now()
 		start = now - utility.DETAIL_RANGE
-		ret = collections.deque()
+		seperator = -1
 		for record in reversed(self.records):
 			if record.timestamp >= start:
-				ret.append(record)
+				seperator -= 1
 			else:
 				break
-		return reversed(ret)
+		return self.records[seperator:-1]
 
 	def update(self):
 		now = datetime.datetime.now()
@@ -260,9 +260,9 @@ class Temperature(Series):
 
 	def __str__(self):
 		current = self.current
-		rev_tail = reversed(self.tail)
-		minimum = min(rev_tail) if rev_tail else None
-		maximum = max(rev_tail) if rev_tail else None
+		rev_tail = self.tail
+		minimum = min(reversed(rev_tail)) if rev_tail else None
+		maximum = max(reversed(rev_tail)) if rev_tail else None
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
