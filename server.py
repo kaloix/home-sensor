@@ -55,6 +55,7 @@ def main():
 		try:
 			for group, series_list in series.items():
 				loop(group, series_list, html_template)
+			utility.memory_check()
 		except Exception as err:
 			tb_lines = traceback.format_tb(err.__traceback__)
 			notify.warn_admin('{}: {}\n{}'.format(
