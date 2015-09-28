@@ -201,6 +201,19 @@ def _format_timedelta(td):
 	return ' '.join(ret)
 
 
+def _format_timestamp(ts, now):
+	if ts.date() == now.date():
+		return 'um {:%H:%M} Uhr'.format(ts)
+	elif now.date()-ts.date() == 1:
+		return 'gestern um {:%H:%M} Uhr'.format(ts)
+	elif now.date()-ts.date() < datetime.timedelta(days=7):
+		return 'am {:%A um %H:%M} Uhr'.format(ts)
+	elif ts.year == now.year:
+		return 'am {:%d. %B um %H:%M} Uhr'.format(ts)
+	else:
+		return 'am {:%d. %B %Y um %H:%M} Uhr'.format(ts)
+
+
 class Series(object):
 
 	def __init__(self, name):
@@ -271,6 +284,7 @@ class Temperature(Series):
 		self.warn = warn
 
 	def __str__(self):
+		now = datetime.datetime.now()
 		current = self.current
 		rev_tail = self.tail
 		minimum = min(reversed(rev_tail)) if rev_tail else None
@@ -285,16 +299,14 @@ class Temperature(Series):
 				ret.append(' ⚠')
 		ret.append('<ul>\n')
 		if minimum:
-			ret.append(
-				'<li>Minimum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
-					*minimum))
+			ret.append('<li>Minimum bei {:.1f} °C {}.'.format(
+				minimum.value, _format_timestamp(minimum.timestamp, now)))
 			if minimum.value < self.warn[0]:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		if maximum:
-			ret.append(
-				'<li>Maximum bei {:.1f} °C am {:%A um %H:%M} Uhr.'.format(
-					*maximum))
+			ret.append('<li>Maximum bei {:.1f} °C {}.'.format(
+				maximum.value, _format_timestamp(minimum.timestamp, now)))
 			if maximum.value > self.warn[1]:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
@@ -325,6 +337,7 @@ class Switch(Series):
 		super().__init__(name)
 
 	def __str__(self):
+		now = datetime.datetime.now()
 		current = self.current
 		last_false = last_true = None
 		for value, timestamp in self.records:
@@ -342,17 +355,14 @@ class Switch(Series):
 			ret.append('Aus')
 		ret.append('<ul>\n')
 		if last_true and (current is None or not current):
-			ret.append(
-				'<li>Zuletzt Ein am {:%A um %H:%M} Uhr.</li>\n'.format(
-					last_true))
+			ret.append('<li>Zuletzt Ein {}.</li>\n'.format(
+				_format_timestamp(last_true, now)))
 		if last_false and (current is None or current):
-			ret.append(
-				'<li>Zuletzt Aus am {:%A um %H:%M} Uhr.</li>\n'.format(
-					last_false))
+			ret.append('<li>Zuletzt Aus {}.</li>\n'.format(
+				_format_timestamp(last_false, now)))
 		if self.records:
-			ret.append(
-				'<li>Insgesamt {} Einschaltdauer.</li>\n'.format(
-					_format_timedelta(self.uptime)))
+			ret.append('<li>Insgesamt {} Einschaltdauer.</li>\n'.format(
+				_format_timedelta(self.uptime)))
 		ret.append('</ul>')
 		return ''.join(ret)
 
