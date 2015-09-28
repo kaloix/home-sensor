@@ -155,7 +155,7 @@ class Series(object):
 		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
 		with open(filename, mode='a', newline='') as csv_file:
 			self.writer = csv.writer(csv_file)
-			self.writer.writerow((value, int(now.timestamp())))
+			self.writer.writerow((int(now.timestamp()), value))
 
 
 class DS18B20(object):
