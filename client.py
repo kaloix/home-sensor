@@ -47,9 +47,10 @@ def main():
 		if transmit.check():
 			logging.info('copy to webserver')
 			if subprocess.call(['rsync',
+			                    '--recursive',
 			                    '--rsh=ssh',
 			                    DATA_DIR,
-			                    CLIENT_SERVER]):
+			                    '{}{}'.format(CLIENT_SERVER, DATA_DIR)]):
 				logging.error('scp failed')
 		logging.info('sleep, duration was {}s'.format(
 			round(time.time() - start)))
@@ -113,12 +114,11 @@ def _parse_light(image):
 
 def _thermosolar_ocr_single(file):
 	# capture image
-	if subprocess.call([
-			'fswebcam',
-			'--device', file,
-			'--quiet',
-			'--title', 'Thermosolar',
-			'thermosolar.jpg']):
+	if subprocess.call(['fswebcam',
+	                    '--device', file,
+	                    '--quiet',
+	                    '--title', 'Thermosolar',
+	                    'thermosolar.jpg']):
 		raise SensorError('camera failure')
 	image = scipy.misc.imread('thermosolar.jpg')
 	# crop seven segment
