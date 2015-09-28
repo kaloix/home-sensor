@@ -97,19 +97,18 @@ def detail_html(series_list):
 	return '\n'.join(ret)
 
 
-# FIXME plots whole year, shows only last day
 def plot_history(series_list, file, now):
 	fig, ax = matplotlib.pyplot.subplots(figsize=(12, 4))
 	frame_start = now - utility.DETAIL_RANGE
 	minimum, maximum = list(), list()
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
-		if not series.records:
+		if not series.tail:
 			continue
 		color = next(color_iter)
 		if type(series) is Temperature:
 			parts = list()
-			for record in series.records:
+			for record in series.tail:
 				if not parts or record.timestamp-parts[-1][-1].timestamp > \
 						ALLOWED_DOWNTIME:
 					parts.append(list())
@@ -128,9 +127,9 @@ def plot_history(series_list, file, now):
 					timestamps, values, series.warn[1],
 					where = [value>series.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
-			minimum.append(min(series.records).value)
+			minimum.append(min(series.tail).value)
 			minimum.append(series.usual[0])
-			maximum.append(max(series.records).value)
+			maximum.append(max(series.tail).value)
 			maximum.append(series.usual[1])
 		elif type(series) is Switch:
 			for index, (start, end) in enumerate(series.segments):
@@ -230,6 +229,18 @@ class Series(object):
 		else:
 			return None
 
+	@property
+	def tail(self):
+		now = datetime.datetime.now()
+		start = now - utility.DETAIL_RANGE
+		ret = collections.deque()
+		for record in reversed(self.records):
+			if record.timestamp >= start:
+				ret.append(record)
+			else:
+				break
+		return reversed(ret)
+
 	def update(self):
 		now = datetime.datetime.now()
 		if self.year < now.year:
@@ -245,11 +256,10 @@ class Temperature(Series):
 		self.usual = usual
 		self.warn = warn
 
-	# FIXME shows all time values
 	def __str__(self):
 		current = self.current
-		minimum = min(reversed(self.records)) if self.records else None
-		maximum = max(reversed(self.records)) if self.records else None
+		minimum = min(reversed(self.tail)) if self.records else None
+		maximum = max(reversed(self.tail)) if self.records else None
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
