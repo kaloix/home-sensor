@@ -5,7 +5,6 @@ import csv
 import datetime
 import json
 import logging
-import os
 import subprocess
 import time
 
@@ -47,7 +46,10 @@ def main():
 			sensor.update()
 		if transmit.check():
 			logging.info('copy to webserver')
-			if os.system('scp -q {0}* {1}{0}'.format(DATA_DIR, CLIENT_SERVER)):
+			if subprocess.call(['rsync',
+			                    '--rsh=ssh',
+			                    DATA_DIR,
+			                    CLIENT_SERVER]):
 				logging.error('scp failed')
 		logging.info('sleep, duration was {}s'.format(
 			round(time.time() - start)))
@@ -82,14 +84,13 @@ def _make_box(image, left, top, right, bottom):
 def _parse_segment(image):
 	scipy.misc.imsave('seven_segment.png', image)
 	try:
-		ssocr_output = subprocess.check_output([
-			'./ssocr',
-			'--number-digits=2',
-			'--number-pixels=3',
-			'--one-ratio=2.3',
-			'--threshold=98',
-			'invert',
-			'seven_segment.png'])
+		ssocr_output = subprocess.check_output(['./ssocr',
+		                                        '--number-digits=2',
+		                                        '--number-pixels=3',
+		                                        '--one-ratio=2.3',
+		                                        '--threshold=98',
+		                                        'invert',
+		                                        'seven_segment.png'])
 	except subprocess.CalledProcessError as err:
 		raise SensorError('ssocr failure') from err
 	logging.debug('parse_segment: ssocr_output={}'.format(ssocr_output))

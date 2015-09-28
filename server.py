@@ -21,7 +21,6 @@ import utility
 
 
 ALLOWED_DOWNTIME = 2 * utility.TRANSMIT_INTERVAL
-BACKUP_DIR = 'backup/'
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
 SERVER_INTERVAL = datetime.timedelta(minutes=3)
@@ -98,6 +97,7 @@ def detail_html(series_list):
 	return '\n'.join(ret)
 
 
+# FIXME plots whole year, shows only last day
 def plot_history(series_list, file, now):
 	fig, ax = matplotlib.pyplot.subplots(figsize=(12, 4))
 	frame_start = now - utility.DETAIL_RANGE
@@ -111,7 +111,7 @@ def plot_history(series_list, file, now):
 			parts = list()
 			for record in series.records:
 				if not parts or record.timestamp-parts[-1][-1].timestamp > \
-						utility.ALLOWED_DOWNTIME:
+						ALLOWED_DOWNTIME:
 					parts.append(list())
 				parts[-1].append(record)
 			for index, part in enumerate(parts):
@@ -206,9 +206,10 @@ class Series(object):
 			return
 		self.records.append(Record(value, timestamp))
 		# delete center of three equal values while keeping some
-		if len(self.records) >= 3 and self.records[-3].value == self.records[-2].value \
-				== self.records[-1].value and self.records[-2].timestamp- \
-				self.records[-3].timestamp < utility.TRANSMIT_INTERVAL:
+		if len(self.records) >= 3 and self.records[-3].value == \
+				self.records[-2].value == self.records[-1].value and \
+				self.records[-2].timestamp-self.records[-3].timestamp < \
+				utility.TRANSMIT_INTERVAL:
 			del self.records[-2]
 
 	def _read(self, year):
@@ -244,6 +245,7 @@ class Temperature(Series):
 		self.usual = usual
 		self.warn = warn
 
+	# FIXME shows all time values
 	def __str__(self):
 		current = self.current
 		minimum = min(reversed(self.records)) if self.records else None
