@@ -52,6 +52,10 @@ class Record(object):
 	def __getitem__(self, key):
 		return self.data[key]
 
+	def _clear(self, now):
+		while self.data and self.data[0].timestamp < now - self.period:
+			self.data.popleft()
+
 	@property
 	def current(self):
 		now = datetime.datetime.now()
@@ -60,22 +64,15 @@ class Record(object):
 		else:
 			return None
 
-	def append(self, value, timestamp):
-		# only accept newer values
-		if self.data and timestamp <= self.data[-1].timestamp:
-			return
-		self.data.append(Measurement(value, timestamp.replace(microsecond=0)))
-		# delete center of three equal values
+	def store(self, value):
+		now = datetime.datetime.now()
+		self.data.append(Measurement(value, now))
+		# delete center of three equal values while keeping some
 		if len(self.data) >= 3 and self.data[-3].value == self.data[-2].value \
-				== self.data[-1].value:
-			# keep some values
-			if self.data[-2].timestamp - self.data[-3].timestamp \
-					< TRANSMIT_INTERVAL:
-				del self.data[-2]
-
-	def clear(self, now):
-		while self.data and self.data[0].timestamp < now - self.period:
-			self.data.popleft()
+				== self.data[-1].value and self.data[-2].timestamp - \
+				self.data[-3].timestamp < TRANSMIT_INTERVAL:
+			del self.data[-2]
+		self._clear(now)
 
 	def write(self, directory):
 		rows = [(d.value, int(d.timestamp.timestamp())) for d in self.data]
@@ -84,13 +81,17 @@ class Record(object):
 			writer.writerows(rows)
 
 	def read(self, directory):
+		now = datetime.datetime.now()
 		try:
 			with open(directory+self.csv, newline='') as csv_file:
-				for r in csv.reader(csv_file):
-					self.append(self.parser(r[0]),
-					            datetime.datetime.fromtimestamp(float(r[1])))
+				for row in csv.reader(csv_file):
+					value = self.parser(row[0])
+					timestamp = datetime.datetime.fromtimestamp(float(row[1]))
+					if not self.data or timestamp > self.data[-1].timestamp:
+						self.data.append(Measurement(value, timestamp))
 		except OSError:
 			pass
+		self._clear(now)
 
 
 class FloatHistory(object):
@@ -134,13 +135,9 @@ class FloatHistory(object):
 		ret.append('</ul>')
 		return ''.join(ret)
 
-	def _process(self, now):
-		self.float.clear(now)
-
 	def store(self, value):
 		now = datetime.datetime.now()
 		self.float.append(value, now)
-		self._process(now)
 
 	def backup(self, directory):
 		self.float.write(directory)
@@ -148,7 +145,6 @@ class FloatHistory(object):
 	def restore(self, directory):
 		now = datetime.datetime.now()
 		self.float.read(directory)
-		self._process(now)
 
 
 class BoolHistory(object):
@@ -216,7 +212,6 @@ class BoolHistory(object):
 	def store(self, value):
 		now = datetime.datetime.now()
 		self.boolean.append(value, now)
-		self.boolean.clear(now)
 
 	def backup(self, directory):
 		self.boolean.write(directory)
@@ -224,7 +219,6 @@ class BoolHistory(object):
 	def restore(self, directory):
 		now = datetime.datetime.now()
 		self.boolean.read(directory)
-		self.boolean.clear(now)
 
 
 class Timer(object):
