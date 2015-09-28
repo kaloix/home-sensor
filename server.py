@@ -69,9 +69,9 @@ def main():
 def loop(group, series_list, html_template):
 	logging.info('read csv')
 	now = datetime.datetime.now()
-	for s in sensor_list:
-		s.update()
-		s.check()
+	for series in series_list:
+		series.update()
+		series.check()
 	if os.system('cp {}{} {}'.format(DATA_DIR, 'thermosolar.jpg', WEB_DIR)):
 		logging.error('cp thermosolar.jpg failed')
 
@@ -109,7 +109,7 @@ def plot_history(series_list, file, now):
 		color = next(color_iter)
 		if type(series) is Temperature:
 			parts = list()
-			for record in series:
+			for record in series.records:
 				if not parts or record.timestamp-parts[-1][-1].timestamp > \
 						utility.ALLOWED_DOWNTIME:
 					parts.append(list())
