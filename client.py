@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
+import contextlib
 import csv
 import datetime
+import functools
 import json
 import logging
 import subprocess
@@ -16,7 +18,7 @@ import utility
 
 CLIENT_SERVER = 'kaloix@adhara.uberspace.de:home-sensor/'
 DATA_DIR = 'data/'
-SAMPLING_INTERVAL = datetime.timedelta(minutes=5)
+CLIENT_INTERVAL = datetime.timedelta(seconds=10)
 
 
 def main():
@@ -27,45 +29,55 @@ def main():
 	with open('sensor.json') as json_file:
 		sensor_json = json_file.read()
 	sensors = list()
-	for device in json.loads(sensor_json):
-		if device['input']['station'] != args.station:
+	for sensor in json.loads(sensor_json):
+		if sensor['input']['station'] != args.station:
 			continue
-		if device['input']['type'] == 'ds18b20':
-			sensors.append(DS18B20(
-				device['output']['temperature']['name'],
-				device['input']['file']))
-		elif device['input']['type'] == 'thermosolar':
-			sensors.append(Thermosolar(
-				device['output']['temperature']['name'],
-				device['output']['switch']['name'],
-				device['input']['file']))
-	transmit = Timer(utility.TRANSMIT_INTERVAL)
+		if sensor['input']['type'] == 'ds18b20':
+			sensors.append(Sensor(
+				[sensor['output']['temperature']['name']],
+				functools.partial(ds18b20, sensor['input']['file']),
+				sensor['input']['interval']))
+		elif sensor['input']['type'] == 'thermosolar':
+			sensors.append(Sensor(
+				[sensor['output']['temperature']['name'],
+					sensor['output']['switch']['name']],
+				functools.partial(thermosolar, sensor['input']['file']),
+				sensor['input']['interval']))
 	while True:
-		start = time.time()
+		start = datetime.datetime.now()
 		for sensor in sensors:
-			sensor.update()
-		if transmit.check():
-			logging.info('copy to webserver')
-			if subprocess.call(['rsync',
-			                    '--recursive',
-			                    '--rsh=ssh',
-			                    DATA_DIR,
-			                    '{}{}'.format(CLIENT_SERVER, DATA_DIR)]):
-				logging.error('scp failed')
-		logging.info('sleep, duration was {}s'.format(
-			round(time.time() - start)))
-		time.sleep(SAMPLING_INTERVAL.total_seconds())
+			with contextlib.suppress(utility.CallDenied):
+				sensor.update()
+		with contextlib.suppress(utility.CallDenied):
+			transmit()
+		duration = (datetime.datetime.now() - start).total_seconds()
+		logging.debug('sleep, duration was {:.1f}s'.format(duration))
+		time.sleep(CLIENT_INTERVAL.total_seconds())
 
 
-def w1_temp(file):
+@utility.allow_every_x_seconds(utility.TRANSMIT_INTERVAL.total_seconds())
+def transmit():
+	logging.info('copy to webserver')
+	if subprocess.call(['rsync',
+	                    '--recursive',
+	                    '--rsh=ssh',
+	                    DATA_DIR,
+	                    '{}{}'.format(CLIENT_SERVER, DATA_DIR)]):
+		logging.error('scp failed')
+
+
+def ds18b20(file):
 	try:
 		with open(file) as w1_file:
-			if w1_file.readline().strip().endswith('YES'):
-				return int(w1_file.readline().split('t=')[-1].strip()) / 1e3
-			else:
+			if not w1_file.readline().strip().endswith('YES'):
 				raise SensorError('w1 sensor says no')
-	except (OSError, ValueError) as err:
+			t_value = w1_file.readline().split('t=')[-1].strip()
+	except OSError as err:
 		raise SensorError('invalid w1 file') from err
+	try:
+		return (int(t_value) / 1e3,)
+	except ValueError as err:
+		raise SensorError('invalid t value in w1 file') from err
 
 
 def _make_box(image, left, top, right, bottom):
@@ -112,7 +124,7 @@ def _parse_light(image):
 	return result
 
 
-def _thermosolar_ocr_single(file):
+def _thermosolar_once(file):
 	# capture image
 	if subprocess.call(['fswebcam',
 	                    '--device', file,
@@ -134,80 +146,45 @@ def _thermosolar_ocr_single(file):
 	return _parse_segment(seven_segment), _parse_light(pump_light)
 
 
-def thermosolar_ocr(file):
-	result = _thermosolar_ocr_single(file)
+def thermosolar(file):
+	result = _thermosolar_once(file)
 	time.sleep(0.5)
-	if _thermosolar_ocr_single(file) != result:
+	if _thermosolar_once(file) != result:
 		raise SensorError('ocr results differ')
 	return result
 
 
+class Sensor(object):
+
+	def __init__(self, names, reader_function, interval):
+		self.names = names
+		self.reader_function = reader_function
+		self.update = utility.allow_every_x_seconds(interval)(self.update)
+
+	def __repr__(self):
+		return '{} {}'.format(self.__class__.__name__, '/'.join(self.names))
+
+	@staticmethod
+	def _write(name, value):
+		now = datetime.datetime.now()
+		filename = '{}/{}_{}.csv'.format(DATA_DIR, name, now.year)
+		with open(filename, mode='a', newline='') as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerow((int(now.timestamp()), value))
+
+	def update(self):
+		logging.info('update {}'.format(self))
+		try:
+			values = self.reader_function()
+		except SensorError as err:
+			logging.error('{} failure: {}'.format(self, err))
+			return
+		for index, name in enumerate(self.names):
+			self._write(name, values[index])
+
+
 class SensorError(Exception):
 	pass
-
-
-class Series(object):
-
-	def __init__(self, name):
-		self.name = name
-
-	def write(self, value):
-		now = datetime.datetime.now()
-		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
-		with open(filename, mode='a', newline='') as csv_file:
-			self.writer = csv.writer(csv_file)
-			self.writer.writerow((int(now.timestamp()), value))
-
-
-class DS18B20(object):
-
-	def __init__(self, name, file):
-		self.history = Series(name)
-		self.file = file
-		self.name = name
-
-	def update(self):
-		logging.info('update DS18B20 {}'.format(self.name))
-		try:
-			temperature = w1_temp(self.file)
-		except SensorError as err:
-			logging.error('DS18B20 failure: {}'.format(err))
-		else:
-			self.history.write(temperature)
-
-
-class Thermosolar(object):
-
-	def __init__(self, temperature_name, pump_name, file):
-		self.temp_hist = Series(temperature_name)
-		self.pump_hist = Series(pump_name)
-		self.file = file
-		self.name = '{}-{}'.format(temperature_name, pump_name)
-
-	def update(self):
-		logging.info('update Thermosolar {}'.format(self.name))
-		try:
-			temp, pump = thermosolar_ocr(self.file)
-		except SensorError as err:
-			logging.error('Thermosolar failure: {}'.format(err))
-		else:
-			self.temp_hist.write(temp)
-			self.pump_hist.write(pump)
-
-
-class Timer(object):
-
-	def __init__(self, interval):
-		self.interval = interval.total_seconds()
-		self.next_ = int()
-
-	def check(self):
-		now = time.perf_counter()
-		if now < self.next_:
-			return False
-		else:
-			self.next_ = now + self.interval
-			return True
 
 
 if __name__ == "__main__":
