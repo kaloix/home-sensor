@@ -105,7 +105,7 @@ def _parse_segment(image):
 		                                        'invert',
 		                                        'seven_segment.png'])
 	except subprocess.CalledProcessError as err:
-		raise SensorError('ssocr failure') from err
+		raise SensorError('ssocr exit code {}'.format(err.returncode)) from err
 	logging.debug('parse_segment: ssocr_output={}'.format(ssocr_output))
 	try:
 		return int(ssocr_output)
