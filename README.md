@@ -11,9 +11,9 @@
 * Copy these files to the server, when new data is available
 
 ### Installation
-1. The base platform is  **Debian Jessie** with **Python 3.4**. Install German
-   locale by uncommenting `de_DE.UTF-8 UTF-8` in `/etc/locale.gen` and run
-   `sudo locale-gen`.
+1. The base platform is  **Debian Jessie** with **Python 3.4.2**. Install
+   German locale by uncommenting `de_DE.UTF-8 UTF-8` in `/etc/locale.gen` and
+   run `sudo locale-gen`.
 
 2. 1-Wire temperature sensor:
 
@@ -49,14 +49,18 @@
 * Generate `plot.png` with sensor history
 * Copy these files in webserver directory
 
-### Usage
-	cp static/* <web_dir>
-	pip install virtualenv
-	virtualenv --python=python3 ve/
-	source ve/bin/activate
-	pip install matplotlib pytz
-	./server.py
-	deactivate
+### Installation
+1. The base platform is **CentOS 6.7** with **Python 3.3.0**.
+
+2. Other steps:
+
+		cp static/* <web_dir>
+		pip install virtualenv
+		virtualenv --python=python3 ve/
+		source ve/bin/activate
+		pip install matplotlib pytz
+		./server.py
+		deactivate
 
 ## Acknowledgements
 * File `static/favicon.png` from

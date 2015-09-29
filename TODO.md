@@ -1,21 +1,21 @@
 # TODO
-## Data History
-Client-side:
-
-1. Do not import old data
-2. Open file with mode `a` (open for writing, appending to the end of the file
-   if it exists)
-3. Switch file once a month/year (depends on server implementation)
-4. Copy files with *rsync* to the server
-
-Server-side:
-
-1. 
-
 ## Min-Max Plot
 
 ## HTML 5 Plots
-* [Chart.js | Open source HTML5 Charts for your website](http://www.chartjs.org/)
-* [flotr2](http://humblesoftware.com/flotr2/)
-* [Raphaël—JavaScript Library](http://raphaeljs.com/)
 * [jqPlot Charts and Graphs for jQuery](http://www.jqplot.com/)
+	* [Zoom Proxy - Control one plot from another](http://www.jqplot.com/deploy/dist/examples/zoomProxy.html)
+	* Use scrollable `<div>` in HTML
+* [flotr2](http://humblesoftware.com/flotr2/)
+* [D3.js - Data-Driven Documents](http://d3js.org/)
+* [SIMILE Widgets | Timeplot](http://www.simile-widgets.org/timeplot/) – looks
+  good, open source
+* [Interactive JavaScript charts for your webpage | Highcharts](http://www.highcharts.com/)
+  – looks good, freeware
+* [Chart.js | Open source HTML5 Charts for your website](http://www.chartjs.org/)
+  – few features
+* [http://xaviershay.github.io/tufte-graph/index.html](http://xaviershay.github.io/tufte-graph/index.html)
+  – only bar charts, but great layout integration
+* [MPLD3 — Bringing Matplotlib to the Browser](http://mpld3.github.io/) – young
+  project
+* [Raphaël—JavaScript Library](http://raphaeljs.com/) – abondoned
+* [Javascript library for drawing Graphs over Timelines (zoomable and selectable) - Stack Overflow](http://stackoverflow.com/questions/1890434/javascript-library-for-drawing-graphs-over-timelines-zoomable-and-selectable) – overview of libraries
