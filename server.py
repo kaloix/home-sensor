@@ -78,7 +78,7 @@ def loop(group, series_list, html_template, now):
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
 		group = group,
-		values = detail_html(series_list, now),
+		values = detail_html(series_list),
 		update_time = '{:%A %d. %B %Y %X}'.format(now),
 		year = '{:%Y}'.format(now))
 	with open(WEB_DIR+group+'.html', mode='w') as html_file:
@@ -88,11 +88,11 @@ def loop(group, series_list, html_template, now):
 	plot_history(series_list, '{}{}.png'.format(WEB_DIR, group), now)
 
 
-def detail_html(series_list, now):
+def detail_html(series_list):
 	ret = list()
 	ret.append('<ul>')
 	for series in series_list:
-		ret.append('<li>{}</li>'.format(series.html(now)))
+		ret.append('<li>{}</li>'.format(series))
 	ret.append('</ul>')
 	return '\n'.join(ret)
 
@@ -103,7 +103,7 @@ def plot_history(series_list, file, now):
 	minimum, maximum = list(), list()
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
-		tail = series.tail(now)
+		tail = series.tail
 		if not tail:
 			continue
 		color = next(color_iter)
@@ -133,12 +133,12 @@ def plot_history(series_list, file, now):
 			maximum.append(max(tail).value)
 			maximum.append(series.usual[1])
 		elif type(series) is Switch:
-			for index, (start, end) in enumerate(series.segments(now)):
+			for index, (start, end) in enumerate(series.segments):
 				label = series.name if index == 0 else None
 				matplotlib.pyplot.axvspan(
 					start, end, label=label, color=color, alpha=0.5, zorder=1)
 	nights = int(utility.DETAIL_RANGE / datetime.timedelta(days=1)) + 2
-	for index, (sunset, sunrise) in enumerate(nighttime(nights, now)):
+	for index, (sunset, sunrise) in enumerate(_nighttime(nights, now)):
 		label = 'Nacht' if index == 0 else None
 		matplotlib.pyplot.axvspan(
 			sunset, sunrise, label=label,
@@ -160,7 +160,7 @@ def plot_history(series_list, file, now):
 	matplotlib.pyplot.close()
 
 
-def nighttime(count, date_time):
+def _nighttime(count, date_time):
 	# make aware
 	date_time = pytz.timezone('Europe/Berlin').localize(date_time)
 	# calculate nights
@@ -217,6 +217,7 @@ class Series(object):
 
 	def __init__(self, name):
 		self.name = name
+		self.now = datetime.datetime.now()
 		self.records = list()
 		self.year = int()
 		for file in sorted(os.listdir(DATA_DIR)):
@@ -247,20 +248,24 @@ class Series(object):
 		except OSError:
 			pass
 
-	def current(self, now):
-		if self.records and self.records[-1].timestamp >= now-ALLOWED_DOWNTIME:
+	@property
+	def current(self):
+		if self.records and \
+				self.records[-1].timestamp >= self.now-ALLOWED_DOWNTIME:
 			return self.records[-1].value
 		else:
 			return None
 
-	def tail(self, now):
-		min_time = now - utility.DETAIL_RANGE
+	@property
+	def tail(self):
+		min_time = self.now - utility.DETAIL_RANGE
 		start = len(self.records)
 		while start > 0 and self.records[start-1].timestamp >= min_time:
 			start -= 1
 		return self.records[start:-1]
 
 	def update(self, now):
+		self.now = now
 		if self.year < now.year:
 			self._read(self.year)
 			self.year = now.year
@@ -274,9 +279,9 @@ class Temperature(Series):
 		self.usual = usual
 		self.warn = warn
 
-	def html(self, now):
-		current = self.current(now)
-		tail = self.tail(now)
+	def __str__(self):
+		current = self.current
+		tail = self.tail
 		minimum = min(reversed(tail)) if tail else None
 		maximum = max(reversed(tail)) if tail else None
 		ret = list()
@@ -290,13 +295,13 @@ class Temperature(Series):
 		ret.append('<ul>\n')
 		if minimum:
 			ret.append('<li>24-Stunden-Tief bei {:.1f} °C {}'.format(
-				minimum.value, _format_timestamp(minimum.timestamp, now)))
+				minimum.value, _format_timestamp(minimum.timestamp, self.now)))
 			if minimum.value < self.warn[0]:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		if maximum:
 			ret.append('<li>24-Stunden-Hoch bei {:.1f} °C {}'.format(
-				maximum.value, _format_timestamp(maximum.timestamp, now)))
+				maximum.value, _format_timestamp(maximum.timestamp, self.now)))
 			if maximum.value > self.warn[1]:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
@@ -326,8 +331,8 @@ class Switch(Series):
 	def __init__(self, name):
 		super().__init__(name)
 
-	def html(self, now):
-		current = self.current(now)
+	def __str__(self):
+		current = self.current
 		last_false = last_true = None
 		for value, timestamp in reversed(self.records):
 			if value:
@@ -349,20 +354,21 @@ class Switch(Series):
 		ret.append('<ul>\n')
 		if last_true and (current is None or not current):
 			ret.append('<li>Zuletzt Ein {}</li>\n'.format(
-				_format_timestamp(last_true, now)))
+				_format_timestamp(last_true, self.now)))
 		if last_false and (current is None or current):
 			ret.append('<li>Zuletzt Aus {}</li>\n'.format(
-				_format_timestamp(last_false, now)))
+				_format_timestamp(last_false, self.now)))
 		if self.records:
 			ret.append(
 				'<li>{} Einschaltdauer in den letzten 24 Stunden</li>\n'
-					.format(_format_timedelta(self.uptime(now))))
+					.format(_format_timedelta(self.uptime)))
 		ret.append('</ul>')
 		return ''.join(ret)
 
-	def segments(self, now):
+	@property
+	def segments(self):
 		expect = True
-		for value, timestamp in self.tail(now):
+		for value, timestamp in self.tail:
 			if value != expect:
 				continue
 			if value:
@@ -372,11 +378,12 @@ class Switch(Series):
 				yield start, timestamp
 				expect = True
 		if not expect:
-			yield start, min(timestamp+ALLOWED_DOWNTIME, now)
+			yield start, min(timestamp+ALLOWED_DOWNTIME, self.now)
 
-	def uptime(self, now):
+	@property
+	def uptime(self):
 		total = datetime.timedelta()
-		for start, stop in self.segments(now):
+		for start, stop in self.segments:
 			total += stop - start
 		return total
 
