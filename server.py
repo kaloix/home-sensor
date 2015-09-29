@@ -49,7 +49,6 @@ def main():
 				series[attr['group']].append(Switch(
 					attr['name']))
 	notify = notification.NotificationCenter()
-
 	while True:
 		start = datetime.datetime.now()
 		try:
@@ -73,7 +72,6 @@ def loop(group, series_list, html_template, now):
 		series.check()
 	if os.system('cp {}{} {}'.format(DATA_DIR, 'thermosolar.jpg', WEB_DIR)):
 		logging.error('cp thermosolar.jpg failed')
-
 	logging.info('write html')
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
@@ -83,7 +81,6 @@ def loop(group, series_list, html_template, now):
 		year = '{:%Y}'.format(now))
 	with open(WEB_DIR+group+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
-
 	logging.info('generate plot')
 	plot_history(series_list, '{}{}.png'.format(WEB_DIR, group), now)
 

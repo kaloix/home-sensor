@@ -80,18 +80,34 @@ def ds18b20(file):
 		raise SensorError('invalid t value in w1 file') from err
 
 
-def _make_box(image, left, top, right, bottom):
-	left -= 1
-	top -= 1
-	right += 1
-	bottom += 1
-	width = 3
-	color = (204, 41, 38)
-	image[top-width:bottom+width,left-width:left       ] = color
-	image[top-width:bottom+width,right     :right+width] = color
-	image[top-width:top         ,left-width:right+width] = color
-	image[bottom   :bottom+width,left-width:right+width] = color
-	return image
+def thermosolar(file):
+	result = _thermosolar_once(file)
+	time.sleep(0.5)
+	if _thermosolar_once(file) != result:
+		raise SensorError('ocr results differ')
+	return result
+
+
+def _thermosolar_once(file):
+	# capture image
+	if subprocess.call(['fswebcam',
+	                    '--device', file,
+	                    '--quiet',
+	                    '--title', 'Thermosolar',
+	                    'thermosolar.jpg']):
+		raise SensorError('camera failure')
+	image = scipy.misc.imread('thermosolar.jpg')
+	# crop seven segment
+	left, top, right, bottom = 67, 53, 160, 118
+	seven_segment = image[top:bottom, left:right]
+	image = _make_box(image, left, top, right, bottom)
+	# crop pump light
+	left, top, right, bottom = 106, 157, 116, 166
+	pump_light = image[top:bottom, left:right]
+	image = _make_box(image, left, top, right, bottom)
+	# export boxes
+	scipy.misc.imsave(DATA_DIR+'thermosolar.jpg', image) # FIXME
+	return _parse_segment(seven_segment), _parse_light(pump_light)
 
 
 def _parse_segment(image):
@@ -124,34 +140,18 @@ def _parse_light(image):
 	return result
 
 
-def _thermosolar_once(file):
-	# capture image
-	if subprocess.call(['fswebcam',
-	                    '--device', file,
-	                    '--quiet',
-	                    '--title', 'Thermosolar',
-	                    'thermosolar.jpg']):
-		raise SensorError('camera failure')
-	image = scipy.misc.imread('thermosolar.jpg')
-	# crop seven segment
-	left, top, right, bottom = 67, 53, 160, 118
-	seven_segment = image[top:bottom, left:right]
-	image = _make_box(image, left, top, right, bottom)
-	# crop pump light
-	left, top, right, bottom = 106, 157, 116, 166
-	pump_light = image[top:bottom, left:right]
-	image = _make_box(image, left, top, right, bottom)
-	# export boxes
-	scipy.misc.imsave(DATA_DIR+'thermosolar.jpg', image) # FIXME
-	return _parse_segment(seven_segment), _parse_light(pump_light)
-
-
-def thermosolar(file):
-	result = _thermosolar_once(file)
-	time.sleep(0.5)
-	if _thermosolar_once(file) != result:
-		raise SensorError('ocr results differ')
-	return result
+def _make_box(image, left, top, right, bottom):
+	left -= 1
+	top -= 1
+	right += 1
+	bottom += 1
+	width = 3
+	color = (204, 41, 38)
+	image[top-width:bottom+width,left-width:left       ] = color
+	image[top-width:bottom+width,right     :right+width] = color
+	image[top-width:top         ,left-width:right+width] = color
+	image[bottom   :bottom+width,left-width:right+width] = color
+	return image
 
 
 class Sensor(object):
