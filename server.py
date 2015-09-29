@@ -62,7 +62,7 @@ def main():
 				type(err).__name__, err, ''.join(tb_lines)))
 			break
 		duration = (datetime.datetime.now() - start).total_seconds()
-		logging.info('sleep, duration was {:.1f}s'.format(duration))
+		logging.debug('sleep, duration was {:.1f}s'.format(duration))
 		time.sleep(SERVER_INTERVAL.total_seconds())
 
 
