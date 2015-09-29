@@ -204,7 +204,7 @@ def _format_timedelta(td):
 def _format_timestamp(ts, now):
 	if ts.date() == now.date():
 		return 'um {:%H:%M} Uhr'.format(ts)
-	elif now.date()-ts.date() == 1:
+	elif now.date()-ts.date() == datetime.timedelta(days=1):
 		return 'gestern um {:%H:%M} Uhr'.format(ts)
 	elif now.date()-ts.date() < datetime.timedelta(days=7):
 		return 'am {:%A um %H:%M} Uhr'.format(ts)
@@ -306,7 +306,7 @@ class Temperature(Series):
 			ret.append('</li>\n')
 		if maximum:
 			ret.append('<li>24-Stunden-Hoch bei {:.1f} °C {}'.format(
-				maximum.value, _format_timestamp(minimum.timestamp, now)))
+				maximum.value, _format_timestamp(maximum.timestamp, now)))
 			if maximum.value > self.warn[1]:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
