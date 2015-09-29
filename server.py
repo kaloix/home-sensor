@@ -51,26 +51,25 @@ def main():
 	notify = notification.NotificationCenter()
 
 	while True:
-		start = time.time()
+		start = datetime.datetime.now()
 		try:
 			for group, series_list in series.items():
-				loop(group, series_list, html_template)
+				loop(group, series_list, html_template, start)
 			utility.memory_check()
 		except Exception as err:
 			tb_lines = traceback.format_tb(err.__traceback__)
 			notify.warn_admin('{}: {}\n{}'.format(
 				type(err).__name__, err, ''.join(tb_lines)))
 			break
-		logging.info('sleep, duration was {}s'.format(
-			round(time.time() - start)))
+		duration = (datetime.datetime.now() - start).total_seconds()
+		logging.info('sleep, duration was {:.1f}s'.format(duration))
 		time.sleep(SERVER_INTERVAL.total_seconds())
 
 
-def loop(group, series_list, html_template):
+def loop(group, series_list, html_template, now):
 	logging.info('read csv')
-	now = datetime.datetime.now()
 	for series in series_list:
-		series.update()
+		series.update(now)
 		series.check()
 	if os.system('cp {}{} {}'.format(DATA_DIR, 'thermosolar.jpg', WEB_DIR)):
 		logging.error('cp thermosolar.jpg failed')
@@ -79,7 +78,7 @@ def loop(group, series_list, html_template):
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
 		group = group,
-		values = detail_html(series_list),
+		values = detail_html(series_list, now),
 		update_time = '{:%A %d. %B %Y %X}'.format(now),
 		year = '{:%Y}'.format(now))
 	with open(WEB_DIR+group+'.html', mode='w') as html_file:
@@ -89,11 +88,11 @@ def loop(group, series_list, html_template):
 	plot_history(series_list, '{}{}.png'.format(WEB_DIR, group), now)
 
 
-def detail_html(series_list):
+def detail_html(series_list, now):
 	ret = list()
 	ret.append('<ul>')
 	for series in series_list:
-		ret.append('<li>{}</li>'.format(series))
+		ret.append('<li>{}</li>'.format(series.html(now)))
 	ret.append('</ul>')
 	return '\n'.join(ret)
 
@@ -104,7 +103,7 @@ def plot_history(series_list, file, now):
 	minimum, maximum = list(), list()
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
-		tail = series.tail
+		tail = series.tail(now)
 		if not tail:
 			continue
 		color = next(color_iter)
@@ -134,7 +133,7 @@ def plot_history(series_list, file, now):
 			maximum.append(max(tail).value)
 			maximum.append(series.usual[1])
 		elif type(series) is Switch:
-			for index, (start, end) in enumerate(series.segments):
+			for index, (start, end) in enumerate(series.segments(now)):
 				label = series.name if index == 0 else None
 				matplotlib.pyplot.axvspan(
 					start, end, label=label, color=color, alpha=0.5, zorder=1)
@@ -248,28 +247,20 @@ class Series(object):
 		except OSError:
 			pass
 
-	@property
-	def current(self):
-		now = datetime.datetime.now()
+	def current(self, now):
 		if self.records and self.records[-1].timestamp >= now-ALLOWED_DOWNTIME:
 			return self.records[-1].value
 		else:
 			return None
 
-	@property
-	def tail(self):
-		now = datetime.datetime.now()
-		start = now - utility.DETAIL_RANGE
-		seperator = -1
-		for record in reversed(self.records):
-			if record.timestamp >= start:
-				seperator -= 1
-			else:
-				break
-		return self.records[seperator:-1]
+	def tail(self, now):
+		min_time = now - utility.DETAIL_RANGE
+		start = len(self.records)
+		while start > 0 and self.records[start-1].timestamp >= min_time:
+			start -= 1
+		return self.records[start:-1]
 
-	def update(self):
-		now = datetime.datetime.now()
+	def update(self, now):
 		if self.year < now.year:
 			self._read(self.year)
 			self.year = now.year
@@ -283,12 +274,11 @@ class Temperature(Series):
 		self.usual = usual
 		self.warn = warn
 
-	def __str__(self):
-		now = datetime.datetime.now()
-		current = self.current
-		rev_tail = self.tail
-		minimum = min(reversed(rev_tail)) if rev_tail else None
-		maximum = max(reversed(rev_tail)) if rev_tail else None
+	def html(self, now):
+		current = self.current(now)
+		tail = self.tail(now)
+		minimum = min(reversed(tail)) if tail else None
+		maximum = max(reversed(tail)) if tail else None
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
@@ -336,9 +326,8 @@ class Switch(Series):
 	def __init__(self, name):
 		super().__init__(name)
 
-	def __str__(self):
-		now = datetime.datetime.now()
-		current = self.current
+	def html(self, now):
+		current = self.current(now)
 		last_false = last_true = None
 		for value, timestamp in reversed(self.records):
 			if value:
@@ -367,30 +356,27 @@ class Switch(Series):
 		if self.records:
 			ret.append(
 				'<li>{} Einschaltdauer in den letzten 24 Stunden</li>\n'
-					.format(_format_timedelta(self.uptime)))
+					.format(_format_timedelta(self.uptime(now))))
 		ret.append('</ul>')
 		return ''.join(ret)
 
-	@property
-	def segments(self):
+	def segments(self, now):
 		expect = True
-		for value, timestamp in self.tail:
+		for value, timestamp in self.tail(now):
 			if value != expect:
 				continue
-			if expect:
+			if value:
 				start = timestamp
 				expect = False
 			else:
 				yield start, timestamp
 				expect = True
 		if not expect:
-			now = datetime.datetime.now()
 			yield start, min(timestamp+ALLOWED_DOWNTIME, now)
 
-	@property
-	def uptime(self):
+	def uptime(self, now):
 		total = datetime.timedelta()
-		for start, stop in self.segments:
+		for start, stop in self.segments(now):
 			total += stop - start
 		return total
 
