@@ -127,8 +127,9 @@ def plot_history(series_list, file, now):
 					interpolate=True, color='r', zorder=2, alpha=0.7)
 			mini, maxi = series.minmax
 			if mini:
-				minimum.append(mini.value)
-				maximum.append(maxi.value)
+				margin = (maxi.value-mini.value) * 0.02
+				minimum.append(mini.value-margin)
+				maximum.append(maxi.value+margin)
 			minimum.append(series.usual[0])
 			maximum.append(series.usual[1])
 		elif type(series) is Switch:
