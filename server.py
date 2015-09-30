@@ -374,13 +374,15 @@ class Switch(Series):
 	def segments(self):
 		expect = True
 		for timestamp, value in self.tail:
+			if value:
+				running = timestamp
 			if value != expect:
 				continue
 			if value:
 				start = timestamp
 				expect = False
 			else:
-				yield start, timestamp
+				yield start, min(running+ALLOWED_DOWNTIME, timestamp)
 				expect = True
 		if not expect:
 			yield start, min(timestamp+ALLOWED_DOWNTIME, self.now)
