@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import contextlib
 import csv
 import datetime
 import functools
@@ -46,10 +45,8 @@ def main():
 	while True:
 		start = datetime.datetime.now()
 		for sensor in sensors:
-			with contextlib.suppress(utility.CallDenied):
-				sensor.update()
-		with contextlib.suppress(utility.CallDenied):
-			transmit()
+			sensor.update()
+		transmit()
 		duration = (datetime.datetime.now() - start).total_seconds()
 		logging.debug('sleep, duration was {:.1f}s'.format(duration))
 		time.sleep(CLIENT_INTERVAL.total_seconds())

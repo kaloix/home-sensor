@@ -3,6 +3,7 @@
 import collections
 import csv
 import datetime
+import itertools
 import json
 import logging
 import os
@@ -100,13 +101,10 @@ def plot_history(series_list, file, now):
 	minimum, maximum = list(), list()
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
-		tail = series.tail
-		if not tail:
-			continue
 		color = next(color_iter)
 		if type(series) is Temperature:
 			parts = list()
-			for record in tail:
+			for record in series.tail:
 				if not parts or record.timestamp-parts[-1][-1].timestamp > \
 						ALLOWED_DOWNTIME:
 					parts.append(list())
@@ -125,9 +123,12 @@ def plot_history(series_list, file, now):
 					timestamps, values, series.warn[1],
 					where = [value>series.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
-			minimum.append(min(tail).value)
+			try:
+				minimum.append(min(series.tail).value)
+				maximum.append(max(series.tail).value)
+			except ValueError:
+				pass
 			minimum.append(series.usual[0])
-			maximum.append(max(tail).value)
 			maximum.append(series.usual[1])
 		elif type(series) is Switch:
 			for index, (start, end) in enumerate(series.segments):
@@ -259,7 +260,7 @@ class Series(object):
 		start = len(self.records)
 		while start > 0 and self.records[start-1].timestamp >= min_time:
 			start -= 1
-		return self.records[start:-1]
+		return itertools.islice(self.records, start, None)
 
 	def update(self, now):
 		self.now = now
@@ -278,7 +279,7 @@ class Temperature(Series):
 
 	def __str__(self):
 		current = self.current
-		tail = self.tail
+		tail = list(self.tail)
 		minimum = min(reversed(tail)) if tail else None
 		maximum = max(reversed(tail)) if tail else None
 		ret = list()

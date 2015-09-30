@@ -32,12 +32,6 @@ def allow_every_x_seconds(interval):
 			now = time.perf_counter()
 			if now >= target:
 				target = now + interval
-				return user_function(*args, **kwargs)
-			else:
-				raise CallDenied
+				user_function(*args, **kwargs)
 		return new_function
 	return decorating_function
-
-
-class CallDenied(Exception):
-	pass
