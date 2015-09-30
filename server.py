@@ -72,7 +72,7 @@ def loop(group, series_list, html_template, now):
 		series.update(now)
 		error = series.error
 		if error:
-			notify.value_warning(error)
+			notify.user_warning(error)
 	if os.system('cp {}{} {}'.format(DATA_DIR, 'thermosolar.jpg', WEB_DIR)):
 		logging.error('cp thermosolar.jpg failed')
 	logging.info('write html')
