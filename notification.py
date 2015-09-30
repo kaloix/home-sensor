@@ -12,15 +12,15 @@ ENABLE_EMAIL = True
 
 class NotificationCenter:
 	def __init__(self):
-		self.warning_pause = dict()
+		self.pause = dict()
 
-	def _send_email(self, message, address):
+	def _send_email(self, subject, message, address):
 		if not ENABLE_EMAIL:
 			logging.info('send email disabled')
 			return
 		logging.info('send email')
 		msg = email.mime.text.MIMEText(str(message))
-		msg['Subject'] = 'Automatische Nachricht vom Sensor-Server'
+		msg['Subject'] = '[Sensor] {}'.format(subject)
 		msg['From'] = 'sensor@kaloix.de'
 		msg['To'] = address
 		try:
@@ -32,17 +32,16 @@ class NotificationCenter:
 		except OSError as err:
 			logging.error('send email failed: {}'.format(err))
 	
-	def warn_admin(self, message):
+	def crash_report(self, message):
 		logging.error(message)
-		text = 'Administrator-Meldung:\n{}'.format(message)
-		self._send_email(text, ADMIN_ADDRESS)
+		self._send_email('Programmabsturz', message, ADMIN_ADDRESS)
 	
-	def warn_user(self, message, key):
-		logging.warning(message)
-		logging.debug(key)
+	def value_warning(self, message):
 		now = datetime.datetime.now()
-		if key in self.warning_pause and self.warning_pause[key] > now:
-			logging.info('suppress email')
+		logging.warning(message)
+		if hash(message) in self.pause and self.pause[hash(message)] > now:
+			logging.debug('suppress email')
 			return
-		self._send_email(message, USER_ADDRESS)
-		self.warning_pause[key] = now + WARNING_PAUSE
+		self._send_email('Messwerte außerhalb des zulässigen Bereichs',
+		                 message, USER_ADDRESS)
+		self.pause[hash(message)] = now + WARNING_PAUSE

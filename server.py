@@ -28,6 +28,7 @@ SERVER_INTERVAL = datetime.timedelta(minutes=3)
 WEB_DIR = '/home/kaloix/html/sensor/'
 
 Record = collections.namedtuple('Record', 'timestamp value')
+notify = notification.NotificationCenter()
 
 
 def main():
@@ -49,7 +50,6 @@ def main():
 			elif kind == 'switch':
 				series[attr['group']].append(Switch(
 					attr['name']))
-	notify = notification.NotificationCenter()
 	while True:
 		start = datetime.datetime.now()
 		try:
@@ -58,7 +58,7 @@ def main():
 			utility.memory_check()
 		except Exception as err:
 			tb_lines = traceback.format_tb(err.__traceback__)
-			notify.warn_admin('{}: {}\n{}'.format(
+			notify.crash_report('{}: {}\n{}'.format(
 				type(err).__name__, err, ''.join(tb_lines)))
 			break
 		duration = (datetime.datetime.now() - start).total_seconds()
@@ -70,7 +70,9 @@ def loop(group, series_list, html_template, now):
 	logging.info('read csv')
 	for series in series_list:
 		series.update(now)
-		series.check()
+		error = series.error
+		if error:
+			notify.value_warning(error)
 	if os.system('cp {}{} {}'.format(DATA_DIR, 'thermosolar.jpg', WEB_DIR)):
 		logging.error('cp thermosolar.jpg failed')
 	logging.info('write html')
@@ -316,19 +318,19 @@ class Temperature(Series):
 		ret.append('</ul>')
 		return ''.join(ret)
 
-	def check(self):
-		pass # TODO
-#		if not self.history.current:
-#			text = 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
-#			notify.warn_user(text, self.name+'s')
-#		if self.history.warn_low:
-#			text = 'Messpunkt "{}" unterhalb des zulässigen Bereichs:\n{}' \
-#				.format(self.name, self.history.minimum)
-#			notify.warn_user(text, self.name+'l')
-#		if self.history.warn_high:
-#			text = 'Messpunkt "{}" überhalb des zulässigen Bereichs:\n{}' \
-#				.format(self.name, self.history.maximum)
-#			notify.warn_user(text, self.name+'h')
+	@property
+	def error(self):
+		current = self.current
+		if current is None:
+			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
+		elif current < self.warn[0]:
+			return 'Messpunkt "{}" unter {:.0f} °C.'.format(
+				self.name, self.warn[0])
+		elif current > self.warn[1]:
+			return 'Messpunkt "{}" über {:.0f} °C.'.format(
+				self.name, self.warn[1])
+		else:
+			return None
 
 
 class Switch(Series):
@@ -399,8 +401,12 @@ class Switch(Series):
 			total += stop - start
 		return total
 
-	def check(self):
-		pass
+	@property
+	def error(self):
+		if self.current is None:
+			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
+		else:
+			return None
 
 
 if __name__ == "__main__":
