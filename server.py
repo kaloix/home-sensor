@@ -27,7 +27,7 @@ DATA_DIR = 'data/'
 SERVER_INTERVAL = datetime.timedelta(minutes=3)
 WEB_DIR = '/home/kaloix/html/sensor/'
 
-Record = collections.namedtuple('Record', 'value timestamp')
+Record = collections.namedtuple('Record', 'timestamp value')
 
 
 def main():
@@ -110,7 +110,7 @@ def plot_history(series_list, file, now):
 					parts.append(list())
 				parts[-1].append(record)
 			for index, part in enumerate(parts):
-				values, timestamps = zip(*part)
+				timestamps, values = zip(*part)
 				label = series.name if index == 0 else None
 				matplotlib.pyplot.plot(
 					timestamps, values, label=label,
@@ -123,11 +123,10 @@ def plot_history(series_list, file, now):
 					timestamps, values, series.warn[1],
 					where = [value>series.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
-			try:
-				minimum.append(min(series.tail).value)
-				maximum.append(max(series.tail).value)
-			except ValueError:
-				pass
+			mini, maxi = series.minmax
+			if mini:
+				minimum.append(mini.value)
+				maximum.append(maxi.value)
 			minimum.append(series.usual[0])
 			maximum.append(series.usual[1])
 		elif type(series) is Switch:
@@ -225,10 +224,10 @@ class Series(object):
 				self._read(year)
 				self.year = year
 
-	def _append(self, value, timestamp):
+	def _append(self, timestamp, value):
 		if self.records and timestamp <= self.records[-1].timestamp:
 			return
-		self.records.append(Record(value, timestamp))
+		self.records.append(Record(timestamp, value))
 		# delete center of three equal values while keeping some
 		if len(self.records) >= 3 and self.records[-3].value == \
 				self.records[-2].value == self.records[-1].value and \
@@ -241,8 +240,8 @@ class Series(object):
 		try:
 			with open(filename, newline='') as csv_file:
 				for row in csv.reader(csv_file):
-					self._append(_universal_parser(row[1]),
-					             datetime.datetime.fromtimestamp(int(row[0])))
+					self._append(datetime.datetime.fromtimestamp(int(row[0])),
+					             _universal_parser(row[1]))
 		except OSError:
 			pass
 
@@ -262,6 +261,16 @@ class Series(object):
 			start -= 1
 		return itertools.islice(self.records, start, None)
 
+	@property
+	def minmax(self):
+		minimum = maximum = None
+		for record in self.tail:
+			if not minimum or record.value <= minimum.value:
+				minimum = record
+			if not maximum or record.value >= maximum.value:
+				maximum = record
+		return minimum, maximum
+
 	def update(self, now):
 		self.now = now
 		if self.year < now.year:
@@ -279,9 +288,7 @@ class Temperature(Series):
 
 	def __str__(self):
 		current = self.current
-		tail = list(self.tail)
-		minimum = min(reversed(tail)) if tail else None
-		maximum = max(reversed(tail)) if tail else None
+		minimum, maximum = self.minmax
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
@@ -332,7 +339,7 @@ class Switch(Series):
 	def __str__(self):
 		current = self.current
 		last_false = last_true = None
-		for value, timestamp in reversed(self.records):
+		for timestamp, value in reversed(self.records):
 			if value:
 				if not last_true:
 					last_true = timestamp
@@ -366,7 +373,7 @@ class Switch(Series):
 	@property
 	def segments(self):
 		expect = True
-		for value, timestamp in self.tail:
+		for timestamp, value in self.tail:
 			if value != expect:
 				continue
 			if value:
