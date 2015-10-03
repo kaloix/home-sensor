@@ -15,9 +15,10 @@ import scipy.misc
 import utility
 
 
+CLIENT_INTERVAL = datetime.timedelta(seconds=10)
 CLIENT_SERVER = 'kaloix@adhara.uberspace.de:home-sensor/'
 DATA_DIR = 'data/'
-CLIENT_INTERVAL = datetime.timedelta(seconds=10)
+TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
 
 
 def main():
@@ -52,7 +53,7 @@ def main():
 		time.sleep(CLIENT_INTERVAL.total_seconds())
 
 
-@utility.allow_every_x_seconds(utility.TRANSMIT_INTERVAL.total_seconds())
+@utility.allow_every_x_seconds(TRANSMIT_INTERVAL.total_seconds())
 def transmit():
 	logging.info('copy to webserver')
 	if subprocess.call(['rsync',
@@ -119,7 +120,6 @@ def _parse_segment(image):
 		                                        'seven_segment.png'])
 	except subprocess.CalledProcessError as err:
 		raise SensorError('ssocr exit code {}'.format(err.returncode)) from err
-	logging.debug('parse_segment: ssocr_output={}'.format(ssocr_output))
 	try:
 		return int(ssocr_output)
 	except ValueError as err:
@@ -151,23 +151,39 @@ def _make_box(image, left, top, right, bottom):
 	return image
 
 
+class Series(object):
+
+	def __init__(self, name):
+		self.name = name
+		self.previous_timestamp = self.previous_value = None
+
+	def write(self, value):
+		# skip equal values in transmit interval
+		now = datetime.datetime.now()
+		if self.previous_timestamp is not None and \
+				self.previous_value == value and \
+				self.previous_timestamp+utility.TRANSMIT_INTERVAL > now:
+			logging.debug('skip equal value')
+			return
+		self.previous_timestamp = now
+		self.previous_value = value
+		# write to file
+		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
+		with open(filename, mode='a', newline='') as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerow((int(now.timestamp()), value))
+
+
 class Sensor(object):
 
 	def __init__(self, names, reader_function, interval):
-		self.names = names
+		self.series = [Series(n) for n in names]
 		self.reader_function = reader_function
 		self.update = utility.allow_every_x_seconds(interval)(self.update)
 
 	def __repr__(self):
-		return '{} {}'.format(self.__class__.__name__, '/'.join(self.names))
-
-	@staticmethod
-	def _write(name, value):
-		now = datetime.datetime.now()
-		filename = '{}/{}_{}.csv'.format(DATA_DIR, name, now.year)
-		with open(filename, mode='a', newline='') as csv_file:
-			writer = csv.writer(csv_file)
-			writer.writerow((int(now.timestamp()), value))
+		return '{} {}'.format(self.__class__.__name__,
+		                      '/'.join([s.name for s in self.series]))
 
 	def update(self):
 		logging.info('update {}'.format(self))
@@ -176,8 +192,8 @@ class Sensor(object):
 		except SensorError as err:
 			logging.error('{} failure: {}'.format(self, err))
 			return
-		for index, name in enumerate(self.names):
-			self._write(name, values[index])
+		for index, series in enumerate(self.series):
+			series.write(values[index])
 
 
 class SensorError(Exception):

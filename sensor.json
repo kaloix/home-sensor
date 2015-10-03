@@ -4,7 +4,7 @@
 			"station": 1,
 			"type": "ds18b20",
 			"file": "/sys/bus/w1/devices/28-0000071d810f/w1_slave",
-			"interval": 300
+			"interval": 360
 		},
 		"output": {
 			"temperature": {

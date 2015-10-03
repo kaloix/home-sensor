@@ -21,7 +21,7 @@ import notification
 import utility
 
 
-ALLOWED_DOWNTIME = 2 * utility.TRANSMIT_INTERVAL
+ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
 SERVER_INTERVAL = datetime.timedelta(minutes=3)
@@ -231,12 +231,6 @@ class Series(object):
 		if self.records and timestamp <= self.records[-1].timestamp:
 			return
 		self.records.append(Record(timestamp, value))
-		# delete center of three equal values while keeping some
-		if len(self.records) >= 3 and self.records[-3].value == \
-				self.records[-2].value == self.records[-1].value and \
-				self.records[-2].timestamp-self.records[-3].timestamp < \
-				utility.TRANSMIT_INTERVAL:
-			del self.records[-2]
 
 	def _read(self, year):
 		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
@@ -393,7 +387,7 @@ class Switch(Series):
 				expect = True
 				yield start, timestamp
 		if not expect:
-			yield start, min(timestamp+ALLOWED_DOWNTIME, self.now)
+			yield start, running
 
 	@property
 	def uptime(self):

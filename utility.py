@@ -6,7 +6,6 @@ import time
 
 
 DETAIL_RANGE = datetime.timedelta(days=1)
-TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
 
 
 def init():
