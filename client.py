@@ -160,9 +160,8 @@ class Series(object):
 	def write(self, value):
 		# skip equal values in transmit interval
 		now = datetime.datetime.now()
-		if self.previous_timestamp is not None and \
-				self.previous_value == value and \
-				self.previous_timestamp+utility.TRANSMIT_INTERVAL > now:
+		if self.previous_timestamp is not None and self.previous_value == \
+				value and self.previous_timestamp+TRANSMIT_INTERVAL > now:
 			logging.debug('skip equal value')
 			return
 		self.previous_timestamp = now

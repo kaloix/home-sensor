@@ -30,10 +30,11 @@ class NotificationCenter:
 		self.pause = dict()
 
 	def _sending_guard(self, key, pause):
+		now = datetime.datetime.now()
 		if key in self.pause and self.pause[key] > now:
 			logging.debug('suppress email')
 			return False
-		self.pause[key] = datetime.datetime.now() + pause
+		self.pause[key] = now + pause
 		return True
 	
 	def crash_report(self, message):
