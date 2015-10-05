@@ -231,6 +231,11 @@ class Series(object):
 		if self.records and timestamp <= self.records[-1].timestamp:
 			return
 		self.records.append(Record(timestamp, value))
+		if len(self.records) >= 3 and self.records[-3].value == \
+				self.records[-2].value == self.records[-1].value and \
+				self.records[-1].timestamp-self.records[-3].timestamp < \
+				ALLOWED_DOWNTIME:
+			del self.records[-2]
 
 	def _read(self, year):
 		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
@@ -245,7 +250,7 @@ class Series(object):
 	@property
 	def current(self):
 		if self.records and \
-				self.records[-1].timestamp >= self.now-ALLOWED_DOWNTIME:
+				self.now-self.records[-1].timestamp <= ALLOWED_DOWNTIME:
 			return self.records[-1].value
 		else:
 			return None

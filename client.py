@@ -155,18 +155,9 @@ class Series(object):
 
 	def __init__(self, name):
 		self.name = name
-		self.previous_timestamp = self.previous_value = None
 
 	def write(self, value):
-		# skip equal values in transmit interval
 		now = datetime.datetime.now()
-		if self.previous_timestamp is not None and self.previous_value == \
-				value and self.previous_timestamp+TRANSMIT_INTERVAL > now:
-			logging.debug('skip equal value')
-			return
-		self.previous_timestamp = now
-		self.previous_value = value
-		# write to file
 		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
 		with open(filename, mode='a', newline='') as csv_file:
 			writer = csv.writer(csv_file)
