@@ -2,6 +2,7 @@
 ## Min-Max Plot
 
 ## HTML 5 Plots
+* http://canvasjs.com/docs/charts/basics-of-creating-html5-chart/html5-color-coding/
 * [jqPlot Charts and Graphs for jQuery](http://www.jqplot.com/)
 	* [Zoom Proxy - Control one plot from another](http://www.jqplot.com/deploy/dist/examples/zoomProxy.html)
 	* Use scrollable `<div>` in HTML

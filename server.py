@@ -85,7 +85,7 @@ def loop(group, series_list, html_template, now):
 	with open(WEB_DIR+group+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
 	logging.info('generate plot')
-	plot_history(series_list, '{}{}.png'.format(WEB_DIR, group), now)
+	plot_history(series_list, '{}{}.svg'.format(WEB_DIR, group), now)
 
 
 def detail_html(series_list):
@@ -142,7 +142,7 @@ def plot_history(series_list, file, now):
 		label = 'Nacht' if index == 0 else None
 		matplotlib.pyplot.axvspan(
 			sunset, sunrise, label=label,
-			hatch='//', color='black', alpha=0.1, zorder=0)
+			hatch='//', facecolor='0.9', edgecolor='0.8', zorder=0)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
 	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator())
 	ax.yaxis.get_major_formatter().set_useOffset(False)
@@ -156,7 +156,7 @@ def plot_history(series_list, file, now):
 	matplotlib.pyplot.legend(
 		loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=5,
 		frameon=False)
-	matplotlib.pyplot.savefig(filename=file, bbox_inches='tight')
+	matplotlib.pyplot.savefig(file, bbox_inches='tight', facecolor='none')
 	matplotlib.pyplot.close()
 
 
