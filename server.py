@@ -156,7 +156,7 @@ def plot_history(series_list, file, now):
 	matplotlib.pyplot.legend(
 		loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=5,
 		frameon=False)
-	matplotlib.pyplot.savefig(file, bbox_inches='tight', facecolor='none')
+	matplotlib.pyplot.savefig(file, bbox_inches='tight')
 	matplotlib.pyplot.close()
 
 

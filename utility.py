@@ -1,4 +1,5 @@
 import datetime
+import gc
 import locale
 import logging
 import resource
@@ -17,6 +18,7 @@ def init():
 
 
 def memory_check():
+	gc.collect()
 	memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e3
 	logging.debug('using {:.0f} megabytes of memory'.format(memory))
 	if memory > 100:
