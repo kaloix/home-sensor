@@ -1,0 +1,5 @@
+## Only send 503 error
+#  http://www.electrictoolbox.com/503-header-apache-htaccess/
+#  https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#5xx_Server_Error
+RewriteEngine On
+RewriteRule .* - [R=503,L]
