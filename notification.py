@@ -7,9 +7,13 @@ import smtplib
 WARNING_PAUSE = datetime.timedelta(days=1)
 ADMIN_ADDRESS = 'stefan@kaloix.de'
 USER_ADDRESS = 'stefan@kaloix.de'
+ENABLE_EMAIL = True
 
 
 def send_email(subject, message, address):
+	if not ENABLE_EMAIL:
+		logging.info('email disabled')
+		return
 	logging.info('send email')
 	msg = email.mime.text.MIMEText(str(message))
 	msg['Subject'] = '[Sensor] {}'.format(subject)
@@ -25,6 +29,11 @@ def send_email(subject, message, address):
 		logging.error('send email failed: {}'.format(err))
 
 
+def crash_report(message):
+	logging.error(message)
+	send_email('Programmabsturz', message, ADMIN_ADDRESS)
+
+
 class NotificationCenter:
 	def __init__(self):
 		self.pause = dict()
@@ -36,10 +45,6 @@ class NotificationCenter:
 			return False
 		self.pause[key] = now + pause
 		return True
-	
-	def crash_report(self, message):
-		logging.error(message)
-		send_email('Programmabsturz', message, ADMIN_ADDRESS)
 	
 	def user_warning(self, message):
 		logging.warning(message)

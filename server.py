@@ -11,6 +11,7 @@ import re
 import string
 import time
 import traceback
+import shutil
 
 import matplotlib.dates
 import matplotlib.pyplot
@@ -33,6 +34,8 @@ notify = notification.NotificationCenter()
 
 def main():
 	utility.init()
+	shutil.copy('static/favicon.png', WEB_DIR)
+	shutil.copy('static/htaccess', WEB_DIR+'.htaccess')
 	with open('template.html') as html_file:
 		html_template = html_file.read()
 	with open('sensor.json') as json_file:
@@ -52,18 +55,17 @@ def main():
 					attr['name']))
 	while True:
 		start = datetime.datetime.now()
-		try:
-			for group, series_list in series.items():
-				loop(group, series_list, html_template, start)
-			utility.memory_check()
-		except Exception as err:
-			tb_lines = traceback.format_tb(err.__traceback__)
-			notify.crash_report('{}: {}\n{}'.format(
-				type(err).__name__, err, ''.join(tb_lines)))
-			break
+		for group, series_list in series.items():
+			loop(group, series_list, html_template, start)
+		utility.memory_check()
 		duration = (datetime.datetime.now() - start).total_seconds()
 		logging.debug('sleep, duration was {:.1f}s'.format(duration))
 		time.sleep(SERVER_INTERVAL.total_seconds())
+
+
+def on_shutdown():
+	logging.info('shutdown')
+	shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
 def loop(group, series_list, html_template, now):
@@ -85,7 +87,8 @@ def loop(group, series_list, html_template, now):
 	with open(WEB_DIR+group+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
 	logging.info('generate plot')
-	plot_history(series_list, '{}{}.svg'.format(WEB_DIR, group), now)
+	# FIXME svg backend has memory leak in matplotlib 1.4.3
+	plot_history(series_list, '{}{}.png'.format(WEB_DIR, group), now)
 
 
 def detail_html(series_list):
@@ -410,4 +413,12 @@ class Switch(Series):
 
 
 if __name__ == "__main__":
-	main()
+	try:
+		main()
+	except KeyboardInterrupt:
+		on_shutdown()
+	except Exception as err:
+		on_shutdown()
+		tb_lines = traceback.format_tb(err.__traceback__)
+		notification.crash_report('{}: {}\n{}'.format(
+			type(err).__name__, err, ''.join(tb_lines)))
