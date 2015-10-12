@@ -9,6 +9,7 @@
 	<Files "favicon.png">
 		ExpiresByType image/png "access plus 1 month"
 	</Files>
+	ExpiresByType image/svg "modification plus 1 minute"
 	ExpiresByType image/png "modification plus 1 minute"
 </IfModule>
 
