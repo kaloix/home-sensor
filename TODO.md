@@ -2,7 +2,6 @@
 ## Min-Max Plot
 
 ## HTML 5 Plots
-* http://canvasjs.com/docs/charts/basics-of-creating-html5-chart/html5-color-coding/
 * [jqPlot Charts and Graphs for jQuery](http://www.jqplot.com/)
 	* [Zoom Proxy - Control one plot from another](http://www.jqplot.com/deploy/dist/examples/zoomProxy.html)
 	* Use scrollable `<div>` in HTML
@@ -12,6 +11,7 @@
   good, open source
 * [Interactive JavaScript charts for your webpage | Highcharts](http://www.highcharts.com/)
   – looks good, freeware
+* [Beautiful HTML5 JavaScript Charts | CanvasJS](http://canvasjs.com/) - NO
 * [Chart.js | Open source HTML5 Charts for your website](http://www.chartjs.org/)
   – few features
 * [http://xaviershay.github.io/tufte-graph/index.html](http://xaviershay.github.io/tufte-graph/index.html)
