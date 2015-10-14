@@ -84,7 +84,7 @@ def loop(group, series_list, html_template, now):
 		values = detail_html(series_list),
 		update_time = '{:%A %d. %B %Y %X}'.format(now),
 		year = '{:%Y}'.format(now))
-	with open(WEB_DIR+group+'.html', mode='w') as html_file:
+	with open(WEB_DIR+group.lower()+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
 	logging.info('generate plot')
 	# FIXME svg backend has memory leak in matplotlib 1.4.3

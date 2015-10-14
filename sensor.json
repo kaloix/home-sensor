@@ -2,9 +2,25 @@
 	{
 		"input": {
 			"station": 1,
+			"type": "mdeg_celsius",
+			"file": "/sys/class/thermal/thermal_zone0/temp",
+			"interval": 60
+		},
+		"output": {
+			"temperature": {
+				"name": "CPU thalgrund",
+				"group": "System",
+				"usual": [30, 45],
+				"warn": [20, 60]
+			}
+		}
+	},
+	{
+		"input": {
+			"station": 1,
 			"type": "ds18b20",
 			"file": "/sys/bus/w1/devices/28-0000071d810f/w1_slave",
-			"interval": 360
+			"interval": 420
 		},
 		"output": {
 			"temperature": {

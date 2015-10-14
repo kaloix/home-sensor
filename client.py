@@ -32,6 +32,11 @@ def main():
 	for sensor in json.loads(sensor_json):
 		if sensor['input']['station'] != args.station:
 			continue
+		if sensor['input']['type'] == 'mdeg_celsius':
+			sensors.append(Sensor(
+				[sensor['output']['temperature']['name']],
+				functools.partial(mdeg_celsius, sensor['input']['file']),
+				sensor['input']['interval']))
 		if sensor['input']['type'] == 'ds18b20':
 			sensors.append(Sensor(
 				[sensor['output']['temperature']['name']],
@@ -62,6 +67,14 @@ def transmit():
 	                    DATA_DIR,
 	                    '{}{}'.format(CLIENT_SERVER, DATA_DIR)]):
 		logging.error('scp failed')
+
+
+def mdeg_celsius(file):
+	try:
+		with open(file) as mdc_file:
+			return int(mdc_file.read()) / 1e3
+	except OSError, ValueError as err:
+		raise SensorError('invalid millidegrees-celsius file') from err
 
 
 def ds18b20(file):
