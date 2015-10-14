@@ -6,9 +6,6 @@ import resource
 import time
 
 
-DETAIL_RANGE = datetime.timedelta(days=1)
-
-
 def init():
 	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 	logging.basicConfig(
