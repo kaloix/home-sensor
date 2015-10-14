@@ -1,4 +1,11 @@
 # TODO
+## Temperature Garden
+1. Robust temerpature sensor connection for *Wohnzimmer*
+2. Use box for dust protection of *thalgrund*
+3. Move 500GB TrekStor HDD from *raspberrypi* to *thalgrund*
+4. Re-setup Raspberry Pi from basement, hostname *ridgewood*
+5. Place *ridgewood* in Gartenhaus
+
 ## Min-Max Plot
 
 ## HTML 5 Plots
