@@ -142,11 +142,9 @@ def _parse_segment(image):
 def _parse_light(image):
 	hist, bin_edges = numpy.histogram(
 		image, bins=4, range=(0,255), density=True)
-	decider = round(hist[3], ndigits=5)
+	decider = round(hist[3], ndigits=5) # FIXME
 	threshold = 0.006
 	result = decider > threshold
-	logging.debug('parse_light: {} with decider={} threshold={}'.format(
-		'ON' if result else 'OFF', decider, threshold))
 	return result
 
 
