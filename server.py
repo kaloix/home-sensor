@@ -100,16 +100,13 @@ def detail_html(series_list):
 	return '\n'.join(ret)
 
 
-def plot_history(series_list, file, now):
-	fig, ax = matplotlib.pyplot.subplots(figsize=(12, 4))
-	frame_start = now - utility.DETAIL_RANGE
-	minimum, maximum = list(), list()
+def _plot(series_list, days, now):
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
 		color = next(color_iter)
 		if type(series) is Temperature:
 			parts = list()
-			for record in series.tail:
+			for record in series.tail(days):
 				if not parts or record.timestamp-parts[-1][-1].timestamp > \
 						ALLOWED_DOWNTIME:
 					parts.append(list())
@@ -128,37 +125,44 @@ def plot_history(series_list, file, now):
 					timestamps, values, series.warn[1],
 					where = [value>series.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
-			mini, maxi = series.minmax
-			if mini:
-				margin = (maxi.value-mini.value) * 0.02
-				minimum.append(mini.value-margin)
-				maximum.append(maxi.value+margin)
-			minimum.append(series.usual[0])
-			maximum.append(series.usual[1])
 		elif type(series) is Switch:
-			for index, (start, end) in enumerate(series.segments):
+			for index, (start, end) in enumerate(series.segments(days)):
 				label = series.name if index == 0 else None
 				matplotlib.pyplot.axvspan(
 					start, end, label=label, color=color, alpha=0.5, zorder=1)
-	nights = int(utility.DETAIL_RANGE / datetime.timedelta(days=1)) + 2
+	nights = days + 2
 	for index, (sunset, sunrise) in enumerate(_nighttime(nights, now)):
 		label = 'Nacht' if index == 0 else None
 		matplotlib.pyplot.axvspan(
 			sunset, sunrise, label=label,
 			hatch='//', facecolor='0.9', edgecolor='0.8', zorder=0)
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
-	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator())
-	ax.yaxis.get_major_formatter().set_useOffset(False)
-	ax.yaxis.set_label_position('right')
-	ax.yaxis.tick_right()
-	matplotlib.pyplot.xlabel('Uhrzeit')
-	matplotlib.pyplot.xlim(frame_start, now)
+	matplotlib.pyplot.xlim(now-datetime.timedelta(days), now)
 	matplotlib.pyplot.ylabel('Temperatur °C')
-	matplotlib.pyplot.ylim(min(minimum), max(maximum))
-	matplotlib.pyplot.grid(True)
+	ax = matplotlib.pyplot.gca()
+	ax.yaxis.tick_right()
+	ax.yaxis.set_label_position('right')
+
+
+def plot_history(series_list, file, now):
+	matplotlib.rcParams['axes.grid'] = True
+	matplotlib.rcParams['axes.formatter.useoffset'] = False
+	fig = matplotlib.pyplot.figure(figsize=(14, 7))
+	# last day
+	ax = matplotlib.pyplot.subplot(211)
+	_plot(series_list, 1, now)
 	matplotlib.pyplot.legend(
 		loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=5,
 		frameon=False)
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H Uhr'))
+	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(range(0, 24, 3)))
+	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
+	# last week
+	ax = matplotlib.pyplot.subplot(212)
+	_plot(series_list, 7, now)
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%A'))
+	ax.xaxis.set_major_locator(matplotlib.dates.DayLocator())
+	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator(range(0, 24, 6)))
+	# save file
 	matplotlib.pyplot.savefig(file, bbox_inches='tight')
 	matplotlib.pyplot.close()
 
@@ -250,6 +254,13 @@ class Series(object):
 		except OSError:
 			pass
 
+	def tail(self, days):
+		min_time = self.now - datetime.timedelta(days)
+		start = len(self.records)
+		while start > 0 and self.records[start-1].timestamp >= min_time:
+			start -= 1
+		return itertools.islice(self.records, start, None)
+
 	@property
 	def current(self):
 		if self.records and \
@@ -259,17 +270,9 @@ class Series(object):
 			return None
 
 	@property
-	def tail(self):
-		min_time = self.now - utility.DETAIL_RANGE
-		start = len(self.records)
-		while start > 0 and self.records[start-1].timestamp >= min_time:
-			start -= 1
-		return itertools.islice(self.records, start, None)
-
-	@property
 	def minmax(self):
 		minimum = maximum = None
-		for record in self.tail:
+		for record in self.tail(1):
 			if not minimum or record.value <= minimum.value:
 				minimum = record
 			if not maximum or record.value >= maximum.value:
@@ -375,10 +378,9 @@ class Switch(Series):
 		ret.append('</ul>')
 		return ''.join(ret)
 
-	@property
-	def segments(self):
+	def segments(self, days):
 		expect = True
-		for timestamp, value in self.tail:
+		for timestamp, value in self.tail(days):
 			# assume false during downtime
 			if not expect and timestamp-running > ALLOWED_DOWNTIME:
 				expect = True
@@ -400,7 +402,7 @@ class Switch(Series):
 	@property
 	def uptime(self):
 		total = datetime.timedelta()
-		for start, stop in self.segments:
+		for start, stop in self.segments(1):
 			total += stop - start
 		return total
 
