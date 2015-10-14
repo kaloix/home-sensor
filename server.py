@@ -111,11 +111,10 @@ def _plot(series_list, days, now):
 						ALLOWED_DOWNTIME:
 					parts.append(list())
 				parts[-1].append(record)
-			for index, part in enumerate(parts):
+			for part in parts:
 				timestamps, values = zip(*part)
-				label = series.name if index == 0 else None
 				matplotlib.pyplot.plot(
-					timestamps, values, label=label,
+					timestamps, values, label=series.name,
 					linewidth=3, color=color, zorder=3)
 				matplotlib.pyplot.fill_between(
 					timestamps, values, series.warn[0],
@@ -126,15 +125,13 @@ def _plot(series_list, days, now):
 					where = [value>series.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
 		elif type(series) is Switch:
-			for index, (start, end) in enumerate(series.segments(days)):
-				label = series.name if index == 0 else None
-				matplotlib.pyplot.axvspan(
-					start, end, label=label, color=color, alpha=0.5, zorder=1)
+			for start, end in series.segments(days):
+				matplotlib.pyplot.axvspan(start, end, label=series.name,
+				                          color=color, alpha=0.5, zorder=1)
 	nights = days + 2
-	for index, (sunset, sunrise) in enumerate(_nighttime(nights, now)):
-		label = 'Nacht' if index == 0 else None
+	for sunset, sunrise in _nighttime(nights, now):
 		matplotlib.pyplot.axvspan(
-			sunset, sunrise, label=label,
+			sunset, sunrise, label='Nacht',
 			hatch='//', facecolor='0.9', edgecolor='0.8', zorder=0)
 	matplotlib.pyplot.xlim(now-datetime.timedelta(days), now)
 	matplotlib.pyplot.ylabel('Temperatur °C')
@@ -147,21 +144,22 @@ def plot_history(series_list, file, now):
 	matplotlib.rcParams['axes.grid'] = True
 	matplotlib.rcParams['axes.formatter.useoffset'] = False
 	fig = matplotlib.pyplot.figure(figsize=(14, 7))
-	# last day
-	ax = matplotlib.pyplot.subplot(211)
-	_plot(series_list, 1, now)
-	matplotlib.pyplot.legend(
-		loc='lower left', bbox_to_anchor=(0, 1), borderaxespad=0, ncol=5,
-		frameon=False)
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H Uhr'))
-	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(range(0, 24, 3)))
-	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# last week
 	ax = matplotlib.pyplot.subplot(212)
 	_plot(series_list, 7, now)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%A'))
 	ax.xaxis.set_major_locator(matplotlib.dates.DayLocator())
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator(range(0, 24, 6)))
+	handles, labels = ax.get_legend_handles_labels()
+	# last day
+	ax = matplotlib.pyplot.subplot(211)
+	_plot(series_list, 1, now)
+	matplotlib.pyplot.legend(
+		handles=list(collections.OrderedDict(zip(labels, handles)).values()),
+		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H Uhr'))
+	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(range(0, 24, 3)))
+	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# save file
 	matplotlib.pyplot.savefig(file, bbox_inches='tight')
 	matplotlib.pyplot.close()
