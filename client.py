@@ -72,8 +72,8 @@ def transmit():
 def mdeg_celsius(file):
 	try:
 		with open(file) as mdc_file:
-			return int(mdc_file.read()) / 1e3
-	except OSError, ValueError as err:
+			return (int(mdc_file.read()) / 1e3,) # FIXME
+	except (OSError, ValueError) as err:
 		raise SensorError('invalid millidegrees-celsius file') from err
 
 
@@ -86,7 +86,7 @@ def ds18b20(file):
 	except OSError as err:
 		raise SensorError('invalid w1 file') from err
 	try:
-		return (int(t_value) / 1e3,)
+		return (int(t_value) / 1e3,) # FIXME
 	except ValueError as err:
 		raise SensorError('invalid t value in w1 file') from err
 
