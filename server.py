@@ -28,8 +28,9 @@ DATA_DIR = 'data/'
 SERVER_INTERVAL = datetime.timedelta(minutes=3)
 WEB_DIR = '/home/kaloix/html/sensor/'
 
-Record = collections.namedtuple('Record', 'timestamp value')
 notify = notification.NotificationCenter()
+Record = collections.namedtuple('Record', 'timestamp value')
+Summary = collections.namedtuple('Summary', 'date minimum maximum')
 
 
 def main():
@@ -100,7 +101,26 @@ def detail_html(series_list):
 	return '\n'.join(ret)
 
 
-def _plot(series_list, days, now):
+def _nighttime(count, date_time):
+	# make aware
+	date_time = pytz.timezone('Europe/Berlin').localize(date_time)
+	# calculate nights
+	date_time -= datetime.timedelta(days=count)
+	sun_change = list()
+	for c in range(0, count+1):
+		date_time += datetime.timedelta(days=1)
+		sun_change.extend(pysolar.util.get_sunrise_sunset(
+			49.2, 11.08, date_time))
+	sun_change = sun_change[1:-1]
+	night = list()
+	for r in range(0, count):
+		night.append((sun_change[2*r], sun_change[2*r+1]))
+	# make naive
+	for sunset, sunrise in night:
+		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
+
+
+def _plot_records(series_list, days, now):
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
 		color = next(color_iter)
@@ -135,7 +155,32 @@ def _plot(series_list, days, now):
 			hatch='//', facecolor='0.9', edgecolor='0.8', zorder=0)
 	matplotlib.pyplot.xlim(now-datetime.timedelta(days), now)
 	matplotlib.pyplot.ylabel('Temperatur °C')
-	ax = matplotlib.pyplot.gca()
+	ax = matplotlib.pyplot.gca() # FIXME
+	ax.yaxis.tick_right()
+	ax.yaxis.set_label_position('right')
+
+
+def _plot_summary(series_list, now):
+	color_iter = iter(COLOR_CYCLE)
+	for series in series_list:
+		color = next(color_iter)
+		if type(series) is Temperature:
+			parts = list()
+			for summary in series.summary:
+				if not parts or summary.date-parts[-1][-1].date > \
+						datetime.timedelta(days=7):
+					parts.append(list())
+				parts[-1].append(summary)
+			for part in parts:
+				dates, mins, maxs = zip(*part)
+				matplotlib.pyplot.fill_between(
+					dates, mins, maxs, label=series.name,
+					color=color, alpha=0.5, interpolate=True)
+		elif type(series) is Switch:
+			pass
+	matplotlib.pyplot.xlim(now-datetime.timedelta(days=365), now)
+	matplotlib.pyplot.ylabel('Temperatur °C')
+	ax = matplotlib.pyplot.gca() # FIXME
 	ax.yaxis.tick_right()
 	ax.yaxis.set_label_position('right')
 
@@ -145,43 +190,30 @@ def plot_history(series_list, file, now):
 	matplotlib.rcParams['axes.formatter.useoffset'] = False
 	fig = matplotlib.pyplot.figure(figsize=(14, 7))
 	# last week
-	ax = matplotlib.pyplot.subplot(212)
-	_plot(series_list, 7, now)
+	ax = matplotlib.pyplot.subplot(312)
+	_plot_records(series_list, 7, now)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%A'))
 	ax.xaxis.set_major_locator(matplotlib.dates.DayLocator())
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator(range(0, 24, 6)))
 	handles, labels = ax.get_legend_handles_labels()
 	# last day
-	ax = matplotlib.pyplot.subplot(211)
-	_plot(series_list, 1, now)
+	ax = matplotlib.pyplot.subplot(311)
+	_plot_records(series_list, 1, now)
 	matplotlib.pyplot.legend(
 		handles=list(collections.OrderedDict(zip(labels, handles)).values()),
 		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H Uhr'))
 	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(range(0, 24, 3)))
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
+	# summary
+	ax = matplotlib.pyplot.subplot(313)
+	_plot_summary(series_list, now)
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%B'))
+	ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator())
+	#ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# save file
 	matplotlib.pyplot.savefig(file, bbox_inches='tight')
 	matplotlib.pyplot.close()
-
-
-def _nighttime(count, date_time):
-	# make aware
-	date_time = pytz.timezone('Europe/Berlin').localize(date_time)
-	# calculate nights
-	date_time -= datetime.timedelta(days=count)
-	sun_change = list()
-	for c in range(0, count+1):
-		date_time += datetime.timedelta(days=1)
-		sun_change.extend(pysolar.util.get_sunrise_sunset(
-			49.2, 11.08, date_time))
-	sun_change = sun_change[1:-1]
-	night = list()
-	for r in range(0, count):
-		night.append((sun_change[2*r], sun_change[2*r+1]))
-	# make naive
-	for sunset, sunrise in night:
-		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
 
 
 def _universal_parser(value):
@@ -223,7 +255,7 @@ class Series(object):
 	def __init__(self, name):
 		self.name = name
 		self.now = datetime.datetime.now()
-		self.records = list()
+		self.records = list() # FIXME will overflow
 		self.year = int()
 		for file in sorted(os.listdir(DATA_DIR)):
 			match = re.search(r'(?P<name>\S+)_(?P<year>\d+).csv', file)
@@ -241,6 +273,7 @@ class Series(object):
 				self.records[-1].timestamp-self.records[-3].timestamp < \
 				ALLOWED_DOWNTIME:
 			del self.records[-2]
+		self._summarize(timestamp.date(), value)
 
 	def _read(self, year):
 		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
@@ -288,9 +321,12 @@ class Series(object):
 class Temperature(Series):
 
 	def __init__(self, name, usual, warn):
-		super().__init__(name)
 		self.usual = usual
 		self.warn = warn
+		self.date = datetime.date.min
+		self.today = None
+		self.summary = list() # FIXME will overflow
+		super().__init__(name)
 
 	def __str__(self):
 		current = self.current
@@ -321,6 +357,15 @@ class Temperature(Series):
 				.format(*self.warn))
 		ret.append('</ul>')
 		return ''.join(ret)
+
+	def _summarize(self, date, value):
+		if date > self.date:
+			if self.today:
+				self.summary.append(Summary(self.date,
+					                        min(self.today), max(self.today)))
+			self.date = date
+			self.today = list()
+		self.today.append(value)
 
 	@property
 	def error(self):
@@ -375,6 +420,9 @@ class Switch(Series):
 					.format(_format_timedelta(self.uptime)))
 		ret.append('</ul>')
 		return ''.join(ret)
+
+	def _summarize(self, date, value):
+		pass
 
 	def segments(self, days):
 		expect = True

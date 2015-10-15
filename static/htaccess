@@ -17,3 +17,4 @@
 #  http://httpd.apache.org/docs/2.2/mod/mod_alias.html#redirect
 Redirect temp "/sensor/index.html" "/sensor/lufttemperatur.html"
 Redirect permanent "/sensor/Lufttemperatur.html" "/sensor/lufttemperatur.html"
+Redirect permanent "/sensor/Solaranlage.html" "/sensor/solaranlage.html"
