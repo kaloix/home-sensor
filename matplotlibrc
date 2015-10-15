@@ -1,0 +1,6 @@
+axes.formatter.useoffset : False
+axes.grid : True
+xtick.major.width : 1
+xtick.minor.width : 1
+xtick.major.size : 4
+xtick.minor.size : 3

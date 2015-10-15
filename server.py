@@ -155,7 +155,7 @@ def _plot_records(series_list, days, now):
 			hatch='//', facecolor='0.9', edgecolor='0.8', zorder=0)
 	matplotlib.pyplot.xlim(now-datetime.timedelta(days), now)
 	matplotlib.pyplot.ylabel('Temperatur °C')
-	ax = matplotlib.pyplot.gca() # FIXME
+	ax = matplotlib.pyplot.gca() # FIXME not available in mplrc 1.4.3
 	ax.yaxis.tick_right()
 	ax.yaxis.set_label_position('right')
 
@@ -180,14 +180,12 @@ def _plot_summary(series_list, now):
 			pass
 	matplotlib.pyplot.xlim(now-datetime.timedelta(days=365), now)
 	matplotlib.pyplot.ylabel('Temperatur °C')
-	ax = matplotlib.pyplot.gca() # FIXME
+	ax = matplotlib.pyplot.gca() # FIXME not available in mplrc 1.4.3
 	ax.yaxis.tick_right()
 	ax.yaxis.set_label_position('right')
 
 
 def plot_history(series_list, file, now):
-	matplotlib.rcParams['axes.grid'] = True
-	matplotlib.rcParams['axes.formatter.useoffset'] = False
 	fig = matplotlib.pyplot.figure(figsize=(14, 7))
 	# last week
 	ax = matplotlib.pyplot.subplot(312)
@@ -210,7 +208,6 @@ def plot_history(series_list, file, now):
 	_plot_summary(series_list, now)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%B'))
 	ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator())
-	#ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# save file
 	matplotlib.pyplot.savefig(file, bbox_inches='tight')
 	matplotlib.pyplot.close()
