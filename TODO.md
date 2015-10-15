@@ -1,12 +1,11 @@
 # TODO
 ## Temperature Garden
-1. Robust temerpature sensor connection for *Wohnzimmer*
-2. Use box for dust protection of *thalgrund*
-3. Move 500GB TrekStor HDD from *raspberrypi* to *thalgrund*
-4. Re-setup Raspberry Pi from basement, hostname *ridgewood*
-5. Place *ridgewood* in Gartenhaus
-
-## Min-Max Plot
+0. Re-setup *Raspberry Pi 1 Model B Rev 2.0*, hostname *ridgewood*
+0. Drill hole in existing case
+0. Buy WLAN adapter for *Raspberry Pi 1 Model B Rev. 2.0* ([Conrad](http://www.conrad.de/ce/de/product/993655/Raspberry-Pi-WLAN-Stick-EDIMAX-EW-7811Un))
+0. Make temerpature sensor connection robust at *thalgrund* (with jumper wires,
+   Lüsterklemmen and dust protection)
+0. Place *ridgewood* in Gartenhaus with temperature sensor
 
 ## HTML 5 Plots
 * [Highstock demos | Highcharts](http://www.highcharts.com/stock/demo)
