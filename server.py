@@ -85,7 +85,7 @@ def loop(group, series_list, html_template, now):
 		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
 		group = group,
 		values = detail_html(series_list),
-		update_time = '{:%A %d. %B %Y %X}'.format(now),
+		update_time = '{:%A, den %d. %B %Y, um %X}'.format(now),
 		year = '{:%Y}'.format(now))
 	with open(WEB_DIR+group.lower()+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
@@ -140,11 +140,11 @@ def _plot_records(series_list, days, now):
 					linewidth=3, color=color, zorder=3)
 				matplotlib.pyplot.fill_between(
 					timestamps, values, series.warn[0],
-					where = [value<series.warn[0] for value in values],
+					where = [value<series.warn[0] for value in values], # FIXME runtime warning
 					interpolate=True, color='r', zorder=2, alpha=0.7)
 				matplotlib.pyplot.fill_between(
 					timestamps, values, series.warn[1],
-					where = [value>series.warn[1] for value in values],
+					where = [value>series.warn[1] for value in values], # FIXME runtime warning
 					interpolate=True, color='r', zorder=2, alpha=0.7)
 		elif type(series) is Switch:
 			for start, end in series.segments:
@@ -209,6 +209,8 @@ def plot_history(series_list, file, now):
 	_plot_summary(series_list, now)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%B'))
 	ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator())
+	ax.xaxis.set_minor_locator(matplotlib.dates.WeekdayLocator(
+		matplotlib.dates.MO))
 	# save file
 	matplotlib.pyplot.savefig(file, bbox_inches='tight')
 	matplotlib.pyplot.close()
