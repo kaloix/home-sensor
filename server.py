@@ -25,7 +25,9 @@ import utility
 ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
+RECORD_RANGE = datetime.timedelta(days=7)
 SERVER_INTERVAL = datetime.timedelta(minutes=3)
+SUMMARY_RANGE = datetime.timedelta(days=365)
 WEB_DIR = '/home/kaloix/html/sensor/'
 
 notify = notification.NotificationCenter()
@@ -120,13 +122,13 @@ def _nighttime(count, date_time):
 		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
 
 
-def _plot_records(series_list, days, now):
+def _plot_records(series_list, zoom, now):
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
 		color = next(color_iter)
 		if type(series) is Temperature:
 			parts = list()
-			for record in series.tail(days):
+			for record in series.records:
 				if not parts or record.timestamp-parts[-1][-1].timestamp > \
 						ALLOWED_DOWNTIME:
 					parts.append(list())
@@ -145,15 +147,15 @@ def _plot_records(series_list, days, now):
 					where = [value>series.warn[1] for value in values],
 					interpolate=True, color='r', zorder=2, alpha=0.7)
 		elif type(series) is Switch:
-			for start, end in series.segments(days):
+			for start, end in series.segments:
 				matplotlib.pyplot.axvspan(start, end, label=series.name,
 				                          color=color, alpha=0.5, zorder=1)
-	nights = days + 2
+	nights = int(zoom / datetime.timedelta(days=1)) + 2
 	for sunset, sunrise in _nighttime(nights, now):
 		matplotlib.pyplot.axvspan(
 			sunset, sunrise, label='Nacht',
 			hatch='//', facecolor='0.9', edgecolor='0.8', zorder=0)
-	matplotlib.pyplot.xlim(now-datetime.timedelta(days), now)
+	matplotlib.pyplot.xlim(now-zoom, now)
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	ax = matplotlib.pyplot.gca() # FIXME not available in mplrc 1.4.3
 	ax.yaxis.tick_right()
@@ -189,14 +191,14 @@ def plot_history(series_list, file, now):
 	fig = matplotlib.pyplot.figure(figsize=(14, 7))
 	# last week
 	ax = matplotlib.pyplot.subplot(312)
-	_plot_records(series_list, 7, now)
+	_plot_records(series_list, RECORD_RANGE, now)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%A'))
 	ax.xaxis.set_major_locator(matplotlib.dates.DayLocator())
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator(range(0, 24, 6)))
 	handles, labels = ax.get_legend_handles_labels()
 	# last day
 	ax = matplotlib.pyplot.subplot(311)
-	_plot_records(series_list, 1, now)
+	_plot_records(series_list, datetime.timedelta(days=1), now)
 	matplotlib.pyplot.legend(
 		handles=list(collections.OrderedDict(zip(labels, handles)).values()),
 		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
@@ -252,7 +254,8 @@ class Series(object):
 	def __init__(self, name):
 		self.name = name
 		self.now = datetime.datetime.now()
-		self.records = list() # FIXME will overflow
+		self.records = collections.deque()
+		self.summary = collections.deque()
 		self.year = int()
 		for file in sorted(os.listdir(DATA_DIR)):
 			match = re.search(r'(?P<name>\S+)_(?P<year>\d+).csv', file)
@@ -272,6 +275,13 @@ class Series(object):
 			del self.records[-2]
 		self._summarize(timestamp.date(), value)
 
+	def _clear(self):
+		while self.records and \
+				self.records[-1].timestamp < self.now-RECORD_RANGE:
+			self.records.popleft()
+		while self.summary and self.summary[-1].date < self.now-SUMMARY_RANGE:
+			self.summary.popleft()
+
 	def _read(self, year):
 		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
 		try:
@@ -281,13 +291,7 @@ class Series(object):
 					             _universal_parser(row[1]))
 		except OSError:
 			pass
-
-	def tail(self, days):
-		min_time = self.now - datetime.timedelta(days)
-		start = len(self.records)
-		while start > 0 and self.records[start-1].timestamp >= min_time:
-			start -= 1
-		return itertools.islice(self.records, start, None)
+		self._clear()
 
 	@property
 	def current(self):
@@ -296,16 +300,6 @@ class Series(object):
 			return self.records[-1].value
 		else:
 			return None
-
-	@property
-	def minmax(self):
-		minimum = maximum = None
-		for record in self.tail(1):
-			if not minimum or record.value <= minimum.value:
-				minimum = record
-			if not maximum or record.value >= maximum.value:
-				maximum = record
-		return minimum, maximum
 
 	def update(self, now):
 		self.now = now
@@ -322,7 +316,6 @@ class Temperature(Series):
 		self.warn = warn
 		self.date = datetime.date.min
 		self.today = None
-		self.summary = list() # FIXME will overflow
 		super().__init__(name)
 
 	def __str__(self):
@@ -363,6 +356,16 @@ class Temperature(Series):
 			self.date = date
 			self.today = list()
 		self.today.append(value)
+
+	@property
+	def minmax(self):
+		minimum = maximum = None
+		for record in self.records:
+			if not minimum or record.value <= minimum.value:
+				minimum = record
+			if not maximum or record.value >= maximum.value:
+				maximum = record
+		return minimum, maximum
 
 	@property
 	def error(self):
@@ -421,9 +424,10 @@ class Switch(Series):
 	def _summarize(self, date, value):
 		pass
 
-	def segments(self, days):
+	@property
+	def segments(self):
 		expect = True
-		for timestamp, value in self.tail(days):
+		for timestamp, value in self.records:
 			# assume false during downtime
 			if not expect and timestamp-running > ALLOWED_DOWNTIME:
 				expect = True
@@ -445,7 +449,7 @@ class Switch(Series):
 	@property
 	def uptime(self):
 		total = datetime.timedelta()
-		for start, stop in self.segments(1):
+		for start, stop in self.segments:
 			total += stop - start
 		return total
 

@@ -1,11 +1,9 @@
 # TODO
 ## General
-* unattended upgrades on *thalgrund*
+* import with line number
+* http interface (with ssl socket/ self signed cert)
 
 ## Temperature Garden
-0. Drill hole in existing case
-0. Restrict SSH keys at *uberspace*
-	* [Ausführbare SSH-Kommandos per authorized keys einschränken – Thomas-Krenn-Wiki](https://www.thomas-krenn.com/de/wiki/Ausf%C3%BChrbare_SSH-Kommandos_per_authorized_keys_einschr%C3%A4nken)
 0. Buy WLAN adapter for *Raspberry Pi 1 Model B Rev. 2.0* ([Conrad](http://www.conrad.de/ce/de/product/993655/Raspberry-Pi-WLAN-Stick-EDIMAX-EW-7811Un))
 0. Make temerpature sensor connection robust at *thalgrund* (with jumper wires,
    Lüsterklemmen and dust protection)
