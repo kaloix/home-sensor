@@ -25,9 +25,9 @@ import utility
 ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
-RECORD_RANGE = datetime.timedelta(days=7)
+RECORD_DAYS = 7
 SERVER_INTERVAL = datetime.timedelta(minutes=3)
-SUMMARY_RANGE = datetime.timedelta(days=365)
+SUMMARY_DAYS = 365
 WEB_DIR = '/home/kaloix/html/sensor/'
 
 notify = notification.NotificationCenter()
@@ -122,13 +122,13 @@ def _nighttime(count, date_time):
 		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
 
 
-def _plot_records(series_list, zoom, now):
+def _plot_records(series_list, days, now):
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
 		color = next(color_iter)
 		if type(series) is Temperature:
 			parts = list()
-			for record in series.records:
+			for record in series.day if days==1 else series.records:
 				if not parts or record.timestamp-parts[-1][-1].timestamp > \
 						ALLOWED_DOWNTIME:
 					parts.append(list())
@@ -150,12 +150,12 @@ def _plot_records(series_list, zoom, now):
 			for start, end in series.segments:
 				matplotlib.pyplot.axvspan(start, end, label=series.name,
 				                          color=color, alpha=0.5, zorder=1)
-	nights = int(zoom / datetime.timedelta(days=1)) + 2
+	nights = days + 2
 	for sunset, sunrise in _nighttime(nights, now):
 		matplotlib.pyplot.axvspan(
 			sunset, sunrise, label='Nacht',
 			hatch='//', facecolor='0.9', edgecolor='0.8', zorder=0)
-	matplotlib.pyplot.xlim(now-zoom, now)
+	matplotlib.pyplot.xlim(now-datetime.timedelta(days), now)
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	ax = matplotlib.pyplot.gca() # FIXME not available in mplrc 1.4.3
 	ax.yaxis.tick_right()
@@ -191,14 +191,14 @@ def plot_history(series_list, file, now):
 	fig = matplotlib.pyplot.figure(figsize=(14, 7))
 	# last week
 	ax = matplotlib.pyplot.subplot(312)
-	_plot_records(series_list, RECORD_RANGE, now)
+	_plot_records(series_list, RECORD_DAYS, now)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%A'))
 	ax.xaxis.set_major_locator(matplotlib.dates.DayLocator())
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator(range(0, 24, 6)))
 	handles, labels = ax.get_legend_handles_labels()
 	# last day
 	ax = matplotlib.pyplot.subplot(311)
-	_plot_records(series_list, datetime.timedelta(days=1), now)
+	_plot_records(series_list, 1, now)
 	matplotlib.pyplot.legend(
 		handles=list(collections.OrderedDict(zip(labels, handles)).values()),
 		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
@@ -276,10 +276,11 @@ class Series(object):
 		self._summarize(timestamp.date(), value)
 
 	def _clear(self):
-		while self.records and \
-				self.records[-1].timestamp < self.now-RECORD_RANGE:
+		while self.records and self.records[0].timestamp < \
+				self.now-datetime.timedelta(RECORD_DAYS):
 			self.records.popleft()
-		while self.summary and self.summary[-1].date < self.now-SUMMARY_RANGE:
+		while self.summary and self.summary[0].date < \
+				(self.now - datetime.timedelta(SUMMARY_DAYS)).date():
 			self.summary.popleft()
 
 	def _read(self, year):
@@ -300,6 +301,14 @@ class Series(object):
 			return self.records[-1].value
 		else:
 			return None
+
+	@property
+	def day(self):
+		min_time = self.now - datetime.timedelta(days=1)
+		start = len(self.records)
+		while start > 0 and self.records[start-1].timestamp >= min_time:
+			start -= 1
+		return itertools.islice(self.records, start, None)
 
 	def update(self, now):
 		self.now = now
@@ -331,13 +340,13 @@ class Temperature(Series):
 				ret.append(' ⚠')
 		ret.append('<ul>\n')
 		if minimum:
-			ret.append('<li>24-Stunden-Tief bei {:.1f} °C {}'.format(
+			ret.append('<li>Wochen-Tief bei {:.1f} °C {}'.format(
 				minimum.value, _format_timestamp(minimum.timestamp, self.now)))
 			if minimum.value < self.warn[0]:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		if maximum:
-			ret.append('<li>24-Stunden-Hoch bei {:.1f} °C {}'.format(
+			ret.append('<li>Wochen-Hoch bei {:.1f} °C {}'.format(
 				maximum.value, _format_timestamp(maximum.timestamp, self.now)))
 			if maximum.value > self.warn[1]:
 				ret.append(' ⚠')
@@ -416,7 +425,7 @@ class Switch(Series):
 				_format_timestamp(last_false, self.now)))
 		if self.records:
 			ret.append(
-				'<li>{} Einschaltdauer in den letzten 24 Stunden</li>\n'
+				'<li>{} Einschaltdauer in der letzten Woche</li>\n'
 					.format(_format_timedelta(self.uptime)))
 		ret.append('</ul>')
 		return ''.join(ret)
