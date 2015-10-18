@@ -75,7 +75,7 @@ def loop(group, series_list, html_template, now):
 	logging.info('read csv')
 	for series in series_list:
 		series.update(now)
-		error = series.error
+		error = series.error # FIXME no data warning only once per failure
 		if error:
 			notify.user_warning(error)
 	if os.system('cp {}{} {}'.format(DATA_DIR, 'thermosolar.jpg', WEB_DIR)):
@@ -150,8 +150,7 @@ def _plot_records(series_list, days, now):
 			for start, end in series.segments:
 				matplotlib.pyplot.axvspan(start, end, label=series.name,
 				                          color=color, alpha=0.5, zorder=1)
-	nights = days + 2
-	for sunset, sunrise in _nighttime(nights, now):
+	for sunset, sunrise in _nighttime(days+1, now):
 		matplotlib.pyplot.axvspan(
 			sunset, sunrise, label='Nacht',
 			hatch='//', facecolor='0.9', edgecolor='0.8', zorder=0)
@@ -321,7 +320,7 @@ class Series(object):
 class Temperature(Series):
 
 	def __init__(self, name, usual, warn):
-		self.usual = usual
+		self.usual = usual # FIXME remove value
 		self.warn = warn
 		self.date = datetime.date.min
 		self.today = None
