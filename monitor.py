@@ -23,18 +23,21 @@ class MonitorClient:
 		self.context.verify_mode = ssl.CERT_REQUIRED
 		self.context.load_verify_locations(CERT)
 
-	# FIXME buffer on network downtime
 	def send(self, **kwargs):
 		logging.debug('send {}'.format(kwargs))
-		kwargs['_token'] = token
+		kwargs['_token'] = self.token
 		try:
 			body = json.dumps(kwargs)
 		except TypeError as err:
 			raise MonitorError(str(err)) from None
-		conn = http.client.HTTPSConnection(HOST, PORT, context=context)
-		conn.request('POST', '', body, HEADERS)
-		response = conn.getresponse()
-		conn.close()
+		try:
+			conn = http.client.HTTPSConnection(HOST, PORT,
+			                                   context=self.context)
+			conn.request('POST', '', body, HEADERS)
+			response = conn.getresponse()
+			conn.close()
+		except OSError as err:
+			raise MonitorError(str(err)) from None # FIXME buffer instead
 		if response.status != 201:
 			raise MonitorError('{} {}'.format(response.status,
 			                                  response.reason))
@@ -50,7 +53,7 @@ class MonitorServer:
 		self.httpd.handle = handle_function
 		with open(TOKEN_FILE) as token_file:
 			self.httpd.token = [t.strip() for t in token_file]
-		self.httpd.serve_forever()
+		self.httpd.serve_forever() # FIXME make concurrent
 
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):

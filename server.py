@@ -78,8 +78,7 @@ def loop(group, series_list, html_template, now):
 		error = series.error # FIXME no data warning only once per failure
 		if error:
 			notify.user_warning(error)
-	if os.system('cp {}{} {}'.format(DATA_DIR, 'thermosolar.jpg', WEB_DIR)):
-		logging.error('cp thermosolar.jpg failed')
+	shutil.copy(DATA_DIR+'thermosolar.jpg', WEB_DIR)
 	logging.info('write html')
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
