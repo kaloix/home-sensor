@@ -4,7 +4,7 @@
 			"station": 1,
 			"type": "mdeg_celsius",
 			"file": "/sys/class/thermal/thermal_zone0/temp",
-			"interval": 300
+			"interval": 420
 		},
 		"output": {
 			"temperature": {

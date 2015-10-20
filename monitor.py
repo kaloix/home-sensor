@@ -135,7 +135,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			return
 		try:
 			self.server.handle(**data)
-		except Exception as err:
+		except MonitorError as err:
 			logging.error('{}: {}'.format(type(err).__name__, err))
 			self.send_error(400, 'bad parameters')
 			self.end_headers()
