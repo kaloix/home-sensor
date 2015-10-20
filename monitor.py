@@ -4,6 +4,8 @@ import json
 import logging
 import ssl
 
+import utility
+
 
 CERT = 'server.crt'
 CONTENT_TYPE = 'application/json'
@@ -22,12 +24,13 @@ class MonitorClient:
 		self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 		self.context.verify_mode = ssl.CERT_REQUIRED
 		self.context.load_verify_locations(CERT)
+		self.buffer = list()
 
-	def send(self, **kwargs):
-		logging.debug('send {}'.format(kwargs))
-		kwargs['_token'] = self.token
+	@utility.allow_every_x_seconds(60)
+	def _send_buffer(self):
+		logging.debug('send {}'.format(self.buffer))
 		try:
-			body = json.dumps(kwargs)
+			body = json.dumps([self.token] + self.buffer)
 		except TypeError as err:
 			raise MonitorError(str(err)) from None
 		try:
@@ -37,10 +40,21 @@ class MonitorClient:
 			response = conn.getresponse()
 			conn.close()
 		except OSError as err:
-			raise MonitorError(str(err)) from None # FIXME buffer instead
+			raise MonitorError(str(err)) from None
 		if response.status != 201:
 			raise MonitorError('{} {}'.format(response.status,
 			                                  response.reason))
+
+	def send(self, data):
+		self.buffer.append(data)
+		try:
+			self._send_buffer() # FIXME connection with data suboptimal
+		except MonitorError as err:
+			logging.warning('send fail: {}'.format(err))
+		except utility.CallDenied:
+			logging.debug('send postpone')
+		else:
+			self.buffer = list()
 
 
 class MonitorServer:
@@ -71,16 +85,16 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.send_error(400, 'bad json', str(err))
 			self.end_headers()
 			return
-		if type(data) is not dict or '_token' not in data:
+		if type(data) is not list or not data:
 			self.send_error(401, 'missing api token')
 			self.end_headers()
 			return
-		if data.pop('_token') not in self.server.token:
+		if data[0] not in self.server.token:
 			self.send_error(401, 'invalid api token')
 			self.end_headers()
 			return
 		try:
-			self.server.handle(data)
+			self.server.handle(data[1:])
 		except MonitorError as err:
 			self.send_error(400, 'bad parameters', str(err))
 			self.end_headers()

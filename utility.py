@@ -31,5 +31,11 @@ def allow_every_x_seconds(interval):
 			if now >= target:
 				target = now + interval
 				user_function(*args, **kwargs)
+			else:
+				raise CallDenied
 		return new_function
 	return decorating_function
+
+
+class CallDenied(Exception):
+	pass
