@@ -61,7 +61,8 @@ class MonitorClient:
 			except MonitorError as err:
 				logging.error('unable to send {}: {}'.format(item, err))
 			except (http.client.HTTPException, OSError) as err:
-				logging.warning('postpone send: {}'.format(err))
+				logging.warning(
+					'postpone send: {} {}'.format(type(err).__name__, err))
 				self.buffer = self.buffer[index:]
 				break
 		else:
@@ -133,6 +134,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.send_error(401, 'invalid api token')
 			self.end_headers()
 			return
+		logging.debug('receive {}'.format(data))
 		try:
 			self.server.handle(**data)
 		except MonitorError as err:

@@ -12,6 +12,7 @@ import string
 import time
 import traceback
 import shutil
+import functools
 
 import matplotlib.dates
 import matplotlib.pyplot
@@ -57,7 +58,7 @@ def main():
 			elif kind == 'switch':
 				series[attr['group']].append(Switch(
 					attr['name']))
-	with monitor.MonitorServer(save_record):
+	with monitor.MonitorServer(functools.partial(save_record, series)):
 		while True:
 			start = datetime.datetime.now()
 			for group, series_list in series.items():
@@ -73,11 +74,11 @@ def on_shutdown():
 	shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
-def save_record(name, timestamp, value):
+def save_record(series, name, timestamp, value):
 	for series_list in series.values():
 		for series in series_list:
 			if series.name == name:
-				series.update(Record(timestamp, value))
+				series.update(timestamp, value)
 				return
 
 
@@ -327,8 +328,9 @@ class Series(object):
 #			self.year = now.year
 #		self._read(now.year)
 
-	def update(self, record):
-		self._append(*record)
+	def update(self, timestamp, value):
+		self._append(datetime.datetime.fromtimestamp(int(timestamp)),
+		             _universal_parser(value))
 		self._clear()
 
 
