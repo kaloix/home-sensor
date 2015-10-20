@@ -13,6 +13,7 @@ import time
 import numpy
 import scipy.misc
 
+import monitor
 import utility
 
 
@@ -20,6 +21,8 @@ CLIENT_INTERVAL = datetime.timedelta(seconds=10)
 CLIENT_SERVER = 'kaloix@adhara.uberspace.de:home-sensor/'
 DATA_DIR = 'data/'
 TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
+
+connection = monitor.MonitorClient()
 
 
 def main():
@@ -165,39 +168,27 @@ def _make_box(image, left, top, right, bottom):
 	return image
 
 
-class Series(object):
-
-	def __init__(self, name):
-		self.name = name
-
-	def write(self, value):
-		now = datetime.datetime.now()
-		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
-		with open(filename, mode='a', newline='') as csv_file:
-			writer = csv.writer(csv_file)
-			writer.writerow((int(now.timestamp()), value))
-
-
 class Sensor(object):
 
 	def __init__(self, names, reader_function, interval):
-		self.series = [Series(n) for n in names]
-		self.reader_function = reader_function
+		self.names = names
+		self.reader = reader_function
 		self.update = utility.allow_every_x_seconds(interval)(self.update)
 
 	def __repr__(self):
-		return '{} {}'.format(self.__class__.__name__,
-		                      '/'.join([s.name for s in self.series]))
+		return '{} {}'.format(self.__class__.__name__, '/'.join(self.names))
 
 	def update(self):
 		logging.info('update {}'.format(self))
+		now = datetime.datetime.now()
 		try:
-			values = self.reader_function()
+			values = self.reader()
 		except SensorError as err:
 			logging.error('{} failure: {}'.format(self, err))
 			return
-		for index, series in enumerate(self.series):
-			series.write(values[index])
+		for index, name in enumerate(self.names):
+			connection.send(name=name, value=values[index],
+			                timestamp=int(now.timestamp()))
 
 
 class SensorError(Exception):
@@ -205,4 +196,7 @@ class SensorError(Exception):
 
 
 if __name__ == "__main__":
-	main()
+	try:
+		main()
+	except:
+		connection.close()

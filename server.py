@@ -18,6 +18,7 @@ import matplotlib.pyplot
 import pysolar
 import pytz
 
+import monitor
 import notification
 import utility
 
@@ -26,7 +27,7 @@ ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
 RECORD_DAYS = 7
-SERVER_INTERVAL = datetime.timedelta(minutes=3)
+SERVER_INTERVAL = datetime.timedelta(seconds=15)
 SUMMARY_DAYS = 365
 WEB_DIR = '/home/kaloix/html/sensor/'
 
@@ -43,8 +44,8 @@ def main():
 		html_template = html_file.read()
 	with open('sensor.json') as json_file:
 		sensor_json = json_file.read()
-	devices = json.loads(
-		sensor_json, object_pairs_hook=collections.OrderedDict)
+	devices = json.loads(sensor_json,
+	                     object_pairs_hook=collections.OrderedDict)
 	series = collections.defaultdict(list)
 	for device in devices:
 		for kind, attr in device['output'].items():
@@ -56,14 +57,15 @@ def main():
 			elif kind == 'switch':
 				series[attr['group']].append(Switch(
 					attr['name']))
-	while True:
-		start = datetime.datetime.now()
-		for group, series_list in series.items():
-			loop(group, series_list, html_template, start)
-		utility.memory_check()
-		duration = (datetime.datetime.now() - start).total_seconds()
-		logging.debug('sleep, duration was {:.1f}s'.format(duration))
-		time.sleep(SERVER_INTERVAL.total_seconds())
+	with monitor.MonitorServer(save_record):
+		while True:
+			start = datetime.datetime.now()
+			for group, series_list in series.items():
+				loop(group, series_list, html_template, start)
+			utility.memory_check()
+			duration = (datetime.datetime.now() - start).total_seconds()
+			logging.debug('sleep, duration was {:.1f}s'.format(duration))
+			time.sleep(SERVER_INTERVAL.total_seconds())
 
 
 def on_shutdown():
@@ -71,10 +73,18 @@ def on_shutdown():
 	shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
+def save_record(name, timestamp, value):
+	for series_list in series.values():
+		for series in series_list:
+			if series.name == name:
+				series.update(Record(timestamp, value))
+				return
+
+
 def loop(group, series_list, html_template, now):
 	logging.info('read csv')
 	for series in series_list:
-		series.update(now)
+#		series.update(now)
 		error = series.error # FIXME no data warning only once per failure
 		if error:
 			notify.user_warning(error)
@@ -256,13 +266,13 @@ class Series(object):
 		self.now = datetime.datetime.now()
 		self.records = collections.deque()
 		self.summary = collections.deque()
-		self.year = int()
-		for file in sorted(os.listdir(DATA_DIR)):
-			match = re.search(r'(?P<name>\S+)_(?P<year>\d+).csv', file)
-			if match and match.group('name') == self.name:
-				year = int(match.group('year'))
-				self._read(year)
-				self.year = year
+#		self.year = int()
+#		for file in sorted(os.listdir(DATA_DIR)):
+#			match = re.search(r'(?P<name>\S+)_(?P<year>\d+).csv', file)
+#			if match and match.group('name') == self.name:
+#				year = int(match.group('year'))
+#				self._read(year)
+#				self.year = year
 
 	def _append(self, timestamp, value):
 		if self.records and timestamp <= self.records[-1].timestamp:
@@ -283,16 +293,16 @@ class Series(object):
 				(self.now - datetime.timedelta(SUMMARY_DAYS)).date():
 			self.summary.popleft()
 
-	def _read(self, year):
-		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
-		try:
-			with open(filename, newline='') as csv_file:
-				for row in csv.reader(csv_file):
-					self._append(datetime.datetime.fromtimestamp(int(row[0])),
-					             _universal_parser(row[1]))
-		except OSError:
-			pass
-		self._clear()
+#	def _read(self, year):
+#		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
+#		try:
+#			with open(filename, newline='') as csv_file:
+#				for row in csv.reader(csv_file):
+#					self._append(datetime.datetime.fromtimestamp(int(row[0])),
+#					             _universal_parser(row[1]))
+#		except OSError:
+#			pass
+#		self._clear()
 
 	@property
 	def current(self):
@@ -310,12 +320,16 @@ class Series(object):
 			start -= 1
 		return itertools.islice(self.records, start, None)
 
-	def update(self, now):
-		self.now = now
-		if self.year < now.year:
-			self._read(self.year)
-			self.year = now.year
-		self._read(now.year)
+#	def update(self, now):
+#		self.now = now
+#		if self.year < now.year:
+#			self._read(self.year)
+#			self.year = now.year
+#		self._read(now.year)
+
+	def update(self, record):
+		self._append(*record)
+		self._clear()
 
 
 class Temperature(Series):

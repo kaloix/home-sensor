@@ -11,7 +11,6 @@ import utility
 
 CERT = 'server.crt'
 CONTENT_TYPE = 'application/json'
-HEADERS = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 HOST = 'kaloix.de'
 KEY = 'server.key'
 PORT = 64918
@@ -45,8 +44,9 @@ class MonitorClient:
 		try:
 			body = json.dumps(kwargs)
 		except TypeError as err:
-			raise MonitorError(str(err)) from None
-		self.conn.request('POST', '', body, HEADERS)
+			raise MonitorError(str(err))
+		headers = {'Content-type': CONTENT_TYPE, 'Accept': 'text/plain'}
+		self.conn.request('POST', '', body, headers)
 		resp = self.conn.getresponse()
 		if resp.status != 201:
 			raise MonitorError('{} {}'.format(resp.status, resp.reason))
@@ -70,16 +70,12 @@ class MonitorClient:
 
 	def _sender(self):
 		while not self.shutdown or self.buffer:
-			# wait for data
 			self.buffer_send.wait()
-			# wait for interval
 			delay = self.buffer_block - time.perf_counter()
 			if delay > 0:
 				time.sleep(delay)
-			# send buffer
 			with self.buffer_mutex:
 				self._send_buffer()
-			# reset interval
 			self.buffer_block = time.perf_counter() + INTERVAL
 
 	def send(self, **kwargs):
@@ -103,7 +99,15 @@ class MonitorServer:
 		self.httpd.handle = handle_function
 		with open(TOKEN_FILE) as token_file:
 			self.httpd.token = [t.strip() for t in token_file]
-		self.httpd.serve_forever() # FIXME make concurrent
+
+	def __enter__(self):
+		self.server = threading.Thread(target=self.httpd.serve_forever)
+		self.server.start()
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		logging.info('shutdown registered')
+		self.httpd.shutdown()
+		self.server.join()
 
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -130,9 +134,10 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.end_headers()
 			return
 		try:
-			self.server.handle(data)
-		except MonitorError as err:
-			self.send_error(400, 'bad parameters', str(err))
+			self.server.handle(**data)
+		except Exception as err:
+			logging.error('{}: {}'.format(type(err).__name__, err))
+			self.send_error(400, 'bad parameters')
 			self.end_headers()
 			return
 		self.send_response(201, 'value received')
