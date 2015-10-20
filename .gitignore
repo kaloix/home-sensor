@@ -1,7 +1,10 @@
-__pycache__/
-ve/
+api_token
 data/
-test.py
-ssocr*
-thermosolar.jpg
+__pycache__/
+server.crt
+server.key
 seven_segment.png
+ssocr*
+test.py
+thermosolar.jpg
+ve/

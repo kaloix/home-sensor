@@ -3,6 +3,8 @@ import http.server
 import json
 import logging
 import ssl
+import threading
+import time
 
 import utility
 
@@ -14,47 +16,90 @@ HOST = 'kaloix.de'
 KEY = 'server.key'
 PORT = 64918
 TOKEN_FILE = 'api_token'
+INTERVAL = 60
 
 
 class MonitorClient:
 
 	def __init__(self):
+		# client authentication
 		with open(TOKEN_FILE) as token_file:
 			self.token = token_file.readline().strip()
+		# connection encryption
 		self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 		self.context.verify_mode = ssl.CERT_REQUIRED
 		self.context.load_verify_locations(CERT)
+		# data buffer
 		self.buffer = list()
+		self.buffer_send = threading.Event()
+		self.buffer_mutex = threading.Lock()
+		self.buffer_block = time.perf_counter()
+		# sender thread
+		self.shutdown = False
+		self.sender = threading.Thread(target=self._sender)
+		self.sender.start()
 
-	@utility.allow_every_x_seconds(60)
-	def _send_buffer(self):
-		logging.debug('send {}'.format(self.buffer))
+	def _send(self, **kwargs):
+		logging.debug('send {}'.format(kwargs))
+		kwargs['_token'] = self.token
 		try:
-			body = json.dumps([self.token] + self.buffer)
+			body = json.dumps(kwargs)
 		except TypeError as err:
 			raise MonitorError(str(err)) from None
 		try:
 			conn = http.client.HTTPSConnection(HOST, PORT,
 			                                   context=self.context)
 			conn.request('POST', '', body, HEADERS)
-			response = conn.getresponse()
+			resp = conn.getresponse()
 			conn.close()
 		except OSError as err:
-			raise MonitorError(str(err)) from None
-		if response.status != 201:
-			raise MonitorError('{} {}'.format(response.status,
-			                                  response.reason))
+			logging.warning(str(err))
+			return False
+		if resp.status == 201:
+			return True
+		else:
+			raise MonitorError('{} {}'.format(resp.status, resp.reason))
+
+	def _send_buffer(self):
+		repeat = list()
+		for item in self.buffer:
+			try:
+				success = self._send(*item)
+			except MonitorError as err:
+				logging.error('unable to send: {}'.format(err))
+			else:
+				if not success:
+					repeat.append(item)
+		self.buffer = repeat
+		if not self.buffer:
+			self.buffer_send.clear()
+
+	def _sender(self):
+		while not self.shutdown:
+			# wait for data
+			self.buffer_send.wait()
+			# wait for interval
+			now = time.perf_counter()
+			delay = now - self.buffer_block
+			if delay > 0:
+				time.sleep(delay)
+			# send buffer
+			with self.buffer_mutex:
+				try:
+					self._send_buffer()
+				except MonitorError as err:
+					logging.warning('send fail: {}'.format(err))
+			# reset interval
+			self.buffer_block = now + INTERVAL
 
 	def send(self, data):
-		self.buffer.append(data)
-		try:
-			self._send_buffer() # FIXME connection with data suboptimal
-		except MonitorError as err:
-			logging.warning('send fail: {}'.format(err))
-		except utility.CallDenied:
-			logging.debug('send postpone')
-		else:
-			self.buffer = list()
+		with self.buffer_mutex:
+			self.buffer.append(data)
+			self.buffer_send.set()
+
+	def close(self):
+		self.shutdown = True
+		self.sender.join()
 
 
 class MonitorServer:
