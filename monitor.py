@@ -52,7 +52,7 @@ class MonitorClient:
 			conn.request('POST', '', body, HEADERS)
 			resp = conn.getresponse()
 			conn.close()
-		except OSError as err:
+		except (http.client.HTTPException, OSError) as err:
 			logging.warning(str(err))
 			return False
 		if resp.status == 201:
@@ -64,7 +64,7 @@ class MonitorClient:
 		repeat = list()
 		for item in self.buffer:
 			try:
-				success = self._send(*item)
+				success = self._send(**item)
 			except MonitorError as err:
 				logging.error('unable to send: {}'.format(err))
 			else:
@@ -92,9 +92,9 @@ class MonitorClient:
 			# reset interval
 			self.buffer_block = now + INTERVAL
 
-	def send(self, data):
+	def send(self, **kwargs):
 		with self.buffer_mutex:
-			self.buffer.append(data)
+			self.buffer.append(kwargs)
 			self.buffer_send.set()
 
 	def close(self):
@@ -130,16 +130,16 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.send_error(400, 'bad json', str(err))
 			self.end_headers()
 			return
-		if type(data) is not list or not data:
+		if type(data) is not dict or '_token' not in data:
 			self.send_error(401, 'missing api token')
 			self.end_headers()
 			return
-		if data[0] not in self.server.token:
+		if data.pop('_token') not in self.server.token:
 			self.send_error(401, 'invalid api token')
 			self.end_headers()
 			return
 		try:
-			self.server.handle(data[1:])
+			self.server.handle(data)
 		except MonitorError as err:
 			self.send_error(400, 'bad parameters', str(err))
 			self.end_headers()
