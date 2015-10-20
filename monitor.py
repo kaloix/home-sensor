@@ -16,7 +16,7 @@ HOST = 'kaloix.de'
 KEY = 'server.key'
 PORT = 64918
 TOKEN_FILE = 'api_token'
-INTERVAL = 60
+INTERVAL = 10
 
 
 class MonitorClient:
@@ -46,51 +46,41 @@ class MonitorClient:
 			body = json.dumps(kwargs)
 		except TypeError as err:
 			raise MonitorError(str(err)) from None
-		try:
-			conn = http.client.HTTPSConnection(HOST, PORT,
-			                                   context=self.context)
-			conn.request('POST', '', body, HEADERS)
-			resp = conn.getresponse()
-			conn.close()
-		except (http.client.HTTPException, OSError) as err:
-			logging.warning(str(err))
-			return False
-		if resp.status == 201:
-			return True
-		else:
+		self.conn.request('POST', '', body, HEADERS)
+		resp = self.conn.getresponse()
+		if resp.status != 201:
 			raise MonitorError('{} {}'.format(resp.status, resp.reason))
 
 	def _send_buffer(self):
-		repeat = list()
-		for item in self.buffer:
+		for index, item in enumerate(self.buffer):
 			try:
+				self.conn = http.client.HTTPSConnection(HOST, PORT,
+				                                        context=self.context)
 				success = self._send(**item)
+				self.conn.close()
 			except MonitorError as err:
-				logging.error('unable to send: {}'.format(err))
-			else:
-				if not success:
-					repeat.append(item)
-		self.buffer = repeat
-		if not self.buffer:
+				logging.error('unable to send {}: {}'.format(item, err))
+			except (http.client.HTTPException, OSError) as err:
+				logging.warning('postpone send: {}'.format(err))
+				self.buffer = self.buffer[index:]
+				break
+		else:
+			self.buffer = list()
 			self.buffer_send.clear()
 
 	def _sender(self):
-		while not self.shutdown:
+		while not self.shutdown or self.buffer:
 			# wait for data
 			self.buffer_send.wait()
 			# wait for interval
-			now = time.perf_counter()
-			delay = now - self.buffer_block
+			delay = self.buffer_block - time.perf_counter()
 			if delay > 0:
 				time.sleep(delay)
 			# send buffer
 			with self.buffer_mutex:
-				try:
-					self._send_buffer()
-				except MonitorError as err:
-					logging.warning('send fail: {}'.format(err))
+				self._send_buffer()
 			# reset interval
-			self.buffer_block = now + INTERVAL
+			self.buffer_block = time.perf_counter() + INTERVAL
 
 	def send(self, **kwargs):
 		with self.buffer_mutex:
@@ -98,6 +88,7 @@ class MonitorClient:
 			self.buffer_send.set()
 
 	def close(self):
+		logging.info('shutdown registered')
 		self.shutdown = True
 		self.sender.join()
 
