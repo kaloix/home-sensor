@@ -26,7 +26,7 @@ ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
 RECORD_DAYS = 7
-SERVER_INTERVAL = datetime.timedelta(seconds=15)
+SERVER_INTERVAL = datetime.timedelta(minutes=3)
 SUMMARY_DAYS = 365
 WEB_DIR = '/home/kaloix/html/sensor/'
 
@@ -85,7 +85,6 @@ def save_record(series, name, timestamp, value):
 def loop(group, series_list, html_template, now):
 	logging.info('read csv')
 	for series in series_list:
-#		series.update(now)
 		error = series.error # FIXME no data warning only once per failure
 		if error:
 			notify.user_warning(error)
@@ -267,8 +266,8 @@ class Series(object):
 		self.now = datetime.datetime.now()
 		self.records = collections.deque()
 		self.summary = collections.deque()
-		self._read(now.year-1)
-		self._read(now.year)
+		self._read(self.now.year-1)
+		self._read(self.now.year)
 		self._clear()
 
 	def _append(self, record):
@@ -306,7 +305,7 @@ class Series(object):
 		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, self.now.year)
 		with open(filename, mode='a', newline='') as csv_file:
 			writer = csv.writer(csv_file)
-			writer.writerow((int(record.timestamp()), record.value))
+			writer.writerow((int(record.timestamp.timestamp()), record.value))
 
 	@property
 	def current(self):
@@ -375,7 +374,7 @@ class Temperature(Series):
 			if self.today:
 				self.summary.append(Summary(self.date,
 					                        min(self.today), max(self.today)))
-			self.date = date
+			self.date = record.timestamp.date()
 			self.today = list()
 		self.today.append(record.value)
 
