@@ -3,16 +3,14 @@
 import collections
 import csv
 import datetime
+import functools
 import itertools
 import json
 import logging
-import os
-import re
+import shutil
 import string
 import time
 import traceback
-import shutil
-import functools
 
 import matplotlib.dates
 import matplotlib.pyplot
@@ -75,10 +73,12 @@ def on_shutdown():
 
 
 def save_record(series, name, timestamp, value):
+	record = Record(datetime.datetime.fromtimestamp(int(timestamp)),
+	                value = _universal_parser(value))
 	for series_list in series.values():
 		for series in series_list:
 			if series.name == name:
-				series.update(timestamp, value)
+				series.save(record)
 				return
 
 
@@ -267,24 +267,19 @@ class Series(object):
 		self.now = datetime.datetime.now()
 		self.records = collections.deque()
 		self.summary = collections.deque()
-#		self.year = int()
-#		for file in sorted(os.listdir(DATA_DIR)):
-#			match = re.search(r'(?P<name>\S+)_(?P<year>\d+).csv', file)
-#			if match and match.group('name') == self.name:
-#				year = int(match.group('year'))
-#				self._read(year)
-#				self.year = year
+		self._read(now.year-1)
+		self._read(now.year)
+		self._clear()
 
-	def _append(self, timestamp, value):
-		if self.records and timestamp <= self.records[-1].timestamp:
+	def _append(self, record):
+		if self.records and record.timestamp <= self.records[-1].timestamp:
 			return
-		self.records.append(Record(timestamp, value))
+		self.records.append(record)
 		if len(self.records) >= 3 and self.records[-3].value == \
 				self.records[-2].value == self.records[-1].value and \
 				self.records[-1].timestamp-self.records[-3].timestamp < \
 				ALLOWED_DOWNTIME:
 			del self.records[-2]
-		self._summarize(timestamp.date(), value)
 
 	def _clear(self):
 		while self.records and self.records[0].timestamp < \
@@ -294,16 +289,24 @@ class Series(object):
 				(self.now - datetime.timedelta(SUMMARY_DAYS)).date():
 			self.summary.popleft()
 
-#	def _read(self, year):
-#		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
-#		try:
-#			with open(filename, newline='') as csv_file:
-#				for row in csv.reader(csv_file):
-#					self._append(datetime.datetime.fromtimestamp(int(row[0])),
-#					             _universal_parser(row[1]))
-#		except OSError:
-#			pass
-#		self._clear()
+	def _read(self, year):
+		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, year)
+		try:
+			with open(filename, newline='') as csv_file:
+				for row in csv.reader(csv_file):
+					record = Record(
+						datetime.datetime.fromtimestamp(int(row[0])),
+						_universal_parser(row[1]))
+					self._append(record)
+					self._summarize(record)
+		except OSError:
+			pass
+
+	def _write(self, record):
+		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, self.now.year)
+		with open(filename, mode='a', newline='') as csv_file:
+			writer = csv.writer(csv_file)
+			writer.writerow((int(record.timestamp()), record.value))
 
 	@property
 	def current(self):
@@ -321,17 +324,11 @@ class Series(object):
 			start -= 1
 		return itertools.islice(self.records, start, None)
 
-#	def update(self, now):
-#		self.now = now
-#		if self.year < now.year:
-#			self._read(self.year)
-#			self.year = now.year
-#		self._read(now.year)
-
-	def update(self, timestamp, value):
-		self._append(datetime.datetime.fromtimestamp(int(timestamp)),
-		             _universal_parser(value))
+	def save(self, record):
+		self._append(record)
+		self._summarize(record)
 		self._clear()
+		self._write(record)
 
 
 class Temperature(Series):
@@ -373,14 +370,14 @@ class Temperature(Series):
 		ret.append('</ul>')
 		return ''.join(ret)
 
-	def _summarize(self, date, value):
-		if date > self.date:
+	def _summarize(self, record):
+		if record.timestamp.date() > self.date:
 			if self.today:
 				self.summary.append(Summary(self.date,
 					                        min(self.today), max(self.today)))
 			self.date = date
 			self.today = list()
-		self.today.append(value)
+		self.today.append(record.value)
 
 	@property
 	def minmax(self):
@@ -446,7 +443,7 @@ class Switch(Series):
 		ret.append('</ul>')
 		return ''.join(ret)
 
-	def _summarize(self, date, value):
+	def _summarize(self, record):
 		pass
 
 	@property

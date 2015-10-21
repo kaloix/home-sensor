@@ -1,6 +1,7 @@
 # TODO
 ## Refactor CSV Reading
 * import with line number
+* [date format](https://github.com/interagent/http-api-design#use-utc-times-formatted-in-iso8601) in json and csv
 
 ## HTTP interface
 * [18.2. ssl — TLS_SSL wrapper for socket objects — Python 3.4.2 documentation](https://docs.python.org/release/3.4.2/library/ssl.html)
