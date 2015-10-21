@@ -57,7 +57,7 @@ def main():
 			with contextlib.suppress(utility.CallDenied):
 				sensor.update()
 		duration = (datetime.datetime.now() - start).total_seconds()
-		logging.debug('sleep, duration was {:.1f}s'.format(duration))
+		#logging.debug('sleep, duration was {:.1f}s'.format(duration))
 		time.sleep(CLIENT_INTERVAL.total_seconds())
 
 
@@ -136,8 +136,7 @@ def _parse_light(image):
 		image, bins=4, range=(0,255), density=True)
 	decider = round(hist[3], ndigits=5) # FIXME
 	threshold = 0.006
-	result = decider > threshold
-	return result
+	return bool(decider > threshold)
 
 
 def _make_box(image, left, top, right, bottom):

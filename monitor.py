@@ -132,6 +132,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.send_error(401, 'invalid api token')
 			self.end_headers()
 			return
+		logging.debug('receive {}'.format(data))
 		try:
 			self.server.handle(**data)
 		except MonitorError as err:
