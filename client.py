@@ -172,7 +172,7 @@ class Sensor(object):
 			logging.error('{} failure: {}'.format(self, err))
 			return
 		for index, name in enumerate(self.names):
-			logging.info('{}: {} / {}'.format(self.name, now, values[index]))
+			logging.info('{}: {} / {}'.format(name, now, values[index]))
 			connection.send(name=name, value=values[index],
 			                timestamp=int(now.timestamp()))
 
@@ -184,6 +184,10 @@ class SensorError(Exception):
 if __name__ == "__main__":
 	try:
 		main()
-	except:
+	except KeyboardInterrupt:
+		connection.close()
+	except Exception as err:
+		logging.error('{}: {}'.format(type(err).__name__, err))
 		connection.close()
 		raise
+	logging.debug('end')

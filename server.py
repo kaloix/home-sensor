@@ -58,7 +58,6 @@ def main():
 					attr['name']))
 	with monitor.MonitorServer(functools.partial(save_record, series)):
 		while True:
-			logging.info('update website')
 			start = datetime.datetime.now()
 			for group, series_list in series.items():
 				loop(group, series_list, html_template, start)
