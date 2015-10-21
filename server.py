@@ -58,12 +58,13 @@ def main():
 					attr['name']))
 	with monitor.MonitorServer(functools.partial(save_record, series)):
 		while True:
+			logging.info('update website')
 			start = datetime.datetime.now()
 			for group, series_list in series.items():
 				loop(group, series_list, html_template, start)
 			utility.memory_check()
 			duration = (datetime.datetime.now() - start).total_seconds()
-			logging.debug('sleep, duration was {:.1f}s'.format(duration))
+			logging.info('update website done in {:.1f}s'.format(duration))
 			time.sleep(SERVER_INTERVAL.total_seconds())
 
 
@@ -83,13 +84,11 @@ def save_record(series, name, timestamp, value):
 
 
 def loop(group, series_list, html_template, now):
-	logging.info('read csv')
 	for series in series_list:
 		error = series.error # FIXME no data warning only once per failure
 		if error:
 			notify.user_warning(error)
 	shutil.copy(DATA_DIR+'thermosolar.jpg', WEB_DIR)
-	logging.info('write html')
 	html_filled = string.Template(html_template).substitute(
 		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
 		group = group,
@@ -98,7 +97,6 @@ def loop(group, series_list, html_template, now):
 		year = '{:%Y}'.format(now))
 	with open(WEB_DIR+group.lower()+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
-	logging.info('generate plot')
 	# FIXME svg backend has memory leak in matplotlib 1.4.3
 	plot_history(series_list, '{}{}.png'.format(WEB_DIR, group), now)
 
@@ -311,7 +309,7 @@ class Series(object):
 	def current(self):
 		if self.records and \
 				self.now-self.records[-1].timestamp <= ALLOWED_DOWNTIME:
-			return self.records[-1].value
+			return self.records[-1]
 		else:
 			return None
 
@@ -324,6 +322,7 @@ class Series(object):
 		return itertools.islice(self.records, start, None)
 
 	def save(self, record):
+		logging.info('{}: {} / {}'.format(self.name, *record))
 		self._append(record)
 		self._summarize(record)
 		self._clear()
@@ -347,8 +346,9 @@ class Temperature(Series):
 		if current is None:
 			ret.append('Fehler')
 		else:
-			ret.append('{:.1f} °C'.format(current))
-			if current < self.warn[0] or current > self.warn[1]:
+			ret.append('{:.1f} °C {}'.format(
+				current.value, _format_timestamp(current.timestamp, self.now)))
+			if current.value < self.warn[0] or current.value > self.warn[1]:
 				ret.append(' ⚠')
 		ret.append('<ul>\n')
 		if minimum:
@@ -393,10 +393,10 @@ class Temperature(Series):
 		current = self.current
 		if current is None:
 			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
-		elif current < self.warn[0]:
+		elif current.value < self.warn[0]:
 			return 'Messpunkt "{}" unter {:.0f} °C.'.format(
 				self.name, self.warn[0])
-		elif current > self.warn[1]:
+		elif current.value > self.warn[1]:
 			return 'Messpunkt "{}" über {:.0f} °C.'.format(
 				self.name, self.warn[1])
 		else:
@@ -424,10 +424,10 @@ class Switch(Series):
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current is None:
 			ret.append('Fehler')
-		elif current:
-			ret.append('Ein')
 		else:
-			ret.append('Aus')
+			ret.append('{} {}'.format(
+				'Ein' if current.value else 'Aus',
+				_format_timestamp(current.timestamp, self.now)))
 		ret.append('<ul>\n')
 		if last_true and (current is None or not current):
 			ret.append('<li>Zuletzt Ein {}</li>\n'.format(

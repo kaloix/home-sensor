@@ -6,8 +6,6 @@ import ssl
 import threading
 import time
 
-import utility
-
 
 CERT = 'server.crt'
 CONTENT_TYPE = 'application/json'
@@ -134,16 +132,25 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.send_error(401, 'invalid api token')
 			self.end_headers()
 			return
-		logging.debug('receive {}'.format(data))
 		try:
 			self.server.handle(**data)
 		except MonitorError as err:
-			logging.error('{}: {}'.format(type(err).__name__, err))
+			logging.warning(str(err))
 			self.send_error(400, 'bad parameters')
-			self.end_headers()
-			return
-		self.send_response(201, 'value received')
+		except Exception as err:
+			logging.error('{}: {}'.format(type(err).__name__, err))
+			self.send_error(400, 'invalid parameters')
+		else:
+			self.send_response(201, 'value received')
 		self.end_headers()
+
+	def log_error(self, format_, *args):
+		logging.warning('ip {}, {}'.format(self.address_string(),
+		                                   format_ % args))
+
+	def log_message(self, format_, *args):
+		logging.debug('ip {}, {}'.format(self.address_string(),
+		                                 format_ % args))
 
 
 class MonitorError(Exception):

@@ -17,9 +17,8 @@ def init():
 def memory_check():
 	gc.collect()
 	memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e3
-	logging.debug('using {:.0f} megabytes of memory'.format(memory))
 	if memory > 100:
-		raise Exception('memory leak')
+		raise MemoryLeakError('{} MB'.format(memory))
 
 
 def allow_every_x_seconds(interval):
@@ -36,6 +35,9 @@ def allow_every_x_seconds(interval):
 		return new_function
 	return decorating_function
 
+
+class MemoryLeakError(Exception):
+	pass
 
 class CallDenied(Exception):
 	pass
