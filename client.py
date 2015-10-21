@@ -2,7 +2,6 @@
 
 import argparse
 import contextlib
-import csv
 import datetime
 import functools
 import json
@@ -57,22 +56,9 @@ def main():
 		for sensor in sensors:
 			with contextlib.suppress(utility.CallDenied):
 				sensor.update()
-		with contextlib.suppress(utility.CallDenied):
-			transmit()
 		duration = (datetime.datetime.now() - start).total_seconds()
 		logging.debug('sleep, duration was {:.1f}s'.format(duration))
 		time.sleep(CLIENT_INTERVAL.total_seconds())
-
-
-@utility.allow_every_x_seconds(TRANSMIT_INTERVAL.total_seconds())
-def transmit():
-	logging.info('copy to webserver')
-	if subprocess.call(['rsync',
-	                    '--recursive',
-	                    '--rsh=ssh',
-	                    DATA_DIR,
-	                    '{}{}'.format(CLIENT_SERVER, DATA_DIR)]):
-		logging.error('scp failed')
 
 
 def mdeg_celsius(file):
@@ -168,24 +154,10 @@ def _make_box(image, left, top, right, bottom):
 	return image
 
 
-class Series(object): # FIXME
-
-	def __init__(self, name):
-		self.name = name
-
-	def write(self, value):
-		now = datetime.datetime.now()
-		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
-		with open(filename, mode='a', newline='') as csv_file:
-			writer = csv.writer(csv_file)
-			writer.writerow((int(now.timestamp()), value))
-
-
 class Sensor(object):
 
 	def __init__(self, names, reader_function, interval):
 		self.names = names
-		self.series = [Series(n) for n in names] # FIXME
 		self.reader = reader_function
 		self.update = utility.allow_every_x_seconds(interval)(self.update)
 
@@ -203,7 +175,7 @@ class Sensor(object):
 		for index, name in enumerate(self.names):
 			connection.send(name=name, value=values[index],
 			                timestamp=int(now.timestamp()))
-			series[index].write(values[index]) # FIXME
+
 
 class SensorError(Exception):
 	pass
@@ -214,3 +186,4 @@ if __name__ == "__main__":
 		main()
 	except:
 		connection.close()
+		raise
