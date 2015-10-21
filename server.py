@@ -74,8 +74,7 @@ def on_shutdown():
 
 
 def save_record(series, name, timestamp, value):
-	record = Record(datetime.datetime.fromtimestamp(int(timestamp)),
-	                value = _universal_parser(value))
+	record = Record(datetime.datetime.fromtimestamp(int(timestamp)), value)
 	for series_list in series.values():
 		for series in series_list:
 			if series.name == name:

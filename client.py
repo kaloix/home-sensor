@@ -172,6 +172,7 @@ class Sensor(object):
 			logging.error('{} failure: {}'.format(self, err))
 			return
 		for index, name in enumerate(self.names):
+			logging.info('{}: {} / {}'.format(self.name, now, values[index]))
 			connection.send(name=name, value=values[index],
 			                timestamp=int(now.timestamp()))
 

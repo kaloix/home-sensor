@@ -37,7 +37,6 @@ class MonitorClient:
 		self.sender.start()
 
 	def _send(self, **kwargs):
-		logging.debug('send {}'.format(kwargs))
 		kwargs['_token'] = self.token
 		try:
 			body = json.dumps(kwargs)
@@ -132,7 +131,6 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.send_error(401, 'invalid api token')
 			self.end_headers()
 			return
-		logging.debug('receive {}'.format(data))
 		try:
 			self.server.handle(**data)
 		except MonitorError as err:
@@ -149,9 +147,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 		logging.warning('ip {}, {}'.format(self.address_string(),
 		                                   format_ % args))
 
-	def log_message(self, format_, *args):
-		logging.debug('ip {}, {}'.format(self.address_string(),
-		                                 format_ % args))
+	def log_message(self, *args):
+		pass
 
 
 class MonitorError(Exception):
