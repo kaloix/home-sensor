@@ -53,6 +53,8 @@ class MonitorClient:
 			raise MonitorError('{} {}'.format(resp.status, resp.reason))
 
 	def _send_buffer(self):
+		before = len(self.buffer)
+		start = time.perf_counter()
 		for index, item in enumerate(self.buffer):
 			try:
 				self.conn = http.client.HTTPSConnection(HOST, PORT,
@@ -68,6 +70,9 @@ class MonitorClient:
 		else:
 			self.buffer = list()
 			self.buffer_send.clear()
+		number = before - len(self.buffer)
+		logging.info('sent {} item{} in {:.1f}s'.format(
+			number, '' if number==1 else 's', time.perf_counter()-start))
 
 	def _sender(self):
 		self.buffer_send.wait()

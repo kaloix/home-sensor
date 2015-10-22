@@ -63,7 +63,7 @@ def main():
 				loop(group, series_list, html_template, start)
 			utility.memory_check()
 			duration = (datetime.datetime.now() - start).total_seconds()
-			logging.info('update website done in {:.1f}s'.format(duration))
+			logging.info('updated website in {:.1f}s'.format(duration))
 			time.sleep(SERVER_INTERVAL.total_seconds())
 
 
