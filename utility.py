@@ -1,13 +1,11 @@
 import datetime
 import gc
-import locale
 import logging
 import resource
 import time
 
 
-def init():
-	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+def logging_config():
 	logging.basicConfig(
 		format = '[%(asctime)s:%(levelname)s:%(module)s] %(message)s',
 		datefmt = '%m-%d-%H-%M-%S',

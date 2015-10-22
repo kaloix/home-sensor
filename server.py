@@ -6,6 +6,7 @@ import datetime
 import functools
 import itertools
 import json
+import locale
 import logging
 import shutil
 import string
@@ -36,7 +37,8 @@ Summary = collections.namedtuple('Summary', 'date minimum maximum')
 
 
 def main():
-	utility.init()
+	utility.logging_config()
+	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 	shutil.copy('static/favicon.png', WEB_DIR)
 	shutil.copy('static/htaccess', WEB_DIR+'.htaccess')
 	with open('template.html') as html_file:

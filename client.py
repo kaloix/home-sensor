@@ -20,10 +20,10 @@ INTERVAL = 10
 
 
 def main():
+	utility.logging_config()
 	parser = argparse.ArgumentParser()
 	parser.add_argument('station', type=int)
 	args = parser.parse_args()
-	utility.init()
 	with open(CONFIG) as json_file:
 		sensor_json = json_file.read()
 	sensors = list()

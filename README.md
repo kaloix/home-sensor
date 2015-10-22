@@ -76,4 +76,4 @@
 
 ## Copyright
 Copyright © 2015 Stefan Schindler  
-Licensed under the GNU General Public License v3
+Licensed under the GNU General Public License version 3
