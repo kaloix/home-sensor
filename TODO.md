@@ -1,18 +1,6 @@
 # TODO
-allowed downtime verkürzen (abhängig von sensor.json??)
-
-## Refactor CSV Reading
-* import with line number
-* [date format](https://github.com/interagent/http-api-design#use-utc-times-formatted-in-iso8601) in json and csv
-
-## HTTP interface
-* [18.2. ssl — TLS_SSL wrapper for socket objects — Python 3.4.2 documentation](https://docs.python.org/release/3.4.2/library/ssl.html)
-* [Simple HTTPS Server In Python Using Self Signed Certs · Pankaj Malhotra](http://pankajmalhotra.com/Simple-HTTPS-Server-In-Python-Using-Self-Signed-Certs/)
-
-		openssl genrsa -out server.key 4096
-		openssl req -new -key server.key -out server.csr
-		openssl x509 -req -days 1460 -in server.csr -signkey server.key
-			-out server.crt
+## General
+* Shorten allowed downtime (depended on sensor.json?)
 
 ## Temperature Garden
 0. Buy WLAN adapter for *Raspberry Pi 1 Model B Rev. 2.0* ([Conrad](http://www.conrad.de/ce/de/product/993655/Raspberry-Pi-WLAN-Stick-EDIMAX-EW-7811Un))
