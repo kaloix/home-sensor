@@ -33,10 +33,12 @@ class MonitorClient:
 		self.shutdown = False
 		self.sender = threading.Thread(target=self._sender)
 		self.sender.start()
+		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
-		logging.info('shutdown registered')
+		logging.info('wait for empty buffer')
 		self.shutdown = True
+		self.buffer_send.set()
 		self.sender.join()
 
 	def _send(self, **kwargs):
@@ -70,14 +72,16 @@ class MonitorClient:
 			self.buffer_send.clear()
 
 	def _sender(self):
+		self.buffer_send.wait()
 		while not self.shutdown or self.buffer:
-			self.buffer_send.wait()
 			delay = self.buffer_block - time.perf_counter()
 			if delay > 0:
 				time.sleep(delay)
 			with self.buffer_mutex:
 				self._send_buffer()
 			self.buffer_block = time.perf_counter() + INTERVAL
+			if not self.shutdown:
+				self.buffer_send.wait()
 
 	def send(self, **kwargs):
 		with self.buffer_mutex:
@@ -99,6 +103,7 @@ class MonitorServer:
 	def __enter__(self):
 		self.server = threading.Thread(target=self.httpd.serve_forever)
 		self.server.start()
+		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
 		logging.info('shutdown registered')

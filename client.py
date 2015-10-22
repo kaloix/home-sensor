@@ -49,7 +49,7 @@ def main():
 					sensor['output']['switch']['name']],
 				functools.partial(thermosolar, sensor['input']['file']),
 				sensor['input']['interval']))
-	with monitor.MonitorClient as connection:
+	with monitor.MonitorClient() as connection:
 		while True:
 			start = datetime.datetime.now()
 			for sensor in sensors:
@@ -181,12 +181,5 @@ class SensorError(Exception):
 
 
 if __name__ == "__main__":
-	try:
-		main()
-	except KeyboardInterrupt:
-		connection.close()
-	except Exception as err:
-		logging.error('{}: {}'.format(type(err).__name__, err))
-		connection.close()
-		raise
+	main()
 	logging.debug('end')
