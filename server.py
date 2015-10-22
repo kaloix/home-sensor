@@ -198,7 +198,7 @@ def plot_history(series_list, file, now):
 	# last week
 	ax = matplotlib.pyplot.subplot(312)
 	_plot_records(series_list, RECORD_DAYS, now)
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%A'))
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%a.'))
 	ax.xaxis.set_major_locator(matplotlib.dates.DayLocator())
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator(range(0, 24, 6)))
 	handles, labels = ax.get_legend_handles_labels()
@@ -214,7 +214,7 @@ def plot_history(series_list, file, now):
 	# summary
 	ax = matplotlib.pyplot.subplot(313)
 	_plot_summary(series_list, now)
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%B'))
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b.'))
 	ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator())
 	ax.xaxis.set_minor_locator(matplotlib.dates.WeekdayLocator(
 		matplotlib.dates.MO))

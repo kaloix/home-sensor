@@ -5,9 +5,7 @@
 
 ## Installation
 ### Client
-1. The base platform is  **Debian Jessie** with **Python 3.4.2**. Install
-   German locale by uncommenting `de_DE.UTF-8 UTF-8` in `/etc/locale.gen` and
-   running `sudo locale-gen`.
+1. The base platform is  **Debian Jessie** with **Python 3.4.2**.
 
 2. 1-Wire temperature sensor:
 
@@ -34,7 +32,9 @@
 	of `sensor.json`.
 
 ### Server
-1. The base platform is **CentOS 6.7** with **Python 3.4.3**.
+1. The base platform is **CentOS 6.7** with **Python 3.4.3**. Install German
+   locale by uncommenting `de_DE.UTF-8 UTF-8` in `/etc/locale.gen` and running
+   `sudo locale-gen`.
 
 2. Create self signed certificate for HTTP API:
 
