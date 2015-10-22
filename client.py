@@ -16,7 +16,8 @@ import monitor
 import utility
 
 
-CLIENT_INTERVAL = datetime.timedelta(seconds=10)
+CONFIG = 'sensor.json'
+INTERVAL = 10
 
 
 def main():
@@ -24,7 +25,7 @@ def main():
 	parser.add_argument('station', type=int)
 	args = parser.parse_args()
 	utility.init()
-	with open('sensor.json') as json_file:
+	with open(CONFIG) as json_file:
 		sensor_json = json_file.read()
 	sensors = list()
 	for sensor in json.loads(sensor_json):
@@ -32,32 +33,39 @@ def main():
 			continue
 		if sensor['input']['type'] == 'mdeg_celsius':
 			sensors.append(Sensor(
-				[sensor['output']['temperature']['name']],
 				functools.partial(mdeg_celsius, sensor['input']['file']),
-				sensor['input']['interval']))
+				sensor['input']['interval'],
+				sensor['output']['temperature']['name']))
 		if sensor['input']['type'] == 'ds18b20':
 			sensors.append(Sensor(
-				[sensor['output']['temperature']['name']],
 				functools.partial(ds18b20, sensor['input']['file']),
-				sensor['input']['interval']))
+				sensor['input']['interval'],
+				sensor['output']['temperature']['name']))
 		elif sensor['input']['type'] == 'thermosolar':
 			sensors.append(Sensor(
-				[sensor['output']['temperature']['name'],
-					sensor['output']['switch']['name']],
 				functools.partial(thermosolar, sensor['input']['file']),
-				sensor['input']['interval']))
+				sensor['input']['interval'],
+				sensor['output']['temperature']['name'],
+				sensor['output']['switch']['name']))
 	with monitor.MonitorClient() as connection:
 		while True:
 			for sensor in sensors:
-				with contextlib.suppress(utility.CallDenied):
-					sensor.update(connection)
-			time.sleep(CLIENT_INTERVAL.total_seconds())
+				now = datetime.datetime.now().replace(microsecond=0)
+				try:
+					result = sensor.read()
+				except utility.CallDenied:
+					continue
+				for name, value in result:
+					logging.info('{}: {} / {}'.format(name, now, value))
+					connection.send(name=name, value=value,
+					                timestamp=int(now.timestamp()))
+			time.sleep(INTERVAL)
 
 
 def mdeg_celsius(file):
 	try:
 		with open(file) as mdc_file:
-			return (int(mdc_file.read()) / 1e3,) # FIXME
+			return int(mdc_file.read()) / 1e3,
 	except (OSError, ValueError) as err:
 		raise SensorError('invalid millidegrees-celsius file') from err
 
@@ -71,7 +79,7 @@ def ds18b20(file):
 	except OSError as err:
 		raise SensorError('invalid w1 file') from err
 	try:
-		return (int(t_value) / 1e3,) # FIXME
+		return int(t_value) / 1e3,
 	except ValueError as err:
 		raise SensorError('invalid t value in w1 file') from err
 
@@ -110,7 +118,7 @@ def _parse_segment(image):
 	scipy.misc.imsave('seven_segment.png', image)
 	try:
 		ssocr_output = subprocess.check_output(['./ssocr',
-		                                        '--number-digits=2',
+		                                        '--number-digits=-1',
 		                                        '--number-pixels=3',
 		                                        '--one-ratio=2.3',
 		                                        '--threshold=98',
@@ -148,16 +156,15 @@ def _make_box(image, left, top, right, bottom):
 
 class Sensor(object):
 
-	def __init__(self, names, reader_function, interval):
+	def __init__(self, reader_function, interval, *names):
 		self.names = names
 		self.reader = reader_function
-		self.update = utility.allow_every_x_seconds(interval)(self.update)
+		self.read = utility.allow_every_x_seconds(interval)(self.read)
 
 	def __repr__(self):
 		return '{} {}'.format(self.__class__.__name__, '/'.join(self.names))
 
-	def update(self, connection):
-		now = datetime.datetime.now().replace(microsecond=0)
+	def read(self):
 		start = time.perf_counter()
 		try:
 			values = self.reader()
@@ -166,10 +173,7 @@ class Sensor(object):
 			return
 		logging.info('updated {} in {:.1f}s'.format(
 			self, time.perf_counter()-start))
-		for index, name in enumerate(self.names):
-			logging.info('{}: {} / {}'.format(name, now, values[index]))
-			connection.send(name=name, value=values[index],
-			                timestamp=int(now.timestamp()))
+		return zip(self.names, values)
 
 
 class SensorError(Exception):

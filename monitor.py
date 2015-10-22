@@ -71,8 +71,9 @@ class MonitorClient:
 			self.buffer = list()
 			self.buffer_send.clear()
 		number = before - len(self.buffer)
-		logging.info('sent {} item{} in {:.1f}s'.format(
-			number, '' if number==1 else 's', time.perf_counter()-start))
+		if number:
+			logging.info('sent {} item{} in {:.1f}s'.format(
+				number, '' if number==1 else 's', time.perf_counter()-start))
 
 	def _sender(self):
 		self.buffer_send.wait()
