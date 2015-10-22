@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import contextlib
 import datetime
 import functools
 import json
@@ -51,10 +50,16 @@ def main():
 		while True:
 			for sensor in sensors:
 				now = datetime.datetime.now().replace(microsecond=0)
+				start = time.perf_counter()
 				try:
 					result = sensor.read()
 				except utility.CallDenied:
 					continue
+				except SensorError as err:
+					logging.error('{} failure: {}'.format(sensor, err))
+					continue
+				logging.info('updated {} in {:.1f}s'.format(
+					sensor, time.perf_counter()-start))
 				for name, value in result:
 					logging.info('{}: {} / {}'.format(name, now, value))
 					connection.send(name=name, value=value,
@@ -165,14 +170,7 @@ class Sensor(object):
 		return '{} {}'.format(self.__class__.__name__, '/'.join(self.names))
 
 	def read(self):
-		start = time.perf_counter()
-		try:
-			values = self.reader()
-		except SensorError as err:
-			logging.error('{} failure: {}'.format(self, err))
-			return
-		logging.info('updated {} in {:.1f}s'.format(
-			self, time.perf_counter()-start))
+		values = self.reader()
 		return zip(self.names, values)
 
 
