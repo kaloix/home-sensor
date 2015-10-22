@@ -51,8 +51,8 @@ def main():
 			if kind == 'temperature':
 				series[attr['group']].append(Temperature(
 					attr['name'],
-					tuple(attr['usual']),
-					tuple(attr['warn'])))
+					attr['low'],
+					attr['high']))
 			elif kind == 'switch':
 				series[attr['group']].append(Switch(
 					attr['name']))
@@ -144,12 +144,12 @@ def _plot_records(series_list, days, now):
 					timestamps, values, label=series.name,
 					linewidth=3, color=color, zorder=3)
 				matplotlib.pyplot.fill_between(
-					timestamps, values, series.warn[0],
-					where = [value<series.warn[0] for value in values], # FIXME runtime warning
+					timestamps, values, series.low,
+					where = [value<series.low for value in values], # FIXME runtime warning
 					interpolate=True, color='r', zorder=2, alpha=0.7)
 				matplotlib.pyplot.fill_between(
-					timestamps, values, series.warn[1],
-					where = [value>series.warn[1] for value in values], # FIXME runtime warning
+					timestamps, values, series.high,
+					where = [value>series.high for value in values], # FIXME runtime warning
 					interpolate=True, color='r', zorder=2, alpha=0.7)
 		elif type(series) is Switch:
 			for start, end in series.segments:
@@ -330,9 +330,9 @@ class Series(object):
 
 class Temperature(Series):
 
-	def __init__(self, name, usual, warn):
-		self.usual = usual # FIXME remove value
-		self.warn = warn
+	def __init__(self, name, low, high):
+		self.low = low
+		self.high = high
 		self.date = datetime.date.min
 		self.today = None
 		super().__init__(name)
@@ -347,24 +347,24 @@ class Temperature(Series):
 		else:
 			ret.append('{:.1f} °C {}'.format(
 				current.value, _format_timestamp(current.timestamp, self.now)))
-			if current.value < self.warn[0] or current.value > self.warn[1]:
+			if current.value < self.low or current.value > self.high:
 				ret.append(' ⚠')
 		ret.append('<ul>\n')
 		if minimum:
 			ret.append('<li>Wochen-Tief bei {:.1f} °C {}'.format(
 				minimum.value, _format_timestamp(minimum.timestamp, self.now)))
-			if minimum.value < self.warn[0]:
+			if minimum.value < self.low:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		if maximum:
 			ret.append('<li>Wochen-Hoch bei {:.1f} °C {}'.format(
 				maximum.value, _format_timestamp(maximum.timestamp, self.now)))
-			if maximum.value > self.warn[1]:
+			if maximum.value > self.high:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		ret.append(
 			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
-				.format(*self.warn))
+				.format(self.low, self.high))
 		ret.append('</ul>')
 		return ''.join(ret)
 
@@ -392,12 +392,12 @@ class Temperature(Series):
 		current = self.current
 		if current is None:
 			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
-		elif current.value < self.warn[0]:
+		elif current.value < self.low:
 			return 'Messpunkt "{}" unter {:.0f} °C.'.format(
-				self.name, self.warn[0])
-		elif current.value > self.warn[1]:
+				self.name, self.low)
+		elif current.value > self.high:
 			return 'Messpunkt "{}" über {:.0f} °C.'.format(
-				self.name, self.warn[1])
+				self.name, self.high)
 		else:
 			return None
 

@@ -10,8 +10,8 @@
 			"temperature": {
 				"name": "CPU thalgrund",
 				"group": "System",
-				"usual": [30, 45],
-				"warn": [20, 60]
+				"low": 20,
+				"high": 60
 			}
 		}
 	},
@@ -26,8 +26,8 @@
 			"temperature": {
 				"name": "Wohnzimmer",
 				"group": "Lufttemperatur",
-				"usual": [21, 24],
-				"warn": [18, 30]
+				"low": 18,
+				"high": 30
 			}
 		}
 	},
@@ -42,8 +42,8 @@
 			"temperature": {
 				"name": "Kollektoren",
 				"group": "Solaranlage",
-				"usual": [20, 80],
-				"warn": [0, 90]
+				"low": 0,
+				"high": 90
 			},
 			"switch": {
 				"name": "Pumpe",

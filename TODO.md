@@ -1,4 +1,6 @@
 # TODO
+allowed downtime verkürzen (abhängig von sensor.json??)
+
 ## Refactor CSV Reading
 * import with line number
 * [date format](https://github.com/interagent/http-api-design#use-utc-times-formatted-in-iso8601) in json and csv
