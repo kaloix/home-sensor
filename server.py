@@ -93,7 +93,7 @@ def loop(group, series_list, html_template, now):
 		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
 		group = group,
 		values = detail_html(series_list),
-		update_time = '{:%A, den %d. %B %Y, um %X}'.format(now),
+		update_time = '{:%A, %d. %B %Y, %X}'.format(now),
 		year = '{:%Y}'.format(now))
 	with open(WEB_DIR+group.lower()+'.html', mode='w') as html_file:
 		html_file.write(html_filled)
@@ -194,7 +194,7 @@ def _plot_summary(series_list, now):
 
 
 def plot_history(series_list, file, now):
-	fig = matplotlib.pyplot.figure(figsize=(14, 7))
+	fig = matplotlib.pyplot.figure(figsize=(13, 7))
 	# last week
 	ax = matplotlib.pyplot.subplot(312)
 	_plot_records(series_list, RECORD_DAYS, now)
