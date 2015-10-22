@@ -17,9 +17,6 @@ import utility
 
 
 CLIENT_INTERVAL = datetime.timedelta(seconds=10)
-CLIENT_SERVER = 'kaloix@adhara.uberspace.de:home-sensor/'
-DATA_DIR = 'data/'
-TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
 
 
 def main():
@@ -51,12 +48,9 @@ def main():
 				sensor['input']['interval']))
 	with monitor.MonitorClient() as connection:
 		while True:
-			start = datetime.datetime.now()
 			for sensor in sensors:
 				with contextlib.suppress(utility.CallDenied):
 					sensor.update(connection)
-			duration = (datetime.datetime.now() - start).total_seconds()
-			#logging.debug('sleep, duration was {:.1f}s'.format(duration))
 			time.sleep(CLIENT_INTERVAL.total_seconds())
 
 
@@ -108,7 +102,7 @@ def _thermosolar_once(file):
 	pump_light = image[top:bottom, left:right]
 	image = _make_box(image, left, top, right, bottom)
 	# export boxes
-	scipy.misc.imsave(DATA_DIR+'thermosolar.jpg', image) # FIXME
+	scipy.misc.imsave('thermosolar.jpg', image) # FIXME
 	return _parse_segment(seven_segment), _parse_light(pump_light)
 
 

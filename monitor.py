@@ -62,8 +62,7 @@ class MonitorClient:
 			except MonitorError as err:
 				logging.error('unable to send {}: {}'.format(item, err))
 			except (http.client.HTTPException, OSError) as err:
-				logging.warning(
-					'postpone send: {} {}'.format(type(err).__name__, err))
+				logging.warning('postpone send: {}'.format(type(err).__name__))
 				self.buffer = self.buffer[index:]
 				break
 		else:
