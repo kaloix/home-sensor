@@ -27,7 +27,6 @@ class MonitorClient:
 		self.buffer = list()
 		self.buffer_send = threading.Event()
 		self.buffer_mutex = threading.Lock()
-		self.buffer_block = time.perf_counter()
 
 	def __enter__(self):
 		self.shutdown = False
@@ -74,12 +73,9 @@ class MonitorClient:
 	def _sender(self):
 		self.buffer_send.wait()
 		while not self.shutdown or self.buffer:
-			delay = self.buffer_block - time.perf_counter()
-			if delay > 0:
-				time.sleep(delay)
+			time.sleep(INTERVAL)
 			with self.buffer_mutex:
 				self._send_buffer()
-			self.buffer_block = time.perf_counter() + INTERVAL
 			if not self.shutdown:
 				self.buffer_send.wait()
 

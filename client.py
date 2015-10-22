@@ -163,17 +163,18 @@ class Sensor(object):
 		return '{} {}'.format(self.__class__.__name__, '/'.join(self.names))
 
 	def update(self, connection):
-		logging.info('update {}'.format(self))
-		now = datetime.datetime.now()
+		start = datetime.datetime.now()
 		try:
 			values = self.reader()
 		except SensorError as err:
 			logging.error('{} failure: {}'.format(self, err))
 			return
+		duration = (datetime.datetime.now() - start).total_seconds()
+		logging.info('update {} done in {:.1f}s'.format(self, duration))
 		for index, name in enumerate(self.names):
-			logging.info('{}: {} / {}'.format(name, now, values[index]))
+			logging.info('{}: {} / {}'.format(name, start, values[index]))
 			connection.send(name=name, value=values[index],
-			                timestamp=int(now.timestamp()))
+			                timestamp=int(start.timestamp()))
 
 
 class SensorError(Exception):
