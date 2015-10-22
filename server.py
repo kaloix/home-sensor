@@ -321,6 +321,7 @@ class Series(object):
 
 	def save(self, record):
 		logging.info('{}: {} / {}'.format(self.name, *record))
+		self.now = datetime.datetime.now()
 		self._append(record)
 		self._summarize(record)
 		self._clear()

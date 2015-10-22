@@ -19,22 +19,25 @@ INTERVAL = 10
 class MonitorClient:
 
 	def __init__(self):
-		# client authentication
 		with open(TOKEN_FILE) as token_file:
 			self.token = token_file.readline().strip()
-		# connection encryption
 		self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 		self.context.verify_mode = ssl.CERT_REQUIRED
 		self.context.load_verify_locations(CERT)
-		# data buffer
 		self.buffer = list()
 		self.buffer_send = threading.Event()
 		self.buffer_mutex = threading.Lock()
 		self.buffer_block = time.perf_counter()
-		# sender thread
+
+	def __enter__(self):
 		self.shutdown = False
 		self.sender = threading.Thread(target=self._sender)
 		self.sender.start()
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		logging.info('shutdown registered')
+		self.shutdown = True
+		self.sender.join()
 
 	def _send(self, **kwargs):
 		kwargs['_token'] = self.token
@@ -80,11 +83,6 @@ class MonitorClient:
 		with self.buffer_mutex:
 			self.buffer.append(kwargs)
 			self.buffer_send.set()
-
-	def close(self):
-		logging.info('shutdown registered')
-		self.shutdown = True
-		self.sender.join()
 
 
 class MonitorServer:

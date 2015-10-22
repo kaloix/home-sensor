@@ -21,8 +21,6 @@ CLIENT_SERVER = 'kaloix@adhara.uberspace.de:home-sensor/'
 DATA_DIR = 'data/'
 TRANSMIT_INTERVAL = datetime.timedelta(minutes=10)
 
-connection = monitor.MonitorClient()
-
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -51,14 +49,15 @@ def main():
 					sensor['output']['switch']['name']],
 				functools.partial(thermosolar, sensor['input']['file']),
 				sensor['input']['interval']))
-	while True:
-		start = datetime.datetime.now()
-		for sensor in sensors:
-			with contextlib.suppress(utility.CallDenied):
-				sensor.update()
-		duration = (datetime.datetime.now() - start).total_seconds()
-		#logging.debug('sleep, duration was {:.1f}s'.format(duration))
-		time.sleep(CLIENT_INTERVAL.total_seconds())
+	with monitor.MonitorClient as connection:
+		while True:
+			start = datetime.datetime.now()
+			for sensor in sensors:
+				with contextlib.suppress(utility.CallDenied):
+					sensor.update(connection)
+			duration = (datetime.datetime.now() - start).total_seconds()
+			#logging.debug('sleep, duration was {:.1f}s'.format(duration))
+			time.sleep(CLIENT_INTERVAL.total_seconds())
 
 
 def mdeg_celsius(file):
@@ -163,7 +162,7 @@ class Sensor(object):
 	def __repr__(self):
 		return '{} {}'.format(self.__class__.__name__, '/'.join(self.names))
 
-	def update(self):
+	def update(self, connection):
 		logging.info('update {}'.format(self))
 		now = datetime.datetime.now()
 		try:
