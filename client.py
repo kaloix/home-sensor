@@ -178,4 +178,3 @@ class SensorError(Exception):
 
 if __name__ == "__main__":
 	main()
-	logging.debug('end')

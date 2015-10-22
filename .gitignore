@@ -1,4 +1,5 @@
 api_token
+data/
 __pycache__/
 server.crt
 server.key
