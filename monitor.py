@@ -107,7 +107,6 @@ class MonitorServer:
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
-		logging.info('shutdown registered')
 		self.httpd.shutdown()
 		self.server.join()
 
@@ -151,7 +150,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 		logging.warning('ip {}, {}'.format(self.address_string(),
 		                                   format_ % args))
 
-	def log_message(self, *args):
+	def log_message(self, format_, *args):
 		pass
 
 

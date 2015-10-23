@@ -11,7 +11,6 @@ import logging
 import shutil
 import string
 import time
-import traceback
 
 import matplotlib.dates
 import matplotlib.pyplot
@@ -27,11 +26,10 @@ ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
 RECORD_DAYS = 7
-SERVER_INTERVAL = datetime.timedelta(minutes=3)
+INTERVAL = 180
 SUMMARY_DAYS = 365
 WEB_DIR = '/home/kaloix/html/sensor/'
 
-notify = notification.NotificationCenter()
 Record = collections.namedtuple('Record', 'timestamp value')
 Summary = collections.namedtuple('Summary', 'date minimum maximum')
 
@@ -39,39 +37,48 @@ Summary = collections.namedtuple('Summary', 'date minimum maximum')
 def main():
 	utility.logging_config()
 	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
-	shutil.copy('static/favicon.png', WEB_DIR)
-	shutil.copy('static/htaccess', WEB_DIR+'.htaccess')
 	with open('template.html') as html_file:
-		html_template = html_file.read()
+		html_template = string.Template(html_file.read())
 	with open('sensor.json') as json_file:
 		sensor_json = json_file.read()
 	devices = json.loads(sensor_json,
 	                     object_pairs_hook=collections.OrderedDict)
-	series = collections.defaultdict(list)
+	groups = collections.defaultdict(list)
 	for device in devices:
 		for kind, attr in device['output'].items():
 			if kind == 'temperature':
-				series[attr['group']].append(Temperature(
+				groups[attr['group']].append(Temperature(
 					attr['name'],
 					attr['low'],
 					attr['high']))
 			elif kind == 'switch':
-				series[attr['group']].append(Switch(
+				groups[attr['group']].append(Switch(
 					attr['name']))
-	with monitor.MonitorServer(functools.partial(save_record, series)):
+	with monitor.MonitorServer(functools.partial(save_record, groups)), \
+			Website(), notification.NotificationCenter() as notify:
 		while True:
-			start = datetime.datetime.now()
-			for group, series_list in series.items():
-				loop(group, series_list, html_template, start)
+			now = datetime.datetime.now()
+			start = time.perf_counter()
+			for group, series_list in groups.items():
+				for series in series_list:
+					error = series.error # FIXME no data warning only once per failure
+					if error:
+						notify.user_warning(error)
+				html_filled = html_template.substitute(
+					refresh_seconds = INTERVAL,
+					group = group,
+					values = detail_html(series_list),
+					update_time = '{:%A, %d. %B %Y, %X}'.format(now),
+					year = '{:%Y}'.format(now))
+				with open('{}{}.html'.format(WEB_DIR, group.lower()), mode='w') as html_file:
+					html_file.write(html_filled)
+				# FIXME svg backend has memory leak in matplotlib 1.4.3
+				plot_history(series_list,
+				             '{}{}.png'.format(WEB_DIR, group), now)
 			utility.memory_check()
-			duration = (datetime.datetime.now() - start).total_seconds()
+			duration = time.perf_counter() - start
 			logging.info('updated website in {:.1f}s'.format(duration))
-			time.sleep(SERVER_INTERVAL.total_seconds())
-
-
-def on_shutdown():
-	logging.info('shutdown')
-	shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
+			time.sleep(INTERVAL)
 
 
 def save_record(series, name, timestamp, value):
@@ -81,24 +88,6 @@ def save_record(series, name, timestamp, value):
 			if series.name == name:
 				series.save(record)
 				return
-
-
-def loop(group, series_list, html_template, now):
-	for series in series_list:
-		error = series.error # FIXME no data warning only once per failure
-		if error:
-			notify.user_warning(error)
-	shutil.copy(DATA_DIR+'thermosolar.jpg', WEB_DIR)
-	html_filled = string.Template(html_template).substitute(
-		refresh_seconds = int(SERVER_INTERVAL.total_seconds()),
-		group = group,
-		values = detail_html(series_list),
-		update_time = '{:%A, %d. %B %Y, %X}'.format(now),
-		year = '{:%Y}'.format(now))
-	with open(WEB_DIR+group.lower()+'.html', mode='w') as html_file:
-		html_file.write(html_filled)
-	# FIXME svg backend has memory leak in matplotlib 1.4.3
-	plot_history(series_list, '{}{}.png'.format(WEB_DIR, group), now)
 
 
 def detail_html(series_list):
@@ -483,13 +472,15 @@ class Switch(Series):
 			return None
 
 
+class Website(object):
+
+	def __enter__(self):
+		shutil.copy('static/favicon.png', WEB_DIR)
+		shutil.copy('static/htaccess', WEB_DIR+'.htaccess')
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
+
+
 if __name__ == "__main__":
-	try:
-		main()
-	except KeyboardInterrupt:
-		on_shutdown()
-	except Exception as err:
-		on_shutdown()
-		tb_lines = traceback.format_tb(err.__traceback__)
-		notification.crash_report('{}: {}\n{}'.format(
-			type(err).__name__, err, ''.join(tb_lines)))
+	main()
