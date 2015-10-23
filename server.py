@@ -55,11 +55,13 @@ def main():
 			elif kind == 'switch':
 				groups[attr['group']].append(Switch(
 					attr['name']))
-	with monitor.MonitorServer(functools.partial(save_record, groups)), \
-			notification.NotificationCenter() as notify, website():
+	with monitor.MonitorServer(verify_record) as ms, website(), \
+			notification.NotificationCenter() as notify:
 		while True:
-			now = datetime.datetime.now()
 			start = time.perf_counter()
+			for name, record in ms.fetch():
+				save_record(groups, name, record) # FIXME simplify
+			now = datetime.datetime.now()
 			for group, series_list in groups.items():
 				for series in series_list:
 					error = series.error # FIXME no data warning only once per failure
@@ -92,9 +94,14 @@ def website():
 		shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
-def save_record(series, name, timestamp, value):
-	record = Record(datetime.datetime.fromtimestamp(int(timestamp)), value)
-	for series_list in series.values():
+def verify_record(name, timestamp, value):
+	timestamp = datetime.datetime.fromtimestamp(int(timestamp))
+	logging.info('{}: {} / {}'.format(name, timestamp, value))
+	return name, Record(timestamp, value)
+
+
+def save_record(groups, name, record):
+	for series_list in groups.values():
 		for series in series_list:
 			if series.name == name:
 				series.save(record)
@@ -322,7 +329,6 @@ class Series(object):
 		return itertools.islice(self.records, start, None)
 
 	def save(self, record):
-		logging.info('{}: {} / {}'.format(self.name, *record))
 		self.now = datetime.datetime.now()
 		self._append(record)
 		self._summarize(record)
