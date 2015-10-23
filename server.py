@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import collections
+import contextlib
 import csv
 import datetime
 import functools
@@ -55,7 +56,7 @@ def main():
 				groups[attr['group']].append(Switch(
 					attr['name']))
 	with monitor.MonitorServer(functools.partial(save_record, groups)), \
-			Website(), notification.NotificationCenter() as notify:
+			notification.NotificationCenter() as notify, website():
 		while True:
 			now = datetime.datetime.now()
 			start = time.perf_counter()
@@ -79,6 +80,16 @@ def main():
 			duration = time.perf_counter() - start
 			logging.info('updated website in {:.1f}s'.format(duration))
 			time.sleep(INTERVAL)
+
+
+@contextlib.contextmanager
+def website():
+	shutil.copy('static/favicon.png', WEB_DIR)
+	shutil.copy('static/htaccess', WEB_DIR+'.htaccess')
+	try:
+		yield
+	finally:
+		shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
 def save_record(series, name, timestamp, value):
@@ -470,16 +481,6 @@ class Switch(Series):
 			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
 		else:
 			return None
-
-
-class Website(object):
-
-	def __enter__(self):
-		shutil.copy('static/favicon.png', WEB_DIR)
-		shutil.copy('static/htaccess', WEB_DIR+'.htaccess')
-
-	def __exit__(self, exc_type, exc_value, traceback):
-		shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ class MonitorClient:
 				self.conn = http.client.HTTPSConnection(HOST, PORT,
 				                                        context=self.context)
 				success = self._send(**item)
-				self.conn.close()
+				self.conn.close() # TODO use contextlib.closing?
 			except MonitorError as err:
 				logging.error('unable to send {}: {}'.format(item, err))
 			except (http.client.HTTPException, OSError) as err:
