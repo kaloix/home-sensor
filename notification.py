@@ -6,7 +6,7 @@ import traceback
 
 
 WARNING_PAUSE = datetime.timedelta(days=1)
-ADMIN_ADDRESS = 'stefan@kaloix.de'
+ADMIN_ADDRESS = 'stefan@kaloix.de' # TODO move to private file
 USER_ADDRESS = 'stefan@kaloix.de'
 ENABLE_EMAIL = True
 

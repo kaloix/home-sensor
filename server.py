@@ -70,7 +70,7 @@ def main():
 			for group, series_list in groups.items():
 				for series in series_list:
 					if series.error:
-						notify.user_warning(series.error)
+						notify.user_warning(series.error) # TODO only one per failure
 					if series.warning:
 						notify.user_warning(series.warning)
 				html_filled = html_template.substitute(
@@ -79,7 +79,8 @@ def main():
 					values = detail_html(series_list),
 					update_time = '{:%A, %d. %B %Y, %X}'.format(now),
 					year = '{:%Y}'.format(now))
-				with open('{}{}.html'.format(WEB_DIR, group.lower()), mode='w') as html_file:
+				filename = '{}{}.html'.format(WEB_DIR, group.lower())
+				with open(filename, mode='w') as html_file:
 					html_file.write(html_filled)
 				# FIXME svg backend has memory leak in matplotlib 1.4.3
 				plot_history(series_list,
@@ -388,8 +389,8 @@ class Temperature(Series):
 			_format_timedelta(self.interval)))
 		ret.append('<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
 			.format(self.low, self.high))
-		if not self.notify:
-			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
+#		if not self.notify:
+#			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
 		ret.append('</ul>')
 		return ''.join(ret)
 
@@ -461,8 +462,8 @@ class Switch(Series):
 				.format(_format_timedelta(self.uptime)))
 		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
 			_format_timedelta(self.interval)))
-		if not self.notify:
-			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
+#		if not self.notify:
+#			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
 		ret.append('</ul>')
 		return ''.join(ret)
 
