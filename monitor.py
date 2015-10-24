@@ -1,5 +1,4 @@
 import contextlib
-import collections
 import http.client
 import http.server
 import json
@@ -26,7 +25,7 @@ class MonitorClient:
 		context.verify_mode = ssl.CERT_REQUIRED
 		context.load_verify_locations(CERT)
 		self.conn = http.client.HTTPSConnection(HOST, PORT, context=context)
-		self.buffer = collections.deque()
+		self.buffer = list()
 		self.buffer_send = threading.Event()
 		self.buffer_mutex = threading.Lock()
 		with open(TOKEN_FILE) as token_file:
@@ -61,37 +60,32 @@ class MonitorClient:
 		before = len(self.buffer)
 		start = time.perf_counter()
 		self.conn.connect()
-		try:
-			while True:
-				item = self.buffer.popleft()
-				try:
-					succes = self._send(**item)
-				except MonitorError as err:
-					logging.error('unable to send {}: {}'.format(item, err))
-				except (http.client.HTTPException, OSError) as err:
-					logging.warning('postpone send: {}'.format(
-						type(err).__name__))
-					self.buffer.appendleft(item)
-					break
-		finally:
-			self.conn.close()
-			number = before - len(self.buffer)
-			if number:
-				logging.info('sent {} item{} in {:.1f}s'.format(
-					number, '' if number==1 else 's', time.perf_counter()-start))
+		for index, item in enumerate(self.buffer):
+			try:
+				self._send(**item)
+			except MonitorError as err:
+				logging.error('unable to send {}: {}'.format(item, err))
+			except (http.client.HTTPException, OSError) as err:
+				logging.warning('postpone send: {}'.format(type(err).__name__))
+				self.buffer = self.buffer[index:]
+				break
+		else:
+			self.buffer = list()
+			self.buffer_send.clear()
+		self.conn.close()
+		number = before - len(self.buffer)
+		if number:
+			logging.info('sent {} item{} in {:.1f}s'.format(
+				number, '' if number==1 else 's', time.perf_counter()-start))
 
 	def _sender(self):
-		while True:
-			if not self.shutdown:
-				self.buffer_send.wait()
+		self.buffer_send.wait()
+		while not self.shutdown or self.buffer:
 			time.sleep(INTERVAL)
 			with self.buffer_mutex:
-				try:
-					self._send_buffer()
-				except IndexError:
-					self.buffer_send.clear()
-					if self.shutdown:
-						break
+				self._send_buffer()
+			if not self.shutdown:
+				self.buffer_send.wait()
 
 	def send(self, **kwargs):
 		with self.buffer_mutex:
