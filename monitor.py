@@ -59,7 +59,8 @@ class MonitorClient:
 	def _send_buffer(self):
 		before = len(self.buffer)
 		start = time.perf_counter()
-		self.conn.connect()
+		with contextlib.suppress(OSError):
+			self.conn.connect()
 		for index, item in enumerate(self.buffer):
 			try:
 				self._send(**item)
