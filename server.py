@@ -56,9 +56,9 @@ def main():
 					attr['fail-notify']))
 			elif kind == 'switch':
 				groups[attr['group']].append(Switch(
-					attr['name',
+					attr['name'],
 					device['input']['interval'],
-					attr['fail-notify']]))
+					attr['fail-notify']))
 	with monitor.MonitorServer(verify_record) as ms, website(), \
 			notification.NotificationCenter() as notify:
 		while True:
@@ -97,6 +97,7 @@ def website():
 	try:
 		yield
 	finally:
+		logging.info('disable website')
 		shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
@@ -221,7 +222,7 @@ def plot_history(series_list, file, now):
 	matplotlib.pyplot.legend(
 		handles=list(collections.OrderedDict(zip(labels, handles)).values()),
 		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Hh'))
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
 	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(range(0, 24, 2)))
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# summary
@@ -272,7 +273,7 @@ def _format_timestamp(ts, now):
 
 class Series(object):
 
-	now = None
+	now = datetime.datetime.now()
 
 	def __init__(self, name, interval, fail_notify):
 		self.name = name
@@ -385,11 +386,11 @@ class Temperature(Series):
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
-			_format_timestmap(self.interval, self.now)))
+			_format_timedelta(self.interval)))
 		ret.append('<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
 			.format(self.low, self.high))
 		if not self.notify:
-			ret.append('<li>Keine Benachrichtigung bei Ausfall.</li>\n')
+			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
 		ret.append('</ul>')
 		return ''.join(ret)
 
@@ -460,9 +461,9 @@ class Switch(Series):
 			ret.append('<li>{} Einschaltdauer in der letzten Woche</li>\n'
 				.format(_format_timedelta(self.uptime)))
 		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
-			_format_timestmap(self.interval, self.now)))
+			_format_timedelta(self.interval)))
 		if not self.notify:
-			ret.append('<li>Keine Benachrichtigung bei Ausfall.</li>\n')
+			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
 		ret.append('</ul>')
 		return ''.join(ret)
 

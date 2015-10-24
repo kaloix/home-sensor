@@ -110,6 +110,7 @@ class MonitorServer:
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
+		logging.info('shutdown monitor server')
 		self.httpd.shutdown()
 		self.server.join()
 
