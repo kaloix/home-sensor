@@ -1,6 +1,9 @@
 # TODO
 ## General
 * Shorten allowed downtime (depended on sensor.json?)
+* Summarize emails
+* Better HTML <li></li>
+* server.Sensor use base __str__
 
 ## Temperature Garden
 0. Buy WLAN adapter for *Raspberry Pi 1 Model B Rev. 2.0* ([Conrad](http://www.conrad.de/ce/de/product/993655/Raspberry-Pi-WLAN-Stick-EDIMAX-EW-7811Un))

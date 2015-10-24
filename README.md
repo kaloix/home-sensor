@@ -1,7 +1,6 @@
 # Kaloix Sensor System
 > **Notice:** This project was made with only personal use by me in mind. Code
-> is not commentated, maybe bad structured and the user interface is in German
-> language.
+> is not commentated and the user interface is in German language.
 
 ## Installation
 ### Client
@@ -12,7 +11,7 @@
 		modprobe w1-gpio
 		modprobe w1-therm
 
-3. Optical character recognition of seven segment display with [ssocr](https://www.unix-ag.uni-kl.de/~auerswal/ssocr/):
+3. Optical character recognition of seven segment display:
 
 		sudo apt-get install fswebcam libimlib2 libimlib2-dev python3-numpy
 			python3-scipy python3-pil

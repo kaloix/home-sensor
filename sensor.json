@@ -11,7 +11,8 @@
 				"name": "CPU thalgrund",
 				"group": "System",
 				"low": 20,
-				"high": 60
+				"high": 60,
+				"fail-notify": true
 			}
 		}
 	},
@@ -27,7 +28,8 @@
 				"name": "Wohnzimmer",
 				"group": "Lufttemperatur",
 				"low": 18,
-				"high": 30
+				"high": 30,
+				"fail-notify": true
 			}
 		}
 	},
@@ -43,11 +45,13 @@
 				"name": "Kollektoren",
 				"group": "Solaranlage",
 				"low": 0,
-				"high": 90
+				"high": 90,
+				"fail-notify": false
 			},
 			"switch": {
 				"name": "Pumpe",
-				"group": "Solaranlage"
+				"group": "Solaranlage",
+				"fail-notify": false
 			}
 		}
 	}

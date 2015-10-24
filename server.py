@@ -49,12 +49,16 @@ def main():
 		for kind, attr in device['output'].items():
 			if kind == 'temperature':
 				groups[attr['group']].append(Temperature(
-					attr['name'],
 					attr['low'],
-					attr['high']))
+					attr['high'],
+					attr['name'],
+					device['input']['interval'],
+					attr['fail-notify']))
 			elif kind == 'switch':
 				groups[attr['group']].append(Switch(
-					attr['name']))
+					attr['name',
+					device['input']['interval'],
+					attr['fail-notify']]))
 	with monitor.MonitorServer(verify_record) as ms, website(), \
 			notification.NotificationCenter() as notify:
 		while True:
@@ -62,11 +66,13 @@ def main():
 			for name, record in ms.fetch():
 				save_record(groups, name, record) # FIXME simplify
 			now = datetime.datetime.now()
+			Series.now = now
 			for group, series_list in groups.items():
 				for series in series_list:
-					error = series.error # FIXME no data warning only once per failure
-					if error:
-						notify.user_warning(error)
+					if series.error:
+						notify.user_warning(series.error)
+					if series.warning:
+						notify.user_warning(series.warning)
 				html_filled = html_template.substitute(
 					refresh_seconds = INTERVAL,
 					group = group,
@@ -215,8 +221,8 @@ def plot_history(series_list, file, now):
 	matplotlib.pyplot.legend(
 		handles=list(collections.OrderedDict(zip(labels, handles)).values()),
 		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
-	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H Uhr'))
-	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(range(0, 24, 3)))
+	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Hh'))
+	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(range(0, 24, 2)))
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# summary
 	ax = matplotlib.pyplot.subplot(313)
@@ -266,9 +272,12 @@ def _format_timestamp(ts, now):
 
 class Series(object):
 
-	def __init__(self, name):
+	now = None
+
+	def __init__(self, name, interval, fail_notify):
 		self.name = name
-		self.now = datetime.datetime.now()
+		self.interval = datetime.timedelta(seconds=interval)
+		self.notify = fail_notify
 		self.records = collections.deque()
 		self.summary = collections.deque()
 		self._read(self.now.year-1)
@@ -321,6 +330,12 @@ class Series(object):
 			return None
 
 	@property
+	def error(self):
+		if self.notify and self.current is None:
+			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
+		return None
+
+	@property
 	def day(self):
 		min_time = self.now - datetime.timedelta(days=1)
 		start = len(self.records)
@@ -329,7 +344,6 @@ class Series(object):
 		return itertools.islice(self.records, start, None)
 
 	def save(self, record):
-		self.now = datetime.datetime.now()
 		self._append(record)
 		self._summarize(record)
 		self._clear()
@@ -338,12 +352,12 @@ class Series(object):
 
 class Temperature(Series):
 
-	def __init__(self, name, low, high):
+	def __init__(self, low, high, *args):
 		self.low = low
 		self.high = high
 		self.date = datetime.date.min
 		self.today = None
-		super().__init__(name)
+		super().__init__(*args)
 
 	def __str__(self):
 		current = self.current
@@ -370,9 +384,12 @@ class Temperature(Series):
 			if maximum.value > self.high:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
-		ret.append(
-			'<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
-				.format(self.low, self.high))
+		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
+			_format_timestmap(self.interval, self.now)))
+		ret.append('<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
+			.format(self.low, self.high))
+		if not self.notify:
+			ret.append('<li>Keine Benachrichtigung bei Ausfall.</li>\n')
 		ret.append('</ul>')
 		return ''.join(ret)
 
@@ -396,24 +413,21 @@ class Temperature(Series):
 		return minimum, maximum
 
 	@property
-	def error(self):
+	def warning(self):
 		current = self.current
 		if current is None:
-			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
-		elif current.value < self.low:
-			return 'Messpunkt "{}" unter {:.0f} °C.'.format(
-				self.name, self.low)
-		elif current.value > self.high:
-			return 'Messpunkt "{}" über {:.0f} °C.'.format(
-				self.name, self.high)
-		else:
 			return None
+		if current.value < self.low:
+			return 'Messpunkt "{}" unter {} °C.'.format(self.name, self.low)
+		if current.value > self.high:
+			return 'Messpunkt "{}" über {} °C.'.format(self.name, self.high)
+		return None
 
 
 class Switch(Series):
 
-	def __init__(self, name):
-		super().__init__(name)
+	def __init__(self, *args):
+		super().__init__(*args)
 
 	def __str__(self):
 		current = self.current
@@ -443,9 +457,12 @@ class Switch(Series):
 			ret.append('<li>Zuletzt Aus {}</li>\n'.format(
 				_format_timestamp(last_false, self.now)))
 		if self.records:
-			ret.append(
-				'<li>{} Einschaltdauer in der letzten Woche</li>\n'
-					.format(_format_timedelta(self.uptime)))
+			ret.append('<li>{} Einschaltdauer in der letzten Woche</li>\n'
+				.format(_format_timedelta(self.uptime)))
+		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
+			_format_timestmap(self.interval, self.now)))
+		if not self.notify:
+			ret.append('<li>Keine Benachrichtigung bei Ausfall.</li>\n')
 		ret.append('</ul>')
 		return ''.join(ret)
 
@@ -482,11 +499,8 @@ class Switch(Series):
 		return total
 
 	@property
-	def error(self):
-		if self.current is None:
-			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
-		else:
-			return None
+	def warning(self):
+		return None
 
 
 if __name__ == "__main__":
