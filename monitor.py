@@ -26,7 +26,7 @@ class MonitorClient:
 		self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 		self.context.verify_mode = ssl.CERT_REQUIRED
 		self.context.load_verify_locations(CERT)
-		self.buffer = list()
+		self.buffer = queue.Queue()
 		self.buffer_send = threading.Event()
 		self.buffer_mutex = threading.Lock()
 
@@ -55,40 +55,42 @@ class MonitorClient:
 			raise MonitorError('{} {}'.format(resp.status, resp.reason))
 
 	def _send_buffer(self):
-		before = len(self.buffer)
+		before = self.buffer.qsize()
 		start = time.perf_counter()
-		for index, item in enumerate(self.buffer):
-			try:
-				self.conn = http.client.HTTPSConnection(HOST, PORT,
-				                                        context=self.context)
-				success = self._send(**item)
-				self.conn.close() # TODO use contextlib.closing?
-			except MonitorError as err:
-				logging.error('unable to send {}: {}'.format(item, err))
-			except (http.client.HTTPException, OSError) as err:
-				logging.warning('postpone send: {}'.format(type(err).__name__))
-				self.buffer = self.buffer[index:]
-				break
-		else:
-			self.buffer = list()
-			self.buffer_send.clear()
-		number = before - len(self.buffer)
+		conn = http.client.HTTPSConnection(HOST, PORT, context=self.context)
+		with contextlib.closing(conn) as self.conn:
+			while True:
+				item = self.buffer.get(block=False)
+				try:
+					succes = self._send(**item)
+				except MonitorError as err:
+					logging.error('unable to send {}: {}'.format(item, err))
+				except (http.client.HTTPException, OSError) as err:
+					logging.warning('postpone send: {}'.format(
+						type(err).__name__))
+					self.buffer.put(item)
+					break
+		number = before - self.buffer.qsize()
 		if number:
 			logging.info('sent {} item{} in {:.1f}s'.format(
 				number, '' if number==1 else 's', time.perf_counter()-start))
 
 	def _sender(self):
-		self.buffer_send.wait()
-		while not self.shutdown or self.buffer:
-			time.sleep(INTERVAL)
-			with self.buffer_mutex:
-				self._send_buffer()
+		while True:
 			if not self.shutdown:
 				self.buffer_send.wait()
+			time.sleep(INTERVAL)
+			with self.buffer_mutex:
+				try:
+					self._send_buffer()
+				except queue.Empty:
+					self.buffer_send.clear()
+					if self.shutdown:
+						break
 
 	def send(self, **kwargs):
 		with self.buffer_mutex:
-			self.buffer.append(kwargs)
+			self.buffer.put(kwargs)
 			self.buffer_send.set()
 
 

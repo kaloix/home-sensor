@@ -261,14 +261,13 @@ def _format_timedelta(td):
 def _format_timestamp(ts, now):
 	if ts.date() == now.date():
 		return 'um {:%H:%M} Uhr'.format(ts)
-	elif now.date()-ts.date() == datetime.timedelta(days=1):
+	if now.date()-ts.date() == datetime.timedelta(days=1):
 		return 'gestern um {:%H:%M} Uhr'.format(ts)
-	elif now.date()-ts.date() < datetime.timedelta(days=7):
+	if now.date()-ts.date() < datetime.timedelta(days=7):
 		return 'am {:%A um %H:%M} Uhr'.format(ts)
-	elif ts.year == now.year:
+	if ts.year == now.year:
 		return 'am {:%d. %B um %H:%M} Uhr'.format(ts)
-	else:
-		return 'am {:%d. %B %Y um %H:%M} Uhr'.format(ts)
+	return 'am {:%d. %B %Y um %H:%M} Uhr'.format(ts)
 
 
 class Series(object):
