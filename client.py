@@ -49,7 +49,8 @@ def main():
 	with monitor.MonitorClient() as connection:
 		while True:
 			for sensor in sensors:
-				now = datetime.datetime.now().replace(microsecond=0)
+				now = datetime.datetime.now(tz=datetime.timezone.utc)
+				now = now.replace(microsecond=0)
 				start = time.perf_counter()
 				try:
 					result = sensor.read()

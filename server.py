@@ -65,7 +65,7 @@ def main():
 			start = time.perf_counter()
 			for name, record in ms.fetch():
 				save_record(groups, name, record) # FIXME simplify
-			now = datetime.datetime.now()
+			now = datetime.datetime.now(tz=datetime.timezone.utc)
 			Series.now = now
 			for group, series_list in groups.items():
 				for series in series_list:
@@ -103,7 +103,8 @@ def website():
 
 
 def verify_record(name, timestamp, value):
-	timestamp = datetime.datetime.fromtimestamp(int(timestamp))
+	timestamp = datetime.datetime.fromtimestamp(int(timestamp),
+	                                            tz=datetime.timezone.utc)
 	logging.info('{}: {} / {}'.format(name, timestamp, value))
 	return name, Record(timestamp, value)
 
@@ -126,8 +127,8 @@ def detail_html(series_list):
 
 
 def _nighttime(count, date_time):
-	# make aware
-	date_time = pytz.timezone('Europe/Berlin').localize(date_time)
+#	# make aware
+#	date_time = pytz.timezone('Europe/Berlin').localize(date_time)
 	# calculate nights
 	date_time -= datetime.timedelta(days=count)
 	sun_change = list()
@@ -139,9 +140,9 @@ def _nighttime(count, date_time):
 	night = list()
 	for r in range(0, count):
 		night.append((sun_change[2*r], sun_change[2*r+1]))
-	# make naive
-	for sunset, sunrise in night:
-		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
+#	# make naive
+#	for sunset, sunrise in night:
+#		yield sunset.replace(tzinfo=None), sunrise.replace(tzinfo=None)
 
 
 def _plot_records(series_list, days, now):
@@ -273,7 +274,7 @@ def _format_timestamp(ts, now):
 
 class Series(object):
 
-	now = datetime.datetime.now()
+	now = datetime.datetime.now(tz=datetime.timezone.utc)
 
 	def __init__(self, name, interval, fail_notify):
 		self.name = name
