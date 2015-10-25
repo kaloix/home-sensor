@@ -1,5 +1,6 @@
 axes.formatter.useoffset : False
 axes.grid : True
+timezone : Europe/Berlin
 xtick.major.size : 4
 xtick.major.width : 1
 xtick.minor.size : 3

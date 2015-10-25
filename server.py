@@ -26,9 +26,10 @@ import utility
 ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
-RECORD_DAYS = 7
 INTERVAL = 180
+RECORD_DAYS = 7
 SUMMARY_DAYS = 365
+TIMEZONE = pytz.timezone('Europe/Berlin')
 WEB_DIR = '/home/kaloix/html/sensor/'
 
 Record = collections.namedtuple('Record', 'timestamp value')
@@ -77,7 +78,8 @@ def main():
 					refresh_seconds = INTERVAL,
 					group = group,
 					values = detail_html(series_list),
-					update_time = '{:%A, %d. %B %Y, %X}'.format(now),
+					update_time = '{:%A %d. %B %Y %X %Z}'.format(
+						now.astimezone(TIMEZONE)),
 					year = '{:%Y}'.format(now))
 				filename = '{}{}.html'.format(WEB_DIR, group.lower())
 				with open(filename, mode='w') as html_file:
@@ -254,6 +256,8 @@ def _format_timedelta(td):
 
 
 def _format_timestamp(ts, now):
+	ts = ts.astimezone(TIMEZONE)
+	now = ts.astimezone(TIMEZONE)
 	if ts.date() == now.date():
 		return 'um {:%H:%M} Uhr'.format(ts)
 	if now.date()-ts.date() == datetime.timedelta(days=1):
@@ -302,10 +306,10 @@ class Series(object):
 		try:
 			with open(filename, newline='') as csv_file:
 				for row in csv.reader(csv_file):
-					record = Record(
-						datetime.datetime.fromtimestamp(
-							int(row[0]), tz=datetime.timezone.utc),
-						_universal_parser(row[1]))
+					timestamp = datetime.datetime.fromtimestamp(
+						int(row[0]), tz=datetime.timezone.utc)
+					value = _universal_parser(row[1])
+					record = Record(timestamp, value)
 					self._append(record)
 					self._summarize(record)
 		except OSError:
@@ -390,11 +394,12 @@ class Temperature(Series):
 		return ''.join(ret)
 
 	def _summarize(self, record):
-		if record.timestamp.date() > self.date:
+		timestamp = record.timestamp.astimezone(TIMEZONE)
+		if timestamp.date() > self.date:
 			if self.today:
 				self.summary.append(Summary(self.date,
 					                        min(self.today), max(self.today)))
-			self.date = record.timestamp.date()
+			self.date = timestamp.date()
 			self.today = list()
 		self.today.append(record.value)
 
