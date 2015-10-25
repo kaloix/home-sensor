@@ -57,27 +57,25 @@ class MonitorClient:
 			raise MonitorError('{} {}'.format(resp.status, resp.reason))
 
 	def _send_buffer(self):
-		before = len(self.buffer)
 		start = time.perf_counter()
-		with contextlib.suppress(OSError):
+		count = int()
+		try:
 			self.conn.connect()
-		for index, item in enumerate(self.buffer):
-			try:
-				self._send(**item)
-			except MonitorError as err:
-				logging.error('unable to send {}: {}'.format(item, err))
-			except (http.client.HTTPException, OSError) as err:
-				logging.warning('postpone send: {}'.format(type(err).__name__))
-				self.buffer = self.buffer[index:]
-				break
-		else:
-			self.buffer = list()
+			for item in self.buffer:
+				try:
+					self._send(**item)
+				except MonitorError as err:
+					logging.error('unable to send {}: {}'.format(item, err))
+				count += 1
+		except (http.client.HTTPException, OSError) as err:
+			logging.warning('postpone send: {}'.format(type(err).__name__))
+		self.buffer = self.buffer[count:]
+		if not self.buffer:
 			self.buffer_send.clear()
 		self.conn.close()
-		number = before - len(self.buffer)
-		if number:
+		if count:
 			logging.info('sent {} item{} in {:.1f}s'.format(
-				number, '' if number==1 else 's', time.perf_counter()-start))
+				count, '' if count==1 else 's', time.perf_counter()-start))
 
 	def _sender(self):
 		self.buffer_send.wait()
