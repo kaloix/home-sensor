@@ -209,9 +209,11 @@ def plot_history(series_list, file, now):
 	# last week
 	ax = matplotlib.pyplot.subplot(312)
 	_plot_records(series_list, RECORD_DAYS, now)
+	frame_start = now - datetime.timedelta(days=RECORD_DAYS)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%a.'))
-	ax.xaxis.set_major_locator(matplotlib.dates.DayLocator())
-	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator(range(0, 24, 6)))
+	ax.xaxis.set_ticks(utility.day_locator(frame_start, now, TIMEZONE))
+	ax.xaxis.set_ticks(utility.hour_locator(frame_start, now, 6, TIMEZONE),
+	                   minor=True)
 	handles, labels = ax.get_legend_handles_labels()
 	# last day
 	ax = matplotlib.pyplot.subplot(311)
@@ -219,16 +221,18 @@ def plot_history(series_list, file, now):
 	matplotlib.pyplot.legend(
 		handles=list(collections.OrderedDict(zip(labels, handles)).values()),
 		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
+	frame_start = now - datetime.timedelta(days=1)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
-	ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(range(0, 24, 2)))
+	ax.xaxis.set_ticks(utility.hour_locator(frame_start, now, 2, TIMEZONE))
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# summary
 	ax = matplotlib.pyplot.subplot(313)
 	_plot_summary(series_list, now)
+	frame_start = now - datetime.timedelta(days=365)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b.'))
-	ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator())
-	ax.xaxis.set_minor_locator(matplotlib.dates.WeekdayLocator(
-		matplotlib.dates.MO))
+	ax.xaxis.set_ticks(utility.month_locator(frame_start, now, TIMEZONE))
+	ax.xaxis.set_ticks(utility.week_locator(frame_start, now, TIMEZONE),
+	                   minor=True)
 	# save file
 	matplotlib.pyplot.savefig(file, bbox_inches='tight')
 	matplotlib.pyplot.close()
