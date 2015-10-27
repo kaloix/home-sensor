@@ -261,7 +261,7 @@ def _format_timedelta(td):
 
 def _format_timestamp(ts, now):
 	ts = ts.astimezone(TIMEZONE)
-	now = ts.astimezone(TIMEZONE)
+	now = now.astimezone(TIMEZONE)
 	if ts.date() == now.date():
 		return 'um {:%H:%M} Uhr'.format(ts)
 	if now.date()-ts.date() == datetime.timedelta(days=1):
