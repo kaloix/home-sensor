@@ -13,6 +13,7 @@ import shutil
 import string
 import time
 
+import dateutil.rrule
 import matplotlib.dates
 import matplotlib.pyplot
 import pysolar
@@ -211,8 +212,8 @@ def plot_history(series_list, file, now):
 	_plot_records(series_list, RECORD_DAYS, now)
 	frame_start = now - datetime.timedelta(days=RECORD_DAYS)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%a.'))
-	ax.xaxis.set_ticks(utility.day_locator(frame_start, now, TIMEZONE))
-	ax.xaxis.set_ticks(utility.hour_locator(frame_start, now, 6, TIMEZONE),
+	ax.xaxis.set_ticks(_day_locator(frame_start, now, TIMEZONE))
+	ax.xaxis.set_ticks(_hour_locator(frame_start, now, 6, TIMEZONE),
 	                   minor=True)
 	handles, labels = ax.get_legend_handles_labels()
 	# last day
@@ -223,19 +224,54 @@ def plot_history(series_list, file, now):
 		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
 	frame_start = now - datetime.timedelta(days=1)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%H'))
-	ax.xaxis.set_ticks(utility.hour_locator(frame_start, now, 2, TIMEZONE))
+	ax.xaxis.set_ticks(_hour_locator(frame_start, now, 2, TIMEZONE))
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# summary
 	ax = matplotlib.pyplot.subplot(313)
 	_plot_summary(series_list, now)
 	frame_start = now - datetime.timedelta(days=365)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b.'))
-	ax.xaxis.set_ticks(utility.month_locator(frame_start, now, TIMEZONE))
-	ax.xaxis.set_ticks(utility.week_locator(frame_start, now, TIMEZONE),
-	                   minor=True)
+	ax.xaxis.set_ticks(_month_locator(frame_start, now, TIMEZONE))
+	ax.xaxis.set_ticks(_week_locator(frame_start, now, TIMEZONE), minor=True)
 	# save file
 	matplotlib.pyplot.savefig(file, bbox_inches='tight')
 	matplotlib.pyplot.close()
+
+
+# matplotlib.dates.RRuleLocator is bugged at dst transitions
+# http://matplotlib.org/api/dates_api.html#matplotlib.dates.RRuleLocator
+# https://github.com/matplotlib/matplotlib/issues/2737/
+# https://github.com/dateutil/dateutil/issues/102
+
+def _month_locator(start, end, tz):
+	lower = start.astimezone(tz).date().replace(day=1)
+	upper = end.astimezone(tz).date()
+	rule = dateutil.rrule.rrule(dateutil.rrule.MONTHLY,
+	                            dtstart=lower, until=upper)
+	return [tz.localize(dt) for dt in rule if start <= tz.localize(dt) <= end]
+
+def _week_locator(start, end, tz):
+	lower = start.astimezone(tz).date()
+	upper = end.astimezone(tz).date()
+	rule = dateutil.rrule.rrule(dateutil.rrule.WEEKLY,
+	                            byweekday=dateutil.rrule.MO,
+	                            dtstart=lower, until=upper)
+	return [tz.localize(dt) for dt in rule if start <= tz.localize(dt) <= end]
+
+def _day_locator(start, end, tz):
+	lower = start.astimezone(tz).date()
+	upper = end.astimezone(tz).date()
+	rule = dateutil.rrule.rrule(dateutil.rrule.DAILY,
+	                            dtstart=lower, until=upper)
+	return [tz.localize(dt) for dt in rule if start <= tz.localize(dt) <= end]
+
+def _hour_locator(start, end, step, tz):
+	lower = start.astimezone(tz).date()
+	upper = end.astimezone(tz).replace(tzinfo=None)
+	rule = dateutil.rrule.rrule(dateutil.rrule.HOURLY,
+	                            byhour=range(0, 24, step),
+	                            dtstart=lower, until=upper)
+	return [tz.localize(dt) for dt in rule if start <= tz.localize(dt) <= end]
 
 
 def _universal_parser(value):
@@ -257,7 +293,6 @@ def _format_timedelta(td):
 	ret.append(str(minutes))
 	ret.append('Minute' if minutes==1 else 'Minuten')
 	return ' '.join(ret)
-
 
 def _format_timestamp(ts, now):
 	ts = ts.astimezone(TIMEZONE)
