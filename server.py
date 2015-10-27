@@ -335,7 +335,7 @@ class Series(object):
 
 	@property
 	def error(self):
-		if self.notify and self.current is None:
+		if self.notify and not self.current:
 			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
 		return None
 
@@ -368,13 +368,13 @@ class Temperature(Series):
 		minimum, maximum = self.minmax
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
-		if current is None:
-			ret.append('Fehler')
-		else:
+		if current:
 			ret.append('{:.1f} °C {}'.format(
 				current.value, _format_timestamp(current.timestamp, self.now)))
 			if current.value < self.low or current.value > self.high:
 				ret.append(' ⚠')
+		else:
+			ret.append('Fehler')
 		ret.append('<ul>\n')
 		if minimum:
 			ret.append('<li>Wochen-Tief bei {:.1f} °C {}'.format(
@@ -420,7 +420,7 @@ class Temperature(Series):
 	@property
 	def warning(self):
 		current = self.current
-		if current is None:
+		if not current:
 			return None
 		if current.value < self.low:
 			return 'Messpunkt "{}" unter {} °C.'.format(self.name, self.low)
@@ -448,17 +448,17 @@ class Switch(Series):
 				break
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
-		if current is None:
-			ret.append('Fehler')
-		else:
+		if current:
 			ret.append('{} {}'.format(
 				'Ein' if current.value else 'Aus',
 				_format_timestamp(current.timestamp, self.now)))
+		else:
+			ret.append('Fehler')
 		ret.append('<ul>\n')
-		if last_true and (current is None or not current):
+		if last_true and (not current or not current.value):
 			ret.append('<li>Zuletzt Ein {}</li>\n'.format(
 				_format_timestamp(last_true, self.now)))
-		if last_false and (current is None or current):
+		if last_false and (not current or current.value):
 			ret.append('<li>Zuletzt Aus {}</li>\n'.format(
 				_format_timestamp(last_false, self.now)))
 		if self.records:
