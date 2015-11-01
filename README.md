@@ -13,10 +13,8 @@
 
 3. Optical character recognition of seven segment display:
 
-		sudo apt-get install fswebcam libimlib2 libimlib2-dev python3-numpy
-			python3-scipy python3-pil
-		wget "https://www.unix-ag.uni-kl.de/~auerswal/ssocr/ssocr-2.16.3.tar.
-			bz2"
+		sudo apt-get install fswebcam libimlib2 libimlib2-dev python3-numpy python3-scipy python3-pil
+		wget "https://www.unix-ag.uni-kl.de/~auerswal/ssocr/ssocr-2.16.3.tar.bz2"
 		bzip2 --decompress ssocr-2.16.3.tar.bz2
 		tar --extract --file ssocr-2.16.3.tar
 		rm ssocr-2.16.3.tar
@@ -31,16 +29,13 @@
 	of `sensor.json`.
 
 ### Server
-1. The base platform is **CentOS 6.7** with **Python 3.4.3**. Install German
-   locale by uncommenting `de_DE.UTF-8 UTF-8` in `/etc/locale.gen` and running
-   `sudo locale-gen`.
+1. The base platform is **CentOS 6.7** with **Python 3.4.3**.
 
 2. Create self signed certificate for HTTP API:
 
 		openssl genrsa -out server.key 4096
 		openssl req -new -key server.key -out server.csr
-		openssl x509 -req -days 1460 -in server.csr -signkey server.key
-			-out server.crt
+		openssl x509 -req -days 1460 -in server.csr -signkey server.key -out server.crt
 		rm server.csr
 
 	Copy `server.crt` to clients.
