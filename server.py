@@ -25,7 +25,7 @@ import utility
 
 
 ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
-COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+COLOR_CYCLE = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
 INTERVAL = 180
 RECORD_DAYS = 7
@@ -35,6 +35,7 @@ WEB_DIR = '/home/kaloix/html/sensor/'
 
 Record = collections.namedtuple('Record', 'timestamp value')
 Summary = collections.namedtuple('Summary', 'date minimum maximum')
+Uptime = collections.namedtuple('Uptime', 'date value')
 
 
 def main():
@@ -181,7 +182,10 @@ def _plot_records(series_list, days, now):
 
 
 def _plot_summary(series_list, now):
+	ax1 = matplotlib.pyplot.gca() # FIXME not available in mplrc 1.4.3
+	ax2 = ax1.twinx()
 	color_iter = iter(COLOR_CYCLE)
+	switch = False
 	for series in series_list:
 		color = next(color_iter)
 		if type(series) is Temperature:
@@ -193,17 +197,25 @@ def _plot_summary(series_list, now):
 				parts[-1].append(summary)
 			for part in parts:
 				dates, mins, maxs = zip(*part)
-				matplotlib.pyplot.fill_between(
+				ax1.fill_between(
 					dates, mins, maxs, label=series.name,
-					color=color, alpha=0.5, interpolate=True)
+					color=color, alpha=0.5, interpolate=True, zorder=0)
 		elif type(series) is Switch:
-			dates, sums = zip(*series.summary)
-			matplotlib.pyplot.vlines(dates, [0], sums)
+			switch = True
+			dates, values = zip(*series.summary)
+			ax2.plot(dates, values, color=color,
+			         marker='o', linestyle='', zorder=1)
 	matplotlib.pyplot.xlim(now-datetime.timedelta(days=365), now)
-	matplotlib.pyplot.ylabel('Temperatur °C')
-	ax = matplotlib.pyplot.gca() # FIXME not available in mplrc 1.4.3
-	ax.yaxis.tick_right()
-	ax.yaxis.set_label_position('right')
+	ax1.set_ylabel('Temperatur °C')
+	ax1.yaxis.tick_right()
+	ax1.yaxis.set_label_position('right')
+	if switch:
+		ax2.set_ylabel('Laufzeit h')
+		ax2.yaxis.tick_left()
+		ax2.yaxis.set_label_position('left')
+		ax2.grid(False)
+	else:
+		ax2.set_visible(False)
 
 
 def plot_history(series_list, file, now):
@@ -468,7 +480,7 @@ class Temperature(Series):
 class Switch(Series):
 
 	def __init__(self, *args):
-		self.date = datetime.date.min
+		self.date = None
 		super().__init__(*args)
 
 	def __str__(self):
@@ -510,13 +522,16 @@ class Switch(Series):
 
 	def _summarize(self, record): # TODO record.value not used
 		date = record.timestamp.astimezone(TIMEZONE).date()
+		if not self.date:
+			self.date = date
+			return
 		if date <= self.date:
 			return
 		lower = datetime.datetime.combine(self.date, datetime.time.min)
-		lower = lower.astimezone(TIMEZONE)
+		lower = TIMEZONE.localize(lower)
 		upper = datetime.datetime.combine(self.date+datetime.timedelta(days=1),
 		                                  datetime.time.min)
-		upper = upper.astimezone(TIMEZONE)
+		upper = TIMEZONE.localize(upper)
 		total = datetime.timedelta()
 		for start, end in self.segments:
 			if end <= lower or start >= upper:
@@ -525,9 +540,10 @@ class Switch(Series):
 				start = lower
 			if end > upper:
 				end = upper
-			total += stop - start
-		if total:
-			self.summary.append((self.date, total))
+			total += end - start
+		hours = total / datetime.timedelta(hours=1)
+		if hours:
+			self.summary.append(Uptime(self.date, hours))
 		self.date = date
 
 	@property
