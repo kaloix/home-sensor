@@ -197,7 +197,8 @@ def _plot_summary(series_list, now):
 					dates, mins, maxs, label=series.name,
 					color=color, alpha=0.5, interpolate=True)
 		elif type(series) is Switch:
-			pass
+			dates, sums = zip(*series.summary)
+			matplotlib.pyplot.vlines(dates, [0], sums)
 	matplotlib.pyplot.xlim(now-datetime.timedelta(days=365), now)
 	matplotlib.pyplot.ylabel('Temperatur °C')
 	ax = matplotlib.pyplot.gca() # FIXME not available in mplrc 1.4.3
@@ -467,6 +468,7 @@ class Temperature(Series):
 class Switch(Series):
 
 	def __init__(self, *args):
+		self.date = datetime.date.min
 		super().__init__(*args)
 
 	def __str__(self):
@@ -506,8 +508,27 @@ class Switch(Series):
 		ret.append('</ul>')
 		return ''.join(ret)
 
-	def _summarize(self, record):
-		pass
+	def _summarize(self, record): # TODO record.value not used
+		date = record.timestamp.astimezone(TIMEZONE).date()
+		if date <= self.date:
+			return
+		lower = datetime.datetime.combine(self.date, datetime.time.min)
+		lower = lower.astimezone(TIMEZONE)
+		upper = datetime.datetime.combine(self.date+datetime.timedelta(days=1),
+		                                  datetime.time.min)
+		upper = upper.astimezone(TIMEZONE)
+		total = datetime.timedelta()
+		for start, end in self.segments:
+			if end <= lower or start >= upper:
+				continue
+			if start < lower:
+				start = lower
+			if end > upper:
+				end = upper
+			total += stop - start
+		if total:
+			self.summary.append((self.date, total))
+		self.date = date
 
 	@property
 	def segments(self):
