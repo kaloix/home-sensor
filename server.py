@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import collections
+import configparser
 import contextlib
 import csv
 import datetime
@@ -19,7 +20,7 @@ import pysolar
 import pytz
 
 import monitor
-import notification
+import notify
 import utility
 
 
@@ -34,6 +35,7 @@ SUMMARY_DAYS = 365
 TIMEZONE = pytz.timezone('Europe/Berlin')
 WEB_DIR = '/home/kaloix/html/sensor/'
 
+config = configparser.ConfigParser()
 groups = collections.defaultdict(list)
 now = datetime.datetime.now(tz=datetime.timezone.utc)
 Record = collections.namedtuple('Record', 'timestamp value')
@@ -45,6 +47,7 @@ def main():
 	global groups, now
 	utility.logging_config()
 	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+	config.read('config.ini')
 	with open('template.html') as html_file:
 		html_template = string.Template(html_file.read())
 	with open('sensor.json') as json_file:
@@ -66,14 +69,19 @@ def main():
 					device['input']['interval'],
 					attr['fail-notify']))
 	with monitor.MonitorServer(save_record) as ms, website(), \
-			notification.NotificationCenter() as notify:
+			notify.MailSender(config['email']['source_address'], \
+			config['email']['admin_address'], \
+			config['email']['user_address'], \
+			config['email'].getboolean('enable_email')) as mail:
 		while True:
 			start = time.perf_counter()
 			now = datetime.datetime.now(tz=datetime.timezone.utc)
 			for group, series_list in groups.items():
 				for series in series_list:
-					notify.queue(series.error, PAUSE_WARN_FAILURE)
-					notify.queue(series.warning, PAUSE_WARN_VALUE)
+					if series.error:
+						mail.queue(series.error, PAUSE_WARN_FAILURE)
+					if series.warning:
+						mail.queue(series.warning, PAUSE_WARN_VALUE)
 				html_filled = html_template.substitute(
 					refresh_seconds = INTERVAL,
 					group = group,
@@ -86,7 +94,7 @@ def main():
 					html_file.write(html_filled)
 				# FIXME svg backend has memory leak in matplotlib 1.4.3
 				plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
-			notify.send_all()
+			mail.send_all()
 			utility.memory_check()
 			duration = time.perf_counter() - start
 			logging.info('updated website in {:.1f}s'.format(duration))
@@ -378,13 +386,16 @@ class Series(object):
 
 	@property
 	def error(self):
-		if self.notify and not self.fail_status and not self.current:
+		if not self.notify:
+			return None
+		if self.current:
+			self.fail_status = False
+			return None
+		if not self.fail_status:
 			self.fail_status = True
 			self.fail_counter += 1
-			return 'Messpunkt "{}" liefert keine Daten. (#{})'.format(
-				self.name, self.fail_counter)
-		self.fail_status = False
-		return None
+		return 'Messpunkt "{}" liefert keine Daten. (#{})'.format(
+			self.name, self.fail_counter)
 
 	@property
 	def day(self):
