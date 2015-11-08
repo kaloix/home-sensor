@@ -33,12 +33,14 @@ TIMEZONE = pytz.timezone('Europe/Berlin')
 WEB_DIR = '/home/kaloix/html/sensor/'
 
 groups = collections.defaultdict(list)
+now = datetime.datetime.now(tz=datetime.timezone.utc)
 Record = collections.namedtuple('Record', 'timestamp value')
 Summary = collections.namedtuple('Summary', 'date minimum maximum')
 Uptime = collections.namedtuple('Uptime', 'date value')
 
 
 def main():
+	global groups, now
 	utility.logging_config()
 	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 	with open('template.html') as html_file:
@@ -66,7 +68,6 @@ def main():
 		while True:
 			start = time.perf_counter()
 			now = datetime.datetime.now(tz=datetime.timezone.utc)
-			Series.now = now
 			for group, series_list in groups.items():
 				for series in series_list:
 					if series.error:
@@ -84,8 +85,7 @@ def main():
 				with open(filename, mode='w') as html_file:
 					html_file.write(html_filled)
 				# FIXME svg backend has memory leak in matplotlib 1.4.3
-				plot_history(series_list,
-				             '{}{}.png'.format(WEB_DIR, group), now)
+				plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
 			utility.memory_check()
 			duration = time.perf_counter() - start
 			logging.info('updated website in {:.1f}s'.format(duration))
@@ -135,7 +135,7 @@ def _nighttime(count, date_time):
 		yield sun_change[2*r], sun_change[2*r+1]
 
 
-def _plot_records(series_list, days, now):
+def _plot_records(series_list, days):
 	color_iter = iter(COLOR_CYCLE)
 	for series in series_list:
 		color = next(color_iter)
@@ -174,7 +174,7 @@ def _plot_records(series_list, days, now):
 	ax.yaxis.set_label_position('right')
 
 
-def _plot_summary(series_list, now):
+def _plot_summary(series_list):
 	ax1 = matplotlib.pyplot.gca() # FIXME not available in mplrc 1.4.3
 	ax2 = ax1.twinx()
 	color_iter = iter(COLOR_CYCLE)
@@ -211,11 +211,11 @@ def _plot_summary(series_list, now):
 		ax2.set_visible(False)
 
 
-def plot_history(series_list, file, now):
+def plot_history(series_list, file):
 	fig = matplotlib.pyplot.figure(figsize=(13, 7))
 	# last week
 	ax = matplotlib.pyplot.subplot(312)
-	_plot_records(series_list, RECORD_DAYS, now)
+	_plot_records(series_list, RECORD_DAYS)
 	frame_start = now - datetime.timedelta(days=RECORD_DAYS)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%a.'))
 	ax.xaxis.set_ticks(_day_locator(frame_start, now, TIMEZONE))
@@ -224,7 +224,7 @@ def plot_history(series_list, file, now):
 	handles, labels = ax.get_legend_handles_labels()
 	# last day
 	ax = matplotlib.pyplot.subplot(311)
-	_plot_records(series_list, 1, now)
+	_plot_records(series_list, 1)
 	matplotlib.pyplot.legend(
 		handles=list(collections.OrderedDict(zip(labels, handles)).values()),
 		loc='lower left', bbox_to_anchor=(0, 1), ncol=5, frameon=False)
@@ -234,7 +234,7 @@ def plot_history(series_list, file, now):
 	ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator())
 	# summary
 	ax = matplotlib.pyplot.subplot(313)
-	_plot_summary(series_list, now)
+	_plot_summary(series_list)
 	frame_start = now - datetime.timedelta(days=365)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b.'))
 	ax.xaxis.set_ticks(_month_locator(frame_start, now, TIMEZONE))
@@ -300,23 +300,22 @@ def _format_timedelta(td):
 	ret.append('Minute' if minutes==1 else 'Minuten')
 	return ' '.join(ret)
 
-def _format_timestamp(ts, now):
+
+def _format_timestamp(ts):
 	ts = ts.astimezone(TIMEZONE)
-	now = now.astimezone(TIMEZONE)
-	if ts.date() == now.date():
+	local_now = now.astimezone(TIMEZONE)
+	if ts.date() == local_now.date():
 		return 'um {:%H:%M} Uhr'.format(ts)
-	if now.date()-ts.date() == datetime.timedelta(days=1):
+	if local_now.date()-ts.date() == datetime.timedelta(days=1):
 		return 'gestern um {:%H:%M} Uhr'.format(ts)
-	if now.date()-ts.date() < datetime.timedelta(days=7):
+	if local_now.date()-ts.date() < datetime.timedelta(days=7):
 		return 'am {:%A um %H:%M} Uhr'.format(ts)
-	if ts.year == now.year:
+	if ts.year == local_now.year:
 		return 'am {:%d. %B um %H:%M} Uhr'.format(ts)
 	return 'am {:%d. %B %Y um %H:%M} Uhr'.format(ts)
 
 
 class Series(object):
-
-	now = datetime.datetime.now(tz=datetime.timezone.utc)
 
 	def __init__(self, name, interval, fail_notify):
 		self.name = name
@@ -324,13 +323,13 @@ class Series(object):
 		self.notify = fail_notify
 		self.records = collections.deque()
 		self.summary = collections.deque()
-		self._read(self.now.year-1)
-		self._read(self.now.year)
+		self._read(now.year-1)
+		self._read(now.year)
 		self._clear()
 
 	def _append(self, record):
 		if self.records and record.timestamp <= self.records[-1].timestamp:
-			return
+			raise OlderThanPreviousError
 		self.records.append(record)
 		if len(self.records) >= 3 and self.records[-3].value == \
 				self.records[-2].value == self.records[-1].value and \
@@ -340,10 +339,10 @@ class Series(object):
 
 	def _clear(self):
 		while self.records and self.records[0].timestamp < \
-				self.now-datetime.timedelta(RECORD_DAYS):
+				now-datetime.timedelta(RECORD_DAYS):
 			self.records.popleft()
 		while self.summary and self.summary[0].date < \
-				(self.now - datetime.timedelta(SUMMARY_DAYS)).date():
+				(now - datetime.timedelta(SUMMARY_DAYS)).date():
 			self.summary.popleft()
 
 	def _read(self, year):
@@ -361,15 +360,14 @@ class Series(object):
 			pass
 
 	def _write(self, record):
-		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, self.now.year)
+		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
 		with open(filename, mode='a', newline='') as csv_file:
 			writer = csv.writer(csv_file)
 			writer.writerow((int(record.timestamp.timestamp()), record.value))
 
 	@property
 	def current(self):
-		if self.records and \
-				self.now-self.records[-1].timestamp <= ALLOWED_DOWNTIME:
+		if self.records and now-self.records[-1].timestamp <= ALLOWED_DOWNTIME:
 			return self.records[-1]
 		else:
 			return None
@@ -382,7 +380,7 @@ class Series(object):
 
 	@property
 	def day(self):
-		min_time = self.now - datetime.timedelta(days=1)
+		min_time = now - datetime.timedelta(days=1)
 		start = len(self.records)
 		while start > 0 and self.records[start-1].timestamp >= min_time:
 			start -= 1
@@ -411,7 +409,7 @@ class Temperature(Series):
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current:
 			ret.append('{:.1f} °C {}'.format(
-				current.value, _format_timestamp(current.timestamp, self.now)))
+				current.value, _format_timestamp(current.timestamp)))
 			if current.value < self.low or current.value > self.high:
 				ret.append(' ⚠')
 		else:
@@ -419,13 +417,13 @@ class Temperature(Series):
 		ret.append('<ul>\n')
 		if minimum:
 			ret.append('<li>Wochen-Tief bei {:.1f} °C {}'.format(
-				minimum.value, _format_timestamp(minimum.timestamp, self.now)))
+				minimum.value, _format_timestamp(minimum.timestamp)))
 			if minimum.value < self.low:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
 		if maximum:
 			ret.append('<li>Wochen-Hoch bei {:.1f} °C {}'.format(
-				maximum.value, _format_timestamp(maximum.timestamp, self.now)))
+				maximum.value, _format_timestamp(maximum.timestamp)))
 			if maximum.value > self.high:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
@@ -491,18 +489,17 @@ class Switch(Series):
 		ret = list()
 		ret.append('<b>{}:</b> '.format(self.name))
 		if current:
-			ret.append('{} {}'.format(
-				'Ein' if current.value else 'Aus',
-				_format_timestamp(current.timestamp, self.now)))
+			ret.append('{} {}'.format('Ein' if current.value else 'Aus',
+			                          _format_timestamp(current.timestamp)))
 		else:
 			ret.append('Fehler')
 		ret.append('<ul>\n')
 		if last_true and (not current or not current.value):
 			ret.append('<li>Zuletzt Ein {}</li>\n'.format(
-				_format_timestamp(last_true, self.now)))
+				_format_timestamp(last_true)))
 		if last_false and (not current or current.value):
 			ret.append('<li>Zuletzt Aus {}</li>\n'.format(
-				_format_timestamp(last_false, self.now)))
+				_format_timestamp(last_false)))
 		if self.records:
 			ret.append('<li>{} Einschaltdauer in der letzten Woche</li>\n'
 				.format(_format_timedelta(self.uptime)))
@@ -571,6 +568,10 @@ class Switch(Series):
 	@property
 	def warning(self):
 		return None
+
+
+class OlderThanPreviousError(Exception):
+	pass
 
 
 if __name__ == "__main__":
