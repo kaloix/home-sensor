@@ -94,13 +94,12 @@ class MonitorClient:
 
 class MonitorServer:
 
-	def __init__(self, verify_function):
+	def __init__(self, handle_function):
 		self.httpd = http.server.HTTPServer(('', PORT), HTTPRequestHandler)
 		self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
 		                                    keyfile=KEY, certfile=CERT,
 		                                    server_side=True)
-		self.httpd.verify = verify_function
-		self.httpd.inbox = queue.Queue()
+		self.httpd.handle = handle_function
 		with open(TOKEN_FILE) as token_file:
 			self.httpd.token = [t.strip() for t in token_file]
 
@@ -113,11 +112,6 @@ class MonitorServer:
 		logging.info('shutdown monitor server')
 		self.httpd.shutdown()
 		self.server.join()
-
-	def fetch(self):
-		with contextlib.suppress(queue.Empty):
-			while True:
-				yield self.httpd.inbox.get(block=False)
 
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -144,7 +138,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.end_headers()
 			return
 		try:
-			self.server.inbox.put(self.server.verify(**data))
+			self.server.handle(**data)
 		except Exception as err:
 			logging.error('{}: {}'.format(type(err).__name__, err))
 			self.send_error(400, 'bad parameters')

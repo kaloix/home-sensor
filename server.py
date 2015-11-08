@@ -4,7 +4,6 @@ import collections
 import contextlib
 import csv
 import datetime
-import functools
 import itertools
 import json
 import locale
@@ -33,6 +32,7 @@ SUMMARY_DAYS = 365
 TIMEZONE = pytz.timezone('Europe/Berlin')
 WEB_DIR = '/home/kaloix/html/sensor/'
 
+groups = collections.defaultdict(list)
 Record = collections.namedtuple('Record', 'timestamp value')
 Summary = collections.namedtuple('Summary', 'date minimum maximum')
 Uptime = collections.namedtuple('Uptime', 'date value')
@@ -47,7 +47,6 @@ def main():
 		sensor_json = json_file.read()
 	devices = json.loads(sensor_json,
 	                     object_pairs_hook=collections.OrderedDict)
-	groups = collections.defaultdict(list)
 	for device in devices:
 		for kind, attr in device['output'].items():
 			if kind == 'temperature':
@@ -62,12 +61,10 @@ def main():
 					attr['name'],
 					device['input']['interval'],
 					attr['fail-notify']))
-	with monitor.MonitorServer(verify_record) as ms, website(), \
+	with monitor.MonitorServer(save_record) as ms, website(), \
 			notification.NotificationCenter() as notify:
 		while True:
 			start = time.perf_counter()
-			for name, record in ms.fetch():
-				save_record(groups, name, record) # FIXME simplify
 			now = datetime.datetime.now(tz=datetime.timezone.utc)
 			Series.now = now
 			for group, series_list in groups.items():
@@ -106,18 +103,14 @@ def website():
 		shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
-def verify_record(name, timestamp, value):
+def save_record(name, timestamp, value):
 	timestamp = datetime.datetime.fromtimestamp(int(timestamp),
 	                                            tz=datetime.timezone.utc)
 	logging.info('{}: {} / {}'.format(name, timestamp, value))
-	return name, Record(timestamp, value)
-
-
-def save_record(groups, name, record):
 	for series_list in groups.values():
 		for series in series_list:
 			if series.name == name:
-				series.save(record)
+				series.save(Record(timestamp, value))
 				return
 
 
