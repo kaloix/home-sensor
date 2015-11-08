@@ -198,7 +198,8 @@ def _plot_summary(series_list):
 			dates, values = zip(*series.summary)
 			ax2.plot(dates, values, color=color,
 			         marker='o', linestyle='', zorder=1)
-	matplotlib.pyplot.xlim(now-datetime.timedelta(days=365), now)
+	today = now.astimezone(TIMEZONE).date()
+	matplotlib.pyplot.xlim(today-datetime.timedelta(days=365), today)
 	ax1.set_ylabel('Temperatur °C')
 	ax1.yaxis.tick_right()
 	ax1.yaxis.set_label_position('right')
@@ -341,8 +342,8 @@ class Series(object):
 		while self.records and self.records[0].timestamp < \
 				now-datetime.timedelta(RECORD_DAYS):
 			self.records.popleft()
-		while self.summary and self.summary[0].date < \
-				(now - datetime.timedelta(SUMMARY_DAYS)).date():
+		while self.summary and self.summary[0].date < (now - \
+				datetime.timedelta(SUMMARY_DAYS)).astimezone(TIMEZONE).date():
 			self.summary.popleft()
 
 	def _read(self, year):
@@ -437,12 +438,12 @@ class Temperature(Series):
 		return ''.join(ret)
 
 	def _summarize(self, record):
-		timestamp = record.timestamp.astimezone(TIMEZONE)
-		if timestamp.date() > self.date:
+		date = record.timestamp.astimezone(TIMEZONE).date()
+		if date > self.date:
 			if self.today:
 				self.summary.append(Summary(self.date,
 					                        min(self.today), max(self.today)))
-			self.date = timestamp.date()
+			self.date = date
 			self.today = list()
 		self.today.append(record.value)
 
