@@ -18,7 +18,7 @@ TOKEN_FILE = 'api_token'
 INTERVAL = 10
 
 
-class MonitorClient:
+class MonitorClient(object):
 
 	def __init__(self):
 		context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
@@ -92,7 +92,7 @@ class MonitorClient:
 			self.buffer_send.set()
 
 
-class MonitorServer:
+class MonitorServer(object):
 
 	def __init__(self, handle_function):
 		self.httpd = http.server.HTTPServer(('', PORT), HTTPRequestHandler)

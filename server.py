@@ -26,7 +26,9 @@ import utility
 ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
-INTERVAL = 180
+INTERVAL = 3 * 60
+PAUSE_WARN_FAILURE = 30 * 24 * 60 * 60
+PAUSE_WARN_VALUE = 24 * 60 * 60
 RECORD_DAYS = 7
 SUMMARY_DAYS = 365
 TIMEZONE = pytz.timezone('Europe/Berlin')
@@ -70,10 +72,8 @@ def main():
 			now = datetime.datetime.now(tz=datetime.timezone.utc)
 			for group, series_list in groups.items():
 				for series in series_list:
-					if series.error:
-						notify.user_warning(series.error) # TODO only one per failure
-					if series.warning:
-						notify.user_warning(series.warning)
+					notify.queue(series.error, PAUSE_WARN_FAILURE)
+					notify.queue(series.warning, PAUSE_WARN_VALUE)
 				html_filled = html_template.substitute(
 					refresh_seconds = INTERVAL,
 					group = group,
@@ -86,6 +86,7 @@ def main():
 					html_file.write(html_filled)
 				# FIXME svg backend has memory leak in matplotlib 1.4.3
 				plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
+			notify.send_all()
 			utility.memory_check()
 			duration = time.perf_counter() - start
 			logging.info('updated website in {:.1f}s'.format(duration))
@@ -322,6 +323,8 @@ class Series(object):
 		self.name = name
 		self.interval = datetime.timedelta(seconds=interval)
 		self.notify = fail_notify
+		self.fail_status = False
+		self.fail_counter = int()
 		self.records = collections.deque()
 		self.summary = collections.deque()
 		self._read(now.year-1)
@@ -375,8 +378,12 @@ class Series(object):
 
 	@property
 	def error(self):
-		if self.notify and not self.current:
-			return 'Messpunkt "{}" liefert keine Daten.'.format(self.name)
+		if self.notify and not self.fail_status and not self.current:
+			self.fail_status = True
+			self.fail_counter += 1
+			return 'Messpunkt "{}" liefert keine Daten. (#{})'.format(
+				self.name, self.fail_counter)
+		self.fail_status = False
 		return None
 
 	@property

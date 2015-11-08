@@ -32,6 +32,7 @@ def allow_every_x_seconds(interval):
 		return new_function
 	return decorating_function
 
+
 class MemoryLeakError(Exception):
 	pass
 

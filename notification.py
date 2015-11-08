@@ -1,11 +1,10 @@
-import datetime
 import email.mime.text
 import logging
 import smtplib
+import time
 import traceback
 
 
-WARNING_PAUSE = datetime.timedelta(days=1)
 ADMIN_ADDRESS = 'stefan@kaloix.de' # TODO move to private file
 USER_ADDRESS = 'stefan@kaloix.de'
 ENABLE_EMAIL = True
@@ -13,9 +12,8 @@ ENABLE_EMAIL = True
 
 def send_email(subject, message, address):
 	if not ENABLE_EMAIL:
-		logging.info('no email: {}'.format(subject))
+		logging.info('email disabled')
 		return
-	logging.info('email: {}'.format(subject))
 	msg = email.mime.text.MIMEText(str(message))
 	msg['Subject'] = '[Sensor] {}'.format(subject)
 	msg['From'] = 'sensor@kaloix.de'
@@ -34,9 +32,10 @@ def crash_report(message):
 	send_email('Programmabsturz', message, ADMIN_ADDRESS)
 
 
-class NotificationCenter:
+class NotificationCenter(object):
 	def __init__(self):
 		self.pause = dict()
+		self.outbox = list()
 
 	def __enter__(self):
 		return self
@@ -47,15 +46,18 @@ class NotificationCenter:
 			crash_report('{}: {}\n{}'.format(
 				exc_type, exc_value, ''.join(tb_lines)))
 
-	def _sending_guard(self, key, pause):
-		now = datetime.datetime.now()
+	def queue(self, message, pause):
+		if message is None:
+			return
+		now = time.perf_counter()
+		key = hash(message)
 		if key in self.pause and self.pause[key] > now:
-			logging.debug('suppress email')
-			return False
+			return
 		self.pause[key] = now + pause
-		return True
-	
-	def user_warning(self, message):
 		logging.warning(message)
-		if self._sending_guard(hash(message), WARNING_PAUSE):
-			send_email('Warnung', message, USER_ADDRESS)
+		self.outbox.append(message)
+
+	def send_all(self):
+		if self.outbox:
+			send_email('Warnung', '\n'.join(self.outbox), USER_ADDRESS)
+			self.outbox = list()
