@@ -77,14 +77,14 @@
 			"station": 2,
 			"type": "ds18b20",
 			"file": "/sys/bus/w1/devices/28-0000071d6072/w1_slave",
-			"interval": 180
+			"interval": 300
 		},
 		"output": {
 			"temperature": {
 				"name": "Garten",
 				"group": "Lufttemperatur",
-				"low": 0,
-				"high": 30,
+				"low": -10,
+				"high": 40,
 				"fail-notify": true
 			}
 		}
@@ -94,7 +94,7 @@
 			"station": 2,
 			"type": "ds18b20",
 			"file": "/sys/bus/w1/devices/28-0000071e0c91/w1_slave",
-			"interval": 180
+			"interval": 300
 		},
 		"output": {
 			"temperature": {

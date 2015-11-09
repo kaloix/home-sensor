@@ -25,7 +25,7 @@ import utility
 
 
 ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
-COLOR_CYCLE = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
+COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
 INTERVAL = 3 * 60
 PAUSE_WARN_FAILURE = 30 * 24 * 60 * 60
@@ -446,10 +446,10 @@ class Temperature(Series):
 			if maximum.value > self.high:
 				ret.append(' ⚠')
 			ret.append('</li>\n')
-		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
-			_format_timedelta(self.interval)))
 		ret.append('<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
 			.format(self.low, self.high))
+		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
+			_format_timedelta(self.interval)))
 #		if not self.notify:
 #			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
 		ret.append('</ul>')
@@ -551,8 +551,7 @@ class Switch(Series):
 				end = upper
 			total += end - start
 		hours = total / datetime.timedelta(hours=1)
-		if hours:
-			self.summary.append(Uptime(self.date, hours))
+		self.summary.append(Uptime(self.date, hours))
 		self.date = date
 
 	@property

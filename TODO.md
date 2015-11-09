@@ -1,4 +1,7 @@
 # TODO
+* dtoverlay=w1-gpio
+* remove numpy modules in ridgewood
+
 ## General
 * Shorten allowed downtime (depended on sensor.json?)
 * Summarize emails
