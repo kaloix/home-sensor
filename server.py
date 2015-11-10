@@ -159,15 +159,7 @@ def _plot_records(series_list, days):
 				timestamps, values = zip(*part)
 				matplotlib.pyplot.plot(
 					timestamps, values, label=series.name,
-					linewidth=3, color=color, zorder=3)
-				matplotlib.pyplot.fill_between(
-					timestamps, values, series.low,
-					where = [value<series.low for value in values], # FIXME runtime warning
-					interpolate=True, color='r', zorder=2, alpha=0.7)
-				matplotlib.pyplot.fill_between(
-					timestamps, values, series.high,
-					where = [value>series.high for value in values], # FIXME runtime warning
-					interpolate=True, color='r', zorder=2, alpha=0.7)
+					linewidth=2, color=color, zorder=3)
 		elif type(series) is Switch:
 			for start, end in series.segments:
 				matplotlib.pyplot.axvspan(start, end, label=series.name,
@@ -222,7 +214,7 @@ def _plot_summary(series_list):
 
 
 def plot_history(series_list, file):
-	fig = matplotlib.pyplot.figure(figsize=(13, 7))
+	fig = matplotlib.pyplot.figure(figsize=(12, 7))
 	# last week
 	ax = matplotlib.pyplot.subplot(312)
 	_plot_records(series_list, RECORD_DAYS)
@@ -425,7 +417,7 @@ class Temperature(Series):
 		current = self.current
 		minimum, maximum = self.minmax
 		ret = list()
-		ret.append('<b>{}:</b> '.format(self.name))
+		ret.append('<b>{}: '.format(self.name))
 		if current:
 			ret.append('{:.1f} °C {}'.format(
 				current.value, _format_timestamp(current.timestamp)))
@@ -433,7 +425,7 @@ class Temperature(Series):
 				ret.append(' ⚠')
 		else:
 			ret.append('Fehler')
-		ret.append('<ul>\n')
+		ret.append('</b><ul>\n')
 		if minimum:
 			ret.append('<li>Wochen-Tief bei {:.1f} °C {}'.format(
 				minimum.value, _format_timestamp(minimum.timestamp)))
@@ -506,13 +498,13 @@ class Switch(Series):
 			if last_false and last_true:
 				break
 		ret = list()
-		ret.append('<b>{}:</b> '.format(self.name))
+		ret.append('<b>{}: '.format(self.name))
 		if current:
 			ret.append('{} {}'.format('Ein' if current.value else 'Aus',
 			                          _format_timestamp(current.timestamp)))
 		else:
 			ret.append('Fehler')
-		ret.append('<ul>\n')
+		ret.append('</b><ul>\n')
 		if last_true and (not current or not current.value):
 			ret.append('<li>Zuletzt Ein {}</li>\n'.format(
 				_format_timestamp(last_true)))
