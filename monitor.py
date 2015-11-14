@@ -118,7 +118,7 @@ class MonitorServer(object):
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
-	def do_POST(self):
+	def do_POST(self): # FIXME add timeout
 		if self.headers['content-type'] != CONTENT_TYPE:
 			self.send_error(400, 'bad content type')
 			self.end_headers()
