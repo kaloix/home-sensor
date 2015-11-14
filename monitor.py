@@ -12,10 +12,11 @@ import time
 CERT = 'server.crt'
 CONTENT_TYPE = 'application/json'
 HOST = 'kaloix.de'
+INTERVAL = 10
 KEY = 'server.key'
 PORT = 64918
+TIMEOUT = 60
 TOKEN_FILE = 'api_token'
-INTERVAL = 10
 
 
 class MonitorClient(object):
@@ -24,7 +25,8 @@ class MonitorClient(object):
 		context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 		context.verify_mode = ssl.CERT_REQUIRED
 		context.load_verify_locations(CERT)
-		self.conn = http.client.HTTPSConnection(HOST, PORT, context=context)
+		self.conn = http.client.HTTPSConnection(HOST, PORT, timeout=TIMEOUT,
+		                                        context=context)
 		self.buffer = list()
 		self.buffer_send = threading.Event()
 		self.buffer_mutex = threading.Lock()

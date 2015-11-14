@@ -57,7 +57,7 @@ def main():
 				except utility.CallDenied:
 					continue
 				except SensorError as err:
-					logging.error('{} failure: {}'.format(sensor, err))
+					logging.error('failure {}: {}'.format(sensor, err))
 					continue
 				logging.info('updated {} in {:.1f}s'.format(
 					sensor, time.perf_counter()-start))
@@ -168,7 +168,7 @@ class Sensor(object):
 		self.read = utility.allow_every_x_seconds(interval)(self.read)
 
 	def __repr__(self):
-		return '{} {}'.format(self.__class__.__name__, '/'.join(self.names))
+		return '/'.join(self.names)
 
 	def read(self):
 		values = self.reader()
