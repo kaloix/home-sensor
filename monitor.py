@@ -101,6 +101,7 @@ class MonitorServer(object):
 		self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
 		                                    keyfile=KEY, certfile=CERT,
 		                                    server_side=True)
+		self.httpd.socket.settimeout(TIMEOUT)
 		self.httpd.handle = handle_function
 		with open(TOKEN_FILE) as token_file:
 			self.httpd.token = [t.strip() for t in token_file]
@@ -118,7 +119,7 @@ class MonitorServer(object):
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
-	def do_POST(self): # FIXME add timeout
+	def do_POST(self):
 		if self.headers['content-type'] != CONTENT_TYPE:
 			self.send_error(400, 'bad content type')
 			self.end_headers()
