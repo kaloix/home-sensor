@@ -9,6 +9,7 @@ import itertools
 import json
 import locale
 import logging
+import queue
 import shutil
 import string
 import time
@@ -37,6 +38,7 @@ WEB_DIR = '/home/kaloix/html/sensor/'
 
 config = configparser.ConfigParser()
 groups = collections.defaultdict(list)
+inbox = queue.Queue()
 now = datetime.datetime.now(tz=datetime.timezone.utc)
 Record = collections.namedtuple('Record', 'timestamp value')
 Summary = collections.namedtuple('Summary', 'date minimum maximum')
@@ -44,7 +46,7 @@ Uptime = collections.namedtuple('Uptime', 'date value')
 
 
 def main():
-	global groups, now
+	global now
 	utility.logging_config()
 	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 	config.read('config.ini')
@@ -68,13 +70,18 @@ def main():
 					attr['name'],
 					device['input']['interval'],
 					attr['fail-notify']))
-	with monitor.MonitorServer(save_record) as ms, website(), \
+	with monitor.MonitorServer(accept_record) as ms, website(), \
 			notify.MailSender(config['email']['source_address'], \
 			config['email']['admin_address'], \
 			config['email']['user_address'], \
 			config['email'].getboolean('enable_email')) as mail:
 		while True:
 			start = time.perf_counter()
+			counter = int()
+			with contextlib.suppress(queue.Empty):
+				while True:
+					_save_record(*inbox.get(block=False))
+					counter += 1
 			now = datetime.datetime.now(tz=datetime.timezone.utc)
 			for group, series_list in groups.items():
 				for series in series_list:
@@ -96,8 +103,8 @@ def main():
 				plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
 			mail.send_all()
 			utility.memory_check()
-			duration = time.perf_counter() - start
-			logging.info('updated website in {:.1f}s'.format(duration))
+			logging.info('updated website in {:.1f}s, {} new records'.format(
+				time.perf_counter()-start, counter))
 			time.sleep(INTERVAL)
 
 
@@ -112,14 +119,23 @@ def website():
 		shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
-def save_record(name, timestamp, value):
+def accept_record(name, timestamp, value):
 	timestamp = datetime.datetime.fromtimestamp(int(timestamp),
 	                                            tz=datetime.timezone.utc)
 	logging.info('{}: {} / {}'.format(name, timestamp, value))
+	filename = '{}/{}_{}.csv'.format(DATA_DIR, name,
+	                                 timestamp.astimezone(TIMEZONE).year)
+	with open(filename, mode='a', newline='') as csv_file:
+		writer = csv.writer(csv_file)
+		writer.writerow((int(timestamp.timestamp()), value))
+	inbox.put((name, Record(timestamp, value)))
+
+
+def _save_record(name, record):
 	for series_list in groups.values():
 		for series in series_list:
 			if series.name == name:
-				series.save(Record(timestamp, value))
+				series.save(record)
 				return
 
 
@@ -364,12 +380,6 @@ class Series(object):
 		except OSError:
 			pass
 
-	def _write(self, record):
-		filename = '{}/{}_{}.csv'.format(DATA_DIR, self.name, now.year)
-		with open(filename, mode='a', newline='') as csv_file:
-			writer = csv.writer(csv_file)
-			writer.writerow((int(record.timestamp.timestamp()), record.value))
-
 	@property
 	def current(self):
 		if self.records and now-self.records[-1].timestamp <= ALLOWED_DOWNTIME:
@@ -406,7 +416,6 @@ class Series(object):
 			return
 		self._summarize(record)
 		self._clear()
-		self._write(record)
 
 
 class Temperature(Series):

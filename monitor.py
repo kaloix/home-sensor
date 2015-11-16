@@ -1,9 +1,8 @@
-import contextlib
 import http.client
 import http.server
 import json
 import logging
-import queue
+import socketserver
 import ssl
 import threading
 import time
@@ -97,11 +96,10 @@ class MonitorClient(object):
 class MonitorServer(object):
 
 	def __init__(self, handle_function):
-		self.httpd = http.server.HTTPServer(('', PORT), HTTPRequestHandler)
+		self.httpd = ThreadedHTTPServer(('', PORT), HTTPRequestHandler)
 		self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
 		                                    keyfile=KEY, certfile=CERT,
 		                                    server_side=True)
-		self.httpd.socket.settimeout(TIMEOUT)
 		self.httpd.handle = handle_function
 		with open(TOKEN_FILE) as token_file:
 			self.httpd.token = [t.strip() for t in token_file]
@@ -155,6 +153,10 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
 	def log_message(self, format_, *args):
 		pass
+
+
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    pass
 
 
 class MonitorError(Exception):
