@@ -27,7 +27,7 @@ import utility
 ALLOWED_DOWNTIME = datetime.timedelta(minutes=30)
 COLOR_CYCLE = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 DATA_DIR = 'data/'
-INTERVAL = 3 * 60
+INTERVAL = 60
 PAUSE_WARN_FAILURE = 30 * 24 * 60 * 60
 PAUSE_WARN_VALUE = 24 * 60 * 60
 RECORD_DAYS = 7
@@ -333,7 +333,8 @@ class Series(object):
 
 	def _append(self, record):
 		if self.records and record.timestamp <= self.records[-1].timestamp:
-			raise OlderThanPreviousError
+			raise OlderThanPreviousError('old {}, new {}'.format(
+				self.records[-1].timestamp, record.timestamp))
 		self.records.append(record)
 		if len(self.records) >= 3 and self.records[-3].value == \
 				self.records[-2].value == self.records[-1].value and \
@@ -398,7 +399,11 @@ class Series(object):
 		return itertools.islice(self.records, start, None)
 
 	def save(self, record):
-		self._append(record)
+		try:
+			self._append(record)
+		except OlderThanPreviousError as err:
+			logging.warning('ignore {}: {}'.format(self.name, err))
+			return
 		self._summarize(record)
 		self._clear()
 		self._write(record)
