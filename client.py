@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import argparse
 import datetime
 import functools
 import json
 import logging
+import socket
 import subprocess
 import time
 
@@ -21,14 +21,12 @@ INTERVAL = 10
 
 def main():
 	utility.logging_config()
-	parser = argparse.ArgumentParser()
-	parser.add_argument('station', type=int)
-	args = parser.parse_args()
+	hostname = socket.gethostname()
 	with open(CONFIG) as json_file:
 		sensor_json = json_file.read()
 	sensors = list()
 	for sensor in json.loads(sensor_json):
-		if sensor['input']['station'] != args.station:
+		if sensor['input']['hostname'] != hostname:
 			continue
 		if sensor['input']['type'] == 'mdeg_celsius':
 			sensors.append(Sensor(

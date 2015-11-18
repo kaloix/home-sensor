@@ -1,7 +1,7 @@
 [
 	{
 		"input": {
-			"station": 1,
+			"hostname": "thalgrund",
 			"type": "mdeg_celsius",
 			"file": "/sys/class/thermal/thermal_zone0/temp",
 			"interval": 900
@@ -18,7 +18,7 @@
 	},
 	{
 		"input": {
-			"station": 1,
+			"hostname": "thalgrund",
 			"type": "ds18b20",
 			"file": "/sys/bus/w1/devices/28-0000071d810f/w1_slave",
 			"interval": 420
@@ -35,7 +35,7 @@
 	},
 	{
 		"input": {
-			"station": 1,
+			"hostname": "thalgrund",
 			"type": "thermosolar",
 			"file": "/dev/video0",
 			"interval": 120
@@ -57,7 +57,7 @@
 	},
 	{
 		"input": {
-			"station": 2,
+			"hostname": "ridgewood",
 			"type": "mdeg_celsius",
 			"file": "/sys/class/thermal/thermal_zone0/temp",
 			"interval": 900
@@ -74,7 +74,7 @@
 	},
 	{
 		"input": {
-			"station": 2,
+			"hostname": "ridgewood",
 			"type": "ds18b20",
 			"file": "/sys/bus/w1/devices/28-0000071d6072/w1_slave",
 			"interval": 300
@@ -91,7 +91,7 @@
 	},
 	{
 		"input": {
-			"station": 2,
+			"hostname": "ridgewood",
 			"type": "ds18b20",
 			"file": "/sys/bus/w1/devices/28-0000071e0c91/w1_slave",
 			"interval": 600
