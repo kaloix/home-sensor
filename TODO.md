@@ -1,10 +1,20 @@
 # TODO
-* remove numpy modules in ridgewood
+## Disconnect Bug
+### Symtoms
+1. ridewood has WLAN problems (it's raining)
+2. thalgrund connections time out
+3. server blocks at *shutdown monitor server*
+4. after rebooting ridgewood, no more connection
+5. after restarting the server, thalgrund sends again
+
+### Thoughts
+* Check git changes on time of first occurrance
 
 ## General
 * Shorten allowed downtime (depended on sensor.json?)
 * Better HTML <li></li>
 * server.Sensor use base __str__
+* remove numpy modules in ridgewood
 
 ## Temperature Garden
 0. Buy WLAN adapter for *Raspberry Pi 1 Model B Rev. 2.0* ([Conrad](http://www.conrad.de/ce/de/product/993655/Raspberry-Pi-WLAN-Stick-EDIMAX-EW-7811Un))

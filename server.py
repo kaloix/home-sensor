@@ -89,10 +89,13 @@ def main():
 						mail.queue(series.error, PAUSE_WARN_FAILURE)
 					if series.warning:
 						mail.queue(series.warning, PAUSE_WARN_VALUE)
+				values = detail_html(series_list)
+				filename = '{}{}-values.html'.format(WEB_DIR, group)
+				with open(filename, mode='w') as html_file:
+					html_file.write(values)
 				html_filled = html_template.substitute(
-					refresh_seconds = INTERVAL,
 					group = group,
-					values = detail_html(series_list),
+					values = values,
 					update_time = '{:%A %d. %B %Y %X %Z}'.format(
 						now.astimezone(TIMEZONE)),
 					year = '{:%Y}'.format(now))

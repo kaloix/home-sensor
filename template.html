@@ -2,7 +2,6 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="$refresh_seconds">
 <link rel="icon" href="favicon.png" sizes="512x512" type="image/png">
 <title>$group – Sensor-Anzeige</title>
 <style>
@@ -12,6 +11,20 @@ nav {float: left; margin-right: 100px;}
 section {float: left;}
 footer {clear: both;}
 </style>
+<script>
+function update() {
+	var xhr = new XMLHttpRequest();
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4 && xhr.status == 200) {
+			document.getElementById("values").innerHTML = xhr.responseText;
+		}
+	};
+	xhr.open("GET", "$group-values.html", true);
+	xhr.send();
+	document.getElementById('plot').src = "$group.png?" + (new Date()).getTime();
+}
+setInterval(update, 60000);
+</script>
 </head>
 <body>
 <header>
@@ -26,8 +39,8 @@ footer {clear: both;}
 </nav>
 <section>
 <h2>$group</h2>
-$values
-<img alt="Verlauf" src="$group.png">
+<div id="values">$values</div>
+<img id="plot" alt="Verlauf" src="$group.png">
 </section>
 <footer>
 <hr>
