@@ -8,8 +8,10 @@
 
 2. 1-Wire temperature sensor:
 
-		modprobe w1-gpio
-		modprobe w1-therm
+		sudo echo dtoverlay=w1-gpio >> /boot/config.txt
+		sudo reboot
+		sudo modprobe w1-gpio
+		sudo modprobe w1-therm
 
 3. Optical character recognition of seven segment display:
 
