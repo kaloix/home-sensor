@@ -9,18 +9,15 @@
 
 ### Thoughts
 * Check git changes on time of first occurrance
+* Full RAM on FritzBox 7270,
+  [downgrade OS](http://avm.de/service/fritzbox/fritzbox-7270/wissensdatenbank/publication/show/1394_FRITZ-Box-wird-langsam-und-traege/)
 
 ## General
 * Shorten allowed downtime (depended on sensor.json?)
-* Better HTML <li></li>
-* server.Sensor use base __str__
+* Better HTML with `<li></li>`
+* server.Sensor use base `__str__`
 * remove numpy modules in ridgewood
-
-## Temperature Garden
-0. Buy WLAN adapter for *Raspberry Pi 1 Model B Rev. 2.0* ([Conrad](http://www.conrad.de/ce/de/product/993655/Raspberry-Pi-WLAN-Stick-EDIMAX-EW-7811Un))
-0. Make temerpature sensor connection robust at *thalgrund* (with jumper wires,
-   Lüsterklemmen and dust protection)
-0. Place *ridgewood* in Gartenhaus with temperature sensor
+* Make temerpature sensor connection robust at *thalgrund*
 
 ## HTML 5 Plots
 * [Highstock demos | Highcharts](http://www.highcharts.com/stock/demo)

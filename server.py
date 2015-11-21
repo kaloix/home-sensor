@@ -32,7 +32,7 @@ INTERVAL = 60
 PAUSE_WARN_FAILURE = 30 * 24 * 60 * 60
 PAUSE_WARN_VALUE = 24 * 60 * 60
 RECORD_DAYS = 7
-SUMMARY_DAYS = 365
+SUMMARY_DAYS = 183
 TIMEZONE = pytz.timezone('Europe/Berlin')
 WEB_DIR = '/home/kaloix/html/sensor/'
 
@@ -219,7 +219,7 @@ def _plot_summary(series_list):
 			ax2.plot(dates, values, color=color,
 			         marker='o', linestyle='', zorder=1)
 	today = now.astimezone(TIMEZONE).date()
-	matplotlib.pyplot.xlim(today-datetime.timedelta(days=365), today)
+	matplotlib.pyplot.xlim(today-datetime.timedelta(days=SUMMARY_DAYS), today)
 	ax1.set_ylabel('Temperatur °C')
 	ax1.yaxis.tick_right()
 	ax1.yaxis.set_label_position('right')
@@ -256,7 +256,7 @@ def plot_history(series_list, file):
 	# summary
 	ax = matplotlib.pyplot.subplot(313)
 	_plot_summary(series_list)
-	frame_start = now - datetime.timedelta(days=365)
+	frame_start = now - datetime.timedelta(days=SUMMARY_DAYS)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b.'))
 	ax.xaxis.set_ticks(_month_locator(frame_start, now, TIMEZONE))
 	ax.xaxis.set_ticks(_week_locator(frame_start, now, TIMEZONE), minor=True)
