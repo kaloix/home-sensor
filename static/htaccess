@@ -12,9 +12,3 @@
 	ExpiresByType image/svg "modification plus 1 minute"
 	ExpiresByType image/png "modification plus 1 minute"
 </IfModule>
-
-## Redirect sensor landing page for backward compatibility
-#  http://httpd.apache.org/docs/2.2/mod/mod_alias.html#redirect
-Redirect temp "/sensor/index.html" "/sensor/lufttemperatur.html"
-Redirect permanent "/sensor/Lufttemperatur.html" "/sensor/lufttemperatur.html"
-Redirect permanent "/sensor/Solaranlage.html" "/sensor/solaranlage.html"

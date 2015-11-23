@@ -50,8 +50,6 @@ def main():
 	utility.logging_config()
 	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 	config.read('config.ini')
-	with open('template.html') as html_file:
-		html_template = string.Template(html_file.read())
 	with open('sensor.json') as json_file:
 		sensor_json = json_file.read()
 	devices = json.loads(sensor_json,
@@ -90,18 +88,9 @@ def main():
 					if series.warning:
 						mail.queue(series.warning, PAUSE_WARN_VALUE)
 				values = detail_html(series_list)
-				filename = '{}{}-values.html'.format(WEB_DIR, group)
+				filename = '{}{}.html'.format(WEB_DIR, group)
 				with open(filename, mode='w') as html_file:
 					html_file.write(values)
-				html_filled = html_template.substitute(
-					group = group,
-					values = values,
-					update_time = '{:%A %d. %B %Y %X %Z}'.format(
-						now.astimezone(TIMEZONE)),
-					year = '{:%Y}'.format(now))
-				filename = '{}{}.html'.format(WEB_DIR, group.lower())
-				with open(filename, mode='w') as html_file:
-					html_file.write(html_filled)
 				# FIXME svg backend has memory leak in matplotlib 1.4.3
 				plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
 			mail.send_all()
@@ -115,6 +104,7 @@ def main():
 def website():
 	shutil.copy('static/favicon.png', WEB_DIR)
 	shutil.copy('static/htaccess', WEB_DIR+'.htaccess')
+	shutil.copy('static/index.html', WEB_DIR)
 	try:
 		yield
 	finally:

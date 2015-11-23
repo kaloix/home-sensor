@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="favicon.png" sizes="512x512" type="image/png">
+<title>Sensor-Anzeige</title>
+<style>
+body {font-family: serif;}
+h1, h2, h3, h4, h5, h6 {font-family: sans-serif;}
+nav {float: left; margin-right: 100px;}
+section {float: left;}
+footer {clear: both;}
+</style>
+<script>
+function load(group) {
+	if (group != location.hash.slice(1)) {
+		location.hash = group;
+		document.getElementById("group").innerHTML = group;
+	}
+	var xhr = new XMLHttpRequest();
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4 && xhr.status == 200) {
+			document.getElementById("values").innerHTML = xhr.responseText;
+		}
+	};
+	var href = "/sensor/"+group;
+	xhr.open("GET", href+".html", true);
+	xhr.send();
+	var now = new Date();
+	document.getElementById('plot').src = href+".png?"+now.getTime();
+}
+function reload() {
+	load(location.hash.slice(1));
+}
+window.onload = function() {
+	if (location.hash) {
+		load(location.hash.slice(1));
+	} else {
+		load("Garten");
+	}
+	setInterval(reload, 60000);
+}
+</script>
+</head>
+<body>
+<header>
+<h1>Sensor-Anzeige</h1>
+</header>
+<nav>
+<ul>
+<li><a href="javascript:load('Garten');">Garten</a></li>
+<li><a href="javascript:load('Wohnung');">Wohnung</a></li>
+<li><a href="javascript:load('Solaranlage');">Solaranlage</a></li>
+<li><a href="javascript:load('System');">System</a></li>
+</ul>
+</nav>
+<section>
+<h2 id="group"></h2>
+<div id="values"></div>
+<img id="plot" alt="Diagramm wird geladen ...">
+</section>
+<footer>
+<hr>
+<p>Copyright © 2015 Stefan Schindler • Quelltext auf <a href="https://github.com/st3f4n/home-sensor">GitHub</a></p>
+</footer>
+</body>
+</html>
