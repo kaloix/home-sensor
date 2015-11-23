@@ -12,8 +12,10 @@ section {float: left;}
 footer {clear: both;}
 </style>
 <script>
+var current_group;
 function load(group) {
-	if (group != location.hash.slice(1)) {
+	if (group != current_group) {
+		current_group = group
 		location.hash = group;
 		document.getElementById("group").innerHTML = group;
 	}
@@ -27,10 +29,12 @@ function load(group) {
 	xhr.open("GET", href+".html", true);
 	xhr.send();
 	var now = new Date();
-	document.getElementById('plot').src = href+".png?"+now.getTime();
+	document.getElementById('plot').src = href+".png?nocache="+now.getTime();
 }
 function reload() {
-	load(location.hash.slice(1));
+	if (navigator.onLine) {
+		load(current_group);
+	}
 }
 window.onload = function() {
 	if (location.hash) {
@@ -57,7 +61,7 @@ window.onload = function() {
 <section>
 <h2 id="group"></h2>
 <div id="values"></div>
-<img id="plot" alt="Diagramm wird geladen ...">
+<img id="plot">
 </section>
 <footer>
 <hr>
