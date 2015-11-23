@@ -26,7 +26,7 @@
 		"output": {
 			"temperature": {
 				"name": "Wohnzimmer",
-				"group": "Lufttemperatur",
+				"group": "Wohnung",
 				"low": 18,
 				"high": 30,
 				"fail-notify": true
@@ -81,8 +81,8 @@
 		},
 		"output": {
 			"temperature": {
-				"name": "Garten",
-				"group": "Lufttemperatur",
+				"name": "Veranda",
+				"group": "Garten",
 				"low": -10,
 				"high": 40,
 				"fail-notify": true
@@ -99,7 +99,7 @@
 		"output": {
 			"temperature": {
 				"name": "Gartenhaus",
-				"group": "Lufttemperatur",
+				"group": "Garten",
 				"low": 0,
 				"high": 30,
 				"fail-notify": true
