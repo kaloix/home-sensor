@@ -15,18 +15,18 @@ footer {clear: both;}
 var current_group;
 function load(group) {
 	if (group != current_group) {
-		current_group = group
+		current_group = group;
 		location.hash = group;
 		document.getElementById("group").innerHTML = group;
 	}
+	var href = "/sensor/"+group;
 	var xhr = new XMLHttpRequest();
-	xhr.onreadystatechange = function() {
-		if (xhr.readyState == 4 && xhr.status == 200) {
-			document.getElementById("values").innerHTML = xhr.responseText;
+	xhr.open("GET", href+".html", true);
+	xhr.onload = function() {
+		if (this.status == 200) {
+			document.getElementById("values").innerHTML = this.responseText;
 		}
 	};
-	var href = "/sensor/"+group;
-	xhr.open("GET", href+".html", true);
 	xhr.send();
 	var now = new Date();
 	document.getElementById('plot').src = href+".png?nocache="+now.getTime();

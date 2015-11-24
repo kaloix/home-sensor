@@ -31,6 +31,7 @@ DATA_DIR = 'data/'
 INTERVAL = 60
 PAUSE_WARN_FAILURE = 30 * 24 * 60 * 60
 PAUSE_WARN_VALUE = 24 * 60 * 60
+PLOT_STEP = 10
 RECORD_DAYS = 7
 SUMMARY_DAYS = 183
 TIMEZONE = pytz.timezone('Europe/Berlin')
@@ -68,18 +69,19 @@ def main():
 					attr['name'],
 					device['input']['interval'],
 					attr['fail-notify']))
-	with monitor.MonitorServer(accept_record) as ms, website(), \
+	plot_counter = int()
+	with website(), monitor.MonitorServer(accept_record) as ms, \
 			notify.MailSender(config['email']['source_address'], \
 			config['email']['admin_address'], \
 			config['email']['user_address'], \
 			config['email'].getboolean('enable_email')) as mail:
 		while True:
 			start = time.perf_counter()
-			counter = int()
+			record_counter = int()
 			with contextlib.suppress(queue.Empty):
 				while True:
 					_save_record(*inbox.get(block=False))
-					counter += 1
+					record_counter += 1
 			now = datetime.datetime.now(tz=datetime.timezone.utc)
 			for group, series_list in groups.items():
 				for series in series_list:
@@ -91,12 +93,14 @@ def main():
 				filename = '{}{}.html'.format(WEB_DIR, group)
 				with open(filename, mode='w') as html_file:
 					html_file.write(values)
-				# FIXME svg backend has memory leak in matplotlib 1.4.3
-				plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
+				if not plot_counter:
+					# FIXME svg backend has memory leak in matplotlib 1.4.3
+					plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
 			mail.send_all()
+			plot_counter = (plot_counter+1) % PLOT_STEP
 			utility.memory_check()
 			logging.info('updated website in {:.1f}s, {} new records'.format(
-				time.perf_counter()-start, counter))
+				time.perf_counter()-start, record_counter))
 			time.sleep(INTERVAL)
 
 

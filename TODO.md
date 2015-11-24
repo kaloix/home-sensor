@@ -15,7 +15,7 @@
 ## General
 * Shorten allowed downtime (depended on sensor.json?)
 * Better HTML with `<li></li>`
-* server.Sensor use base `__str__`
+* server.Sensor use base `__str__`, refactor float description
 * remove numpy modules in ridgewood
 * Make temerpature sensor connection robust at *thalgrund*
 
