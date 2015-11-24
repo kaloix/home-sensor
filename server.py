@@ -330,6 +330,16 @@ def _format_timestamp(ts):
 	return 'am {:%d. %B %Y um %H:%M} Uhr'.format(ts)
 
 
+def _format_temperature(record, low, high):
+	if not record:
+		return 'Fehler'
+	text = '{:.1f} °C {}'.format(record.value,
+	                               _format_timestamp(record.timestamp))
+	if low <= record.value <= high:
+		return text
+	return '<mark>{}</mark>'.format(text)
+
+
 class Series(object):
 
 	def __init__(self, name, interval, fail_notify):
@@ -349,7 +359,7 @@ class Series(object):
 		first, *lines = self.text
 		lines.append('Aktualisierung alle {}'.format(
 			_format_timedelta(self.interval)))
-		ret.append('<b>{}</b>'.format(first))
+		ret.append('<strong>{}</strong>'.format(first))
 		ret.append('<ul>')
 		for line in lines:
 			ret.append('<li>{}</li>'.format(line))
@@ -436,6 +446,16 @@ class Temperature(Series):
 		self.today = None
 		super().__init__(*args)
 
+	@classmethod
+	def _minmax(cls, records):
+		minimum = maximum = None
+		for record in records:
+			if not minimum or record.value <= minimum.value:
+				minimum = record
+			if not maximum or record.value >= maximum.value:
+				maximum = record
+		return minimum, maximum
+
 	def _summarize(self, record):
 		date = record.timestamp.astimezone(TIMEZONE).date()
 		if date > self.date:
@@ -448,34 +468,18 @@ class Temperature(Series):
 
 	@property
 	def text(self):
-		current = self.current
-		minimum, maximum = self.minmax
-		if current:
-			yield '{}: {:.1f} °C {}{}'.format(
-				self.name, current.value, _format_timestamp(current.timestamp),
-				'' if self.low <= current.value <= self.high else ' ⚠')
-		else:
-			yield '{}: Fehler'.format(self.name)
-		if minimum:
-			yield 'Wochen-Tief bei {:.1f} °C {}{}'.format(
-				minimum.value, _format_timestamp(minimum.timestamp),
-				' ⚠' if minimum.value < self.low else '')
-		if maximum:
-			yield 'Wochen-Hoch bei {:.1f} °C {}{}'.format(
-				maximum.value, _format_timestamp(maximum.timestamp),
-				' ⚠' if maximum.value > self.high else '')
+		minimum, maximum = self._minmax(self.records)
+		minimum_d, maximum_d = self._minmax(self.day)
+		yield '{}: {}'.format(
+			self.name, _format_temperature(self.current, self.low, self.high))
+		yield 'Letzte 24 Stunden: ▼ {} / ▲ {}'.format(
+			_format_temperature(minimum_d, self.low, self.high),
+			_format_temperature(maximum_d, self.low, self.high))
+		yield 'Letzte 7 Tage: ▼ {} / ▲ {}'.format(
+			_format_temperature(minimum, self.low, self.high),
+			_format_temperature(maximum, self.low, self.high))
 		yield 'Warnbereich unter {:.0f} °C und über {:.0f} °C'.format(
 			self.low, self.high)
-
-	@property
-	def minmax(self):
-		minimum = maximum = None
-		for record in self.records:
-			if not minimum or record.value <= minimum.value:
-				minimum = record
-			if not maximum or record.value >= maximum.value:
-				maximum = record
-		return minimum, maximum
 
 	@property
 	def warning(self):
