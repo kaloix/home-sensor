@@ -14,18 +14,17 @@ footer {clear: both;}
 <script>
 var current_group;
 function load(group) {
-	if (group != current_group) {
-		current_group = group;
-		location.hash = group;
-		document.getElementById("group").innerHTML = group;
-	}
 	var href = "/sensor/"+group;
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", href+".html", true);
 	xhr.onload = function() {
-		if (this.status == 200) {
-			document.getElementById("values").innerHTML = this.responseText;
+		if (this.status != 200) {
+			return;
 		}
+		current_group = group;
+		location.hash = group;
+		document.getElementById("group").innerHTML = group;
+		document.getElementById("values").innerHTML = this.responseText;
 	};
 	xhr.send();
 	var now = new Date();
