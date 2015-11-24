@@ -174,7 +174,7 @@ def _plot_records(series_list, days):
 					timestamps, values, label=series.name,
 					linewidth=2, color=color, zorder=3)
 		elif type(series) is Switch:
-			for start, end in series.segments:
+			for start, end in series.segments(series.records):
 				matplotlib.pyplot.axvspan(start, end, label=series.name,
 				                          color=color, alpha=0.5, zorder=1)
 	for sunset, sunrise in _nighttime(days+1, now):
@@ -334,10 +334,17 @@ def _format_temperature(record, low, high):
 	if not record:
 		return 'Fehler'
 	text = '{:.1f} °C {}'.format(record.value,
-	                               _format_timestamp(record.timestamp))
+	                             _format_timestamp(record.timestamp))
 	if low <= record.value <= high:
 		return text
 	return '<mark>{}</mark>'.format(text)
+
+
+def _format_switch(record):
+	if not record:
+		return 'Fehler'
+	return '{} {}'.format('Ein' if record.value else 'Aus',
+	                      _format_timestamp(record.timestamp))
 
 
 class Series(object):
@@ -447,7 +454,7 @@ class Temperature(Series):
 		super().__init__(*args)
 
 	@classmethod
-	def _minmax(cls, records):
+	def minmax(cls, records):
 		minimum = maximum = None
 		for record in records:
 			if not minimum or record.value <= minimum.value:
@@ -468,8 +475,8 @@ class Temperature(Series):
 
 	@property
 	def text(self):
-		minimum, maximum = self._minmax(self.records)
-		minimum_d, maximum_d = self._minmax(self.day)
+		minimum, maximum = self.minmax(self.records)
+		minimum_d, maximum_d = self.minmax(self.day)
 		yield '{}: {}'.format(
 			self.name, _format_temperature(self.current, self.low, self.high))
 		yield 'Letzte 24 Stunden: ▼ {} / ▲ {}'.format(
@@ -499,62 +506,17 @@ class Switch(Series):
 		self.date = None
 		super().__init__(*args)
 
-	def _summarize(self, record): # TODO record.value not used
-		date = record.timestamp.astimezone(TIMEZONE).date()
-		if not self.date:
-			self.date = date
-			return
-		if date <= self.date:
-			return
-		lower = datetime.datetime.combine(self.date, datetime.time.min)
-		lower = TIMEZONE.localize(lower)
-		upper = datetime.datetime.combine(self.date+datetime.timedelta(days=1),
-		                                  datetime.time.min)
-		upper = TIMEZONE.localize(upper)
+	@classmethod
+	def uptime(cls, segments):
 		total = datetime.timedelta()
-		for start, end in self.segments:
-			if end <= lower or start >= upper:
-				continue
-			if start < lower:
-				start = lower
-			if end > upper:
-				end = upper
-			total += end - start
-		hours = total / datetime.timedelta(hours=1)
-		self.summary.append(Uptime(self.date, hours))
-		self.date = date
+		for start, stop in segments:
+			total += stop - start
+		return total
 
-	@property
-	def text(self):
-		current = self.current
-		last_false = last_true = None
-		for timestamp, value in reversed(self.records):
-			if value:
-				if not last_true:
-					last_true = timestamp
-			else:
-				if not last_false:
-					last_false = timestamp
-			if last_false and last_true:
-				break
-		if current:
-			yield '{}: {} {}'.format(
-				self.name, 'Ein' if current.value else 'Aus',
-				_format_timestamp(current.timestamp))
-		else:
-			yield '{}: Fehler'.format(self.name)
-		if last_true and (not current or not current.value):
-			yield 'Zuletzt Ein {}'.format(_format_timestamp(last_true))
-		if last_false and (not current or current.value):
-			yield 'Zuletzt Aus {}'.format(_format_timestamp(last_false))
-		if self.records:
-			yield '{} Einschaltdauer in der letzten Woche'.format(
-				_format_timedelta(self.uptime))
-
-	@property
-	def segments(self):
+	@classmethod
+	def segments(cls, records):
 		expect = True
-		for timestamp, value in self.records:
+		for timestamp, value in records:
 			# assume false during downtime
 			if not expect and timestamp-running > ALLOWED_DOWNTIME:
 				expect = True
@@ -573,12 +535,52 @@ class Switch(Series):
 		if not expect:
 			yield start, running
 
-	@property
-	def uptime(self):
+	def _summarize(self, record): # TODO record.value not used
+		date = record.timestamp.astimezone(TIMEZONE).date()
+		if not self.date:
+			self.date = date
+			return
+		if date <= self.date:
+			return
+		lower = datetime.datetime.combine(self.date, datetime.time.min)
+		lower = TIMEZONE.localize(lower)
+		upper = datetime.datetime.combine(self.date+datetime.timedelta(days=1),
+		                                  datetime.time.min)
+		upper = TIMEZONE.localize(upper)
 		total = datetime.timedelta()
-		for start, stop in self.segments:
-			total += stop - start
-		return total
+		for start, end in self.segments(self.records):
+			if end <= lower or start >= upper:
+				continue
+			if start < lower:
+				start = lower
+			if end > upper:
+				end = upper
+			total += end - start
+		hours = total / datetime.timedelta(hours=1)
+		self.summary.append(Uptime(self.date, hours))
+		self.date = date
+
+	@property
+	def text(self):
+		last_false = last_true = None
+		for record in reversed(self.records):
+			if record.value:
+				if not last_true:
+					last_true = record
+			elif not last_false:
+				last_false = record
+			if last_false and last_true:
+				break
+		current = self.current
+		yield '{}: {}'.format(self.name, _format_switch(current))
+		if last_true and (not current or not current.value):
+			yield 'Zuletzt {}'.format(_format_switch(last_true))
+		if last_false and (not current or current.value):
+			yield 'Zuletzt {}'.format(_format_switch(last_false))
+		yield 'Letzte 24 Stunden: Einschaltdauer {}'.format(
+			_format_timedelta(self.uptime(self.segments(self.day))))
+		yield 'Letzte 7 Tage: Einschaltdauer {}'.format(
+			_format_timedelta(self.uptime(self.segments(self.records))))
 
 	@property
 	def warning(self):
