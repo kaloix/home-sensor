@@ -344,6 +344,18 @@ class Series(object):
 		self._read(now.year)
 		self._clear()
 
+	def __str__(self):
+		ret = list()
+		first, *lines = self.text
+		lines.append('Aktualisierung alle {}'.format(
+			_format_timedelta(self.interval)))
+		ret.append('<b>{}</b>'.format(first))
+		ret.append('<ul>')
+		for line in lines:
+			ret.append('<li>{}</li>'.format(line))
+		ret.append('</ul>')
+		return '\n'.join(ret)
+
 	def _append(self, record):
 		if self.records and record.timestamp <= self.records[-1].timestamp:
 			raise OlderThanPreviousError('old {}, new {}'.format(
@@ -424,40 +436,6 @@ class Temperature(Series):
 		self.today = None
 		super().__init__(*args)
 
-	def __str__(self):
-		current = self.current
-		minimum, maximum = self.minmax
-		ret = list()
-		ret.append('<b>{}: '.format(self.name))
-		if current:
-			ret.append('{:.1f} °C {}'.format(
-				current.value, _format_timestamp(current.timestamp)))
-			if current.value < self.low or current.value > self.high:
-				ret.append(' ⚠')
-		else:
-			ret.append('Fehler')
-		ret.append('</b><ul>\n')
-		if minimum:
-			ret.append('<li>Wochen-Tief bei {:.1f} °C {}'.format(
-				minimum.value, _format_timestamp(minimum.timestamp)))
-			if minimum.value < self.low:
-				ret.append(' ⚠')
-			ret.append('</li>\n')
-		if maximum:
-			ret.append('<li>Wochen-Hoch bei {:.1f} °C {}'.format(
-				maximum.value, _format_timestamp(maximum.timestamp)))
-			if maximum.value > self.high:
-				ret.append(' ⚠')
-			ret.append('</li>\n')
-		ret.append('<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
-			.format(self.low, self.high))
-		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
-			_format_timedelta(self.interval)))
-#		if not self.notify:
-#			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
-		ret.append('</ul>')
-		return ''.join(ret)
-
 	def _summarize(self, record):
 		date = record.timestamp.astimezone(TIMEZONE).date()
 		if date > self.date:
@@ -467,6 +445,27 @@ class Temperature(Series):
 			self.date = date
 			self.today = list()
 		self.today.append(record.value)
+
+	@property
+	def text(self):
+		current = self.current
+		minimum, maximum = self.minmax
+		if current:
+			yield '{}: {:.1f} °C {}{}'.format(
+				self.name, current.value, _format_timestamp(current.timestamp),
+				'' if self.low <= current.value <= self.high else ' ⚠')
+		else:
+			yield '{}: Fehler'.format(self.name)
+		if minimum:
+			yield 'Wochen-Tief bei {:.1f} °C {}{}'.format(
+				minimum.value, _format_timestamp(minimum.timestamp),
+				' ⚠' if minimum.value < self.low else '')
+		if maximum:
+			yield 'Wochen-Hoch bei {:.1f} °C {}{}'.format(
+				maximum.value, _format_timestamp(maximum.timestamp),
+				' ⚠' if maximum.value > self.high else '')
+		yield 'Warnbereich unter {:.0f} °C und über {:.0f} °C'.format(
+			self.low, self.high)
 
 	@property
 	def minmax(self):
@@ -496,42 +495,6 @@ class Switch(Series):
 		self.date = None
 		super().__init__(*args)
 
-	def __str__(self):
-		current = self.current
-		last_false = last_true = None
-		for timestamp, value in reversed(self.records):
-			if value:
-				if not last_true:
-					last_true = timestamp
-			else:
-				if not last_false:
-					last_false = timestamp
-			if last_false and last_true:
-				break
-		ret = list()
-		ret.append('<b>{}: '.format(self.name))
-		if current:
-			ret.append('{} {}'.format('Ein' if current.value else 'Aus',
-			                          _format_timestamp(current.timestamp)))
-		else:
-			ret.append('Fehler')
-		ret.append('</b><ul>\n')
-		if last_true and (not current or not current.value):
-			ret.append('<li>Zuletzt Ein {}</li>\n'.format(
-				_format_timestamp(last_true)))
-		if last_false and (not current or current.value):
-			ret.append('<li>Zuletzt Aus {}</li>\n'.format(
-				_format_timestamp(last_false)))
-		if self.records:
-			ret.append('<li>{} Einschaltdauer in der letzten Woche</li>\n'
-				.format(_format_timedelta(self.uptime)))
-		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
-			_format_timedelta(self.interval)))
-#		if not self.notify:
-#			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
-		ret.append('</ul>')
-		return ''.join(ret)
-
 	def _summarize(self, record): # TODO record.value not used
 		date = record.timestamp.astimezone(TIMEZONE).date()
 		if not self.date:
@@ -556,6 +519,33 @@ class Switch(Series):
 		hours = total / datetime.timedelta(hours=1)
 		self.summary.append(Uptime(self.date, hours))
 		self.date = date
+
+	@property
+	def text(self):
+		current = self.current
+		last_false = last_true = None
+		for timestamp, value in reversed(self.records):
+			if value:
+				if not last_true:
+					last_true = timestamp
+			else:
+				if not last_false:
+					last_false = timestamp
+			if last_false and last_true:
+				break
+		if current:
+			yield '{}: {} {}'.format(
+				self.name, 'Ein' if current.value else 'Aus',
+				_format_timestamp(current.timestamp))
+		else:
+			yield '{}: Fehler'.format(self.name)
+		if last_true and (not current or not current.value):
+			yield 'Zuletzt Ein {}'.format(_format_timestamp(last_true))
+		if last_false and (not current or current.value):
+			yield 'Zuletzt Aus {}'.format(_format_timestamp(last_false))
+		if self.records:
+			yield '{} Einschaltdauer in der letzten Woche'.format(
+				_format_timedelta(self.uptime))
 
 	@property
 	def segments(self):
