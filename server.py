@@ -20,7 +20,7 @@ import matplotlib.pyplot
 import pysolar
 import pytz
 
-import monitor
+import api
 import notify
 import utility
 
@@ -70,7 +70,7 @@ def main():
 					device['input']['interval'],
 					attr['fail-notify']))
 	plot_counter = int()
-	with website(), monitor.MonitorServer(accept_record) as ms, \
+	with website(), api.ApiServer(accept_record) as ms, \
 			notify.MailSender(config['email']['source_address'], \
 			config['email']['admin_address'], \
 			config['email']['user_address'], \
@@ -375,8 +375,8 @@ class Series(object):
 
 	def _append(self, record):
 		if self.records and record.timestamp <= self.records[-1].timestamp:
-			raise OlderThanPreviousError('old {}, new {}'.format(
-				self.records[-1].timestamp, record.timestamp))
+			raise OlderThanPreviousError('{}: previous {}, new {}'.format(
+				self.name, self.records[-1].timestamp, record.timestamp))
 		self.records.append(record)
 		if len(self.records) >= 3 and self.records[-3].value == \
 				self.records[-2].value == self.records[-1].value and \
@@ -438,7 +438,7 @@ class Series(object):
 		try:
 			self._append(record)
 		except OlderThanPreviousError as err:
-			logging.warning('ignore {}: {}'.format(self.name, err))
+			logging.warning('ignore {}'.format(err))
 			return
 		self._summarize(record)
 		self._clear()

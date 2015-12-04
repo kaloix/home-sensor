@@ -18,7 +18,7 @@ TIMEOUT = 60
 TOKEN_FILE = 'api_token'
 
 
-class MonitorClient(object):
+class ApiClient(object):
 
 	def __init__(self):
 		context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
@@ -49,13 +49,13 @@ class MonitorClient(object):
 		try:
 			body = json.dumps(kwargs)
 		except TypeError as err:
-			raise MonitorError(str(err))
+			raise ApiError(str(err))
 		headers = {'Content-type': CONTENT_TYPE, 'Accept': 'text/plain'}
 		self.conn.request('POST', '', body, headers)
 		resp = self.conn.getresponse()
 		resp.read()
 		if resp.status != 201:
-			raise MonitorError('{} {}'.format(resp.status, resp.reason))
+			raise ApiError('{} {}'.format(resp.status, resp.reason))
 
 	def _send_buffer(self):
 		start = time.perf_counter()
@@ -65,7 +65,7 @@ class MonitorClient(object):
 			for item in self.buffer:
 				try:
 					self._send(**item)
-				except MonitorError as err:
+				except ApiError as err:
 					logging.error('unable to send {}: {}'.format(item, err))
 				count += 1
 		except (http.client.HTTPException, OSError) as err:
@@ -93,7 +93,7 @@ class MonitorClient(object):
 			self.buffer_send.set()
 
 
-class MonitorServer(object):
+class ApiServer(object):
 
 	def __init__(self, handle_function):
 		self.httpd = ThreadedHTTPServer(('', PORT), HTTPRequestHandler)
@@ -110,7 +110,7 @@ class MonitorServer(object):
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
-		logging.info('shutdown monitor server')
+		logging.info('shutdown api server')
 		self.httpd.shutdown()
 		self.server.join()
 
@@ -159,5 +159,5 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     pass
 
 
-class MonitorError(Exception):
+class ApiError(Exception):
 	pass
