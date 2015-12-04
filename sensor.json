@@ -8,8 +8,8 @@
 		},
 		"output": {
 			"temperature": {
-				"name": "CPU thalgrund",
 				"group": "System",
+				"name": "CPU thalgrund",
 				"low": 20,
 				"high": 60,
 				"fail-notify": true
@@ -25,8 +25,8 @@
 		},
 		"output": {
 			"temperature": {
-				"name": "Wohnzimmer",
 				"group": "Wohnung",
+				"name": "Wohnzimmer",
 				"low": 18,
 				"high": 30,
 				"fail-notify": true
@@ -42,15 +42,15 @@
 		},
 		"output": {
 			"temperature": {
-				"name": "Kollektoren",
 				"group": "Solaranlage",
+				"name": "Kollektoren",
 				"low": 0,
 				"high": 90,
 				"fail-notify": false
 			},
 			"switch": {
-				"name": "Pumpe",
 				"group": "Solaranlage",
+				"name": "Pumpe",
 				"fail-notify": false
 			}
 		}
@@ -64,8 +64,8 @@
 		},
 		"output": {
 			"temperature": {
-				"name": "CPU ridgewood",
 				"group": "System",
+				"name": "CPU ridgewood",
 				"low": 20,
 				"high": 60,
 				"fail-notify": true
@@ -81,8 +81,8 @@
 		},
 		"output": {
 			"temperature": {
-				"name": "Veranda",
 				"group": "Garten",
+				"name": "Veranda",
 				"low": -10,
 				"high": 40,
 				"fail-notify": true
@@ -98,8 +98,8 @@
 		},
 		"output": {
 			"temperature": {
-				"name": "Gartenhaus",
 				"group": "Garten",
+				"name": "Gartenhaus",
 				"low": 0,
 				"high": 30,
 				"fail-notify": true

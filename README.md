@@ -67,7 +67,7 @@
   icon by *VisualPharm* under license *Free for non-commercial use*
 * [Simple HTTPS Server In Python Using Self Signed Certs](http://pankajmalhotra.com/Simple-HTTPS-Server-In-Python-Using-Self-Signed-Certs/)
   by *Pankaj Malhotra*
-* [HTTP API Design Guide](https://github.com/interagent/http-api-design) by
+* [HTTP API Design](https://geemus.gitbooks.io/http-api-design/content/) by
   *interagent*
 
 ## Copyright

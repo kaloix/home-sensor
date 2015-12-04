@@ -31,14 +31,14 @@ DATA_DIR = 'data/'
 INTERVAL = 60
 PAUSE_WARN_FAILURE = 30 * 24 * 60 * 60
 PAUSE_WARN_VALUE = 24 * 60 * 60
-PLOT_STEP = 10
+PLOT_INTERVAL = 10 * 60
 RECORD_DAYS = 7
 SUMMARY_DAYS = 183
 TIMEZONE = pytz.timezone('Europe/Berlin')
 WEB_DIR = '/home/kaloix/html/sensor/'
 
 config = configparser.ConfigParser()
-groups = collections.defaultdict(list)
+groups = collections.defaultdict(dict)
 inbox = queue.Queue()
 now = datetime.datetime.now(tz=datetime.timezone.utc)
 Record = collections.namedtuple('Record', 'timestamp value')
@@ -58,48 +58,46 @@ def main():
 	for device in devices:
 		for kind, attr in device['output'].items():
 			if kind == 'temperature':
-				groups[attr['group']].append(Temperature(
+				groups[attr['group']][attr['name']] = Temperature(
 					attr['low'],
 					attr['high'],
 					attr['name'],
 					device['input']['interval'],
-					attr['fail-notify']))
+					attr['fail-notify'])
 			elif kind == 'switch':
-				groups[attr['group']].append(Switch(
+				groups[attr['group']][attr['name']] = Switch(
 					attr['name'],
 					device['input']['interval'],
-					attr['fail-notify']))
-	plot_counter = int()
-	with website(), api.ApiServer(accept_record) as ms, \
+					attr['fail-notify'])
+	with website(), api.ApiServer(accept_record), \
 			notify.MailSender(config['email']['source_address'], \
 			config['email']['admin_address'], \
 			config['email']['user_address'], \
 			config['email'].getboolean('enable_email')) as mail:
 		while True:
+			# get new record
 			start = time.perf_counter()
+			now = datetime.datetime.now(tz=datetime.timezone.utc)
 			record_counter = int()
 			with contextlib.suppress(queue.Empty):
 				while True:
-					_save_record(*inbox.get(block=False))
+					group, name, record = inbox.get(block=False)
+					groups[group][name].save(record)
 					record_counter += 1
-			now = datetime.datetime.now(tz=datetime.timezone.utc)
-			for group, series_list in groups.items():
-				for series in series_list:
+			# update content
+			for group, series_dict in groups.items():
+				for series in series_dict.values():
 					if series.error:
 						mail.queue(series.error, PAUSE_WARN_FAILURE)
 					if series.warning:
 						mail.queue(series.warning, PAUSE_WARN_VALUE)
-				values = detail_html(series_list)
-				filename = '{}{}.html'.format(WEB_DIR, group)
-				with open(filename, mode='w') as html_file:
-					html_file.write(values)
-				if not plot_counter:
-					# FIXME svg backend has memory leak in matplotlib 1.4.3
-					plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
+				detail_html(group, series_dict.values())
+			with contextlib.suppress(utility.CallDenied):
+				make_plots()
 			mail.send_all()
-			plot_counter = (plot_counter+1) % PLOT_STEP
+			# log processing
 			utility.memory_check()
-			logging.info('updated website in {:.1f}s, {} new records'.format(
+			logging.info('updated website in {:.3f}s, {} new records'.format(
 				time.perf_counter()-start, record_counter))
 			time.sleep(INTERVAL)
 
@@ -116,33 +114,35 @@ def website():
 		shutil.copy('static/htaccess_maintenance', WEB_DIR+'.htaccess')
 
 
-def accept_record(name, timestamp, value):
+def accept_record(group, name, timestamp, value):
 	timestamp = datetime.datetime.fromtimestamp(int(timestamp),
 	                                            tz=datetime.timezone.utc)
-	logging.info('{}: {} / {}'.format(name, timestamp, value))
+	logging.info('{}/{}: {} / {}'.format(group, name, timestamp, value))
 	filename = '{}/{}_{}.csv'.format(DATA_DIR, name,
 	                                 timestamp.astimezone(TIMEZONE).year)
 	with open(filename, mode='a', newline='') as csv_file:
 		writer = csv.writer(csv_file)
 		writer.writerow((int(timestamp.timestamp()), value))
-	inbox.put((name, Record(timestamp, value)))
+	inbox.put((group, name, Record(timestamp, value)))
 
 
-def _save_record(name, record):
-	for series_list in groups.values():
-		for series in series_list:
-			if series.name == name:
-				series.save(record)
-				return
-
-
-def detail_html(series_list):
-	ret = list()
-	ret.append('<ul>')
+def detail_html(group, series_list):
+	text = list()
+	text.append('<ul>')
 	for series in series_list:
-		ret.append('<li>{}</li>'.format(series))
-	ret.append('</ul>')
-	return '\n'.join(ret)
+		text.append('<li>{}</li>'.format(series))
+	text.append('</ul>')
+	values = '\n'.join(text)
+	filename = '{}{}.html'.format(WEB_DIR, group)
+	with open(filename, mode='w') as html_file:
+		html_file.write(values)
+
+
+@utility.allow_every_x_seconds(PLOT_INTERVAL)
+def make_plots():
+	for group, series_dict in groups.items():
+		# FIXME svg backend has memory leak in matplotlib 1.4.3
+		plot_history(series_dict.items(), '{}{}.png'.format(WEB_DIR, group))
 
 
 def _nighttime(count, date_time):
@@ -468,7 +468,7 @@ class Temperature(Series):
 		if date > self.date:
 			if self.today:
 				self.summary.append(Summary(self.date,
-					                        min(self.today), max(self.today)))
+				                            min(self.today), max(self.today)))
 			self.date = date
 			self.today = list()
 		self.today.append(record.value)
