@@ -20,7 +20,7 @@ import matplotlib.pyplot
 import pysolar
 import pytz
 
-import monitor
+import api
 import notify
 import utility
 
@@ -31,8 +31,9 @@ DATA_DIR = 'data/'
 INTERVAL = 60
 PAUSE_WARN_FAILURE = 30 * 24 * 60 * 60
 PAUSE_WARN_VALUE = 24 * 60 * 60
+PLOT_STEP = 10
 RECORD_DAYS = 7
-SUMMARY_DAYS = 365
+SUMMARY_DAYS = 183
 TIMEZONE = pytz.timezone('Europe/Berlin')
 WEB_DIR = '/home/kaloix/html/sensor/'
 
@@ -50,8 +51,6 @@ def main():
 	utility.logging_config()
 	locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
 	config.read('config.ini')
-	with open('template.html') as html_file:
-		html_template = string.Template(html_file.read())
 	with open('sensor.json') as json_file:
 		sensor_json = json_file.read()
 	devices = json.loads(sensor_json,
@@ -70,18 +69,19 @@ def main():
 					attr['name'],
 					device['input']['interval'],
 					attr['fail-notify']))
-	with monitor.MonitorServer(accept_record) as ms, website(), \
+	plot_counter = int()
+	with website(), api.ApiServer(accept_record) as ms, \
 			notify.MailSender(config['email']['source_address'], \
 			config['email']['admin_address'], \
 			config['email']['user_address'], \
 			config['email'].getboolean('enable_email')) as mail:
 		while True:
 			start = time.perf_counter()
-			counter = int()
+			record_counter = int()
 			with contextlib.suppress(queue.Empty):
 				while True:
 					_save_record(*inbox.get(block=False))
-					counter += 1
+					record_counter += 1
 			now = datetime.datetime.now(tz=datetime.timezone.utc)
 			for group, series_list in groups.items():
 				for series in series_list:
@@ -89,22 +89,18 @@ def main():
 						mail.queue(series.error, PAUSE_WARN_FAILURE)
 					if series.warning:
 						mail.queue(series.warning, PAUSE_WARN_VALUE)
-				html_filled = html_template.substitute(
-					refresh_seconds = INTERVAL,
-					group = group,
-					values = detail_html(series_list),
-					update_time = '{:%A %d. %B %Y %X %Z}'.format(
-						now.astimezone(TIMEZONE)),
-					year = '{:%Y}'.format(now))
-				filename = '{}{}.html'.format(WEB_DIR, group.lower())
+				values = detail_html(series_list)
+				filename = '{}{}.html'.format(WEB_DIR, group)
 				with open(filename, mode='w') as html_file:
-					html_file.write(html_filled)
-				# FIXME svg backend has memory leak in matplotlib 1.4.3
-				plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
+					html_file.write(values)
+				if not plot_counter:
+					# FIXME svg backend has memory leak in matplotlib 1.4.3
+					plot_history(series_list, '{}{}.png'.format(WEB_DIR, group))
 			mail.send_all()
+			plot_counter = (plot_counter+1) % PLOT_STEP
 			utility.memory_check()
 			logging.info('updated website in {:.1f}s, {} new records'.format(
-				time.perf_counter()-start, counter))
+				time.perf_counter()-start, record_counter))
 			time.sleep(INTERVAL)
 
 
@@ -112,6 +108,7 @@ def main():
 def website():
 	shutil.copy('static/favicon.png', WEB_DIR)
 	shutil.copy('static/htaccess', WEB_DIR+'.htaccess')
+	shutil.copy('static/index.html', WEB_DIR)
 	try:
 		yield
 	finally:
@@ -177,7 +174,7 @@ def _plot_records(series_list, days):
 					timestamps, values, label=series.name,
 					linewidth=2, color=color, zorder=3)
 		elif type(series) is Switch:
-			for start, end in series.segments:
+			for start, end in series.segments(series.records):
 				matplotlib.pyplot.axvspan(start, end, label=series.name,
 				                          color=color, alpha=0.5, zorder=1)
 	for sunset, sunrise in _nighttime(days+1, now):
@@ -216,7 +213,7 @@ def _plot_summary(series_list):
 			ax2.plot(dates, values, color=color,
 			         marker='o', linestyle='', zorder=1)
 	today = now.astimezone(TIMEZONE).date()
-	matplotlib.pyplot.xlim(today-datetime.timedelta(days=365), today)
+	matplotlib.pyplot.xlim(today-datetime.timedelta(days=SUMMARY_DAYS), today)
 	ax1.set_ylabel('Temperatur °C')
 	ax1.yaxis.tick_right()
 	ax1.yaxis.set_label_position('right')
@@ -253,7 +250,7 @@ def plot_history(series_list, file):
 	# summary
 	ax = matplotlib.pyplot.subplot(313)
 	_plot_summary(series_list)
-	frame_start = now - datetime.timedelta(days=365)
+	frame_start = now - datetime.timedelta(days=SUMMARY_DAYS)
 	ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b.'))
 	ax.xaxis.set_ticks(_month_locator(frame_start, now, TIMEZONE))
 	ax.xaxis.set_ticks(_week_locator(frame_start, now, TIMEZONE), minor=True)
@@ -333,6 +330,23 @@ def _format_timestamp(ts):
 	return 'am {:%d. %B %Y um %H:%M} Uhr'.format(ts)
 
 
+def _format_temperature(record, low, high):
+	if not record:
+		return 'Fehler'
+	text = '{:.1f} °C {}'.format(record.value,
+	                             _format_timestamp(record.timestamp))
+	if low <= record.value <= high:
+		return text
+	return '<mark>{}</mark>'.format(text)
+
+
+def _format_switch(record):
+	if not record:
+		return 'Fehler'
+	return '{} {}'.format('Ein' if record.value else 'Aus',
+	                      _format_timestamp(record.timestamp))
+
+
 class Series(object):
 
 	def __init__(self, name, interval, fail_notify):
@@ -347,10 +361,22 @@ class Series(object):
 		self._read(now.year)
 		self._clear()
 
+	def __str__(self):
+		ret = list()
+		first, *lines = self.text
+		lines.append('Aktualisierung alle {}'.format(
+			_format_timedelta(self.interval)))
+		ret.append('<strong>{}</strong>'.format(first))
+		ret.append('<ul>')
+		for line in lines:
+			ret.append('<li>{}</li>'.format(line))
+		ret.append('</ul>')
+		return '\n'.join(ret)
+
 	def _append(self, record):
 		if self.records and record.timestamp <= self.records[-1].timestamp:
-			raise OlderThanPreviousError('old {}, new {}'.format(
-				self.records[-1].timestamp, record.timestamp))
+			raise OlderThanPreviousError('{}: previous {}, new {}'.format(
+				self.name, self.records[-1].timestamp, record.timestamp))
 		self.records.append(record)
 		if len(self.records) >= 3 and self.records[-3].value == \
 				self.records[-2].value == self.records[-1].value and \
@@ -412,7 +438,7 @@ class Series(object):
 		try:
 			self._append(record)
 		except OlderThanPreviousError as err:
-			logging.warning('ignore {}: {}'.format(self.name, err))
+			logging.warning('ignore {}'.format(err))
 			return
 		self._summarize(record)
 		self._clear()
@@ -427,39 +453,15 @@ class Temperature(Series):
 		self.today = None
 		super().__init__(*args)
 
-	def __str__(self):
-		current = self.current
-		minimum, maximum = self.minmax
-		ret = list()
-		ret.append('<b>{}: '.format(self.name))
-		if current:
-			ret.append('{:.1f} °C {}'.format(
-				current.value, _format_timestamp(current.timestamp)))
-			if current.value < self.low or current.value > self.high:
-				ret.append(' ⚠')
-		else:
-			ret.append('Fehler')
-		ret.append('</b><ul>\n')
-		if minimum:
-			ret.append('<li>Wochen-Tief bei {:.1f} °C {}'.format(
-				minimum.value, _format_timestamp(minimum.timestamp)))
-			if minimum.value < self.low:
-				ret.append(' ⚠')
-			ret.append('</li>\n')
-		if maximum:
-			ret.append('<li>Wochen-Hoch bei {:.1f} °C {}'.format(
-				maximum.value, _format_timestamp(maximum.timestamp)))
-			if maximum.value > self.high:
-				ret.append(' ⚠')
-			ret.append('</li>\n')
-		ret.append('<li>Warnbereich unter {:.0f} °C und über {:.0f} °C</li>\n'
-			.format(self.low, self.high))
-		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
-			_format_timedelta(self.interval)))
-#		if not self.notify:
-#			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
-		ret.append('</ul>')
-		return ''.join(ret)
+	@classmethod
+	def minmax(cls, records):
+		minimum = maximum = None
+		for record in records:
+			if not minimum or record.value <= minimum.value:
+				minimum = record
+			if not maximum or record.value >= maximum.value:
+				maximum = record
+		return minimum, maximum
 
 	def _summarize(self, record):
 		date = record.timestamp.astimezone(TIMEZONE).date()
@@ -472,14 +474,19 @@ class Temperature(Series):
 		self.today.append(record.value)
 
 	@property
-	def minmax(self):
-		minimum = maximum = None
-		for record in self.records:
-			if not minimum or record.value <= minimum.value:
-				minimum = record
-			if not maximum or record.value >= maximum.value:
-				maximum = record
-		return minimum, maximum
+	def text(self):
+		minimum, maximum = self.minmax(self.records)
+		minimum_d, maximum_d = self.minmax(self.day)
+		yield '{}: {}'.format(
+			self.name, _format_temperature(self.current, self.low, self.high))
+		yield 'Letzte 24 Stunden: ▼ {} / ▲ {}'.format(
+			_format_temperature(minimum_d, self.low, self.high),
+			_format_temperature(maximum_d, self.low, self.high))
+		yield 'Letzte 7 Tage: ▼ {} / ▲ {}'.format(
+			_format_temperature(minimum, self.low, self.high),
+			_format_temperature(maximum, self.low, self.high))
+		yield 'Warnbereich unter {:.0f} °C und über {:.0f} °C'.format(
+			self.low, self.high)
 
 	@property
 	def warning(self):
@@ -499,71 +506,17 @@ class Switch(Series):
 		self.date = None
 		super().__init__(*args)
 
-	def __str__(self):
-		current = self.current
-		last_false = last_true = None
-		for timestamp, value in reversed(self.records):
-			if value:
-				if not last_true:
-					last_true = timestamp
-			else:
-				if not last_false:
-					last_false = timestamp
-			if last_false and last_true:
-				break
-		ret = list()
-		ret.append('<b>{}: '.format(self.name))
-		if current:
-			ret.append('{} {}'.format('Ein' if current.value else 'Aus',
-			                          _format_timestamp(current.timestamp)))
-		else:
-			ret.append('Fehler')
-		ret.append('</b><ul>\n')
-		if last_true and (not current or not current.value):
-			ret.append('<li>Zuletzt Ein {}</li>\n'.format(
-				_format_timestamp(last_true)))
-		if last_false and (not current or current.value):
-			ret.append('<li>Zuletzt Aus {}</li>\n'.format(
-				_format_timestamp(last_false)))
-		if self.records:
-			ret.append('<li>{} Einschaltdauer in der letzten Woche</li>\n'
-				.format(_format_timedelta(self.uptime)))
-		ret.append('<li>Aktualisierung alle {}</li>\n'.format(
-			_format_timedelta(self.interval)))
-#		if not self.notify:
-#			ret.append('<li>Keine Benachrichtigung bei Ausfall</li>\n')
-		ret.append('</ul>')
-		return ''.join(ret)
-
-	def _summarize(self, record): # TODO record.value not used
-		date = record.timestamp.astimezone(TIMEZONE).date()
-		if not self.date:
-			self.date = date
-			return
-		if date <= self.date:
-			return
-		lower = datetime.datetime.combine(self.date, datetime.time.min)
-		lower = TIMEZONE.localize(lower)
-		upper = datetime.datetime.combine(self.date+datetime.timedelta(days=1),
-		                                  datetime.time.min)
-		upper = TIMEZONE.localize(upper)
+	@classmethod
+	def uptime(cls, segments):
 		total = datetime.timedelta()
-		for start, end in self.segments:
-			if end <= lower or start >= upper:
-				continue
-			if start < lower:
-				start = lower
-			if end > upper:
-				end = upper
-			total += end - start
-		hours = total / datetime.timedelta(hours=1)
-		self.summary.append(Uptime(self.date, hours))
-		self.date = date
+		for start, stop in segments:
+			total += stop - start
+		return total
 
-	@property
-	def segments(self):
+	@classmethod
+	def segments(cls, records):
 		expect = True
-		for timestamp, value in self.records:
+		for timestamp, value in records:
 			# assume false during downtime
 			if not expect and timestamp-running > ALLOWED_DOWNTIME:
 				expect = True
@@ -582,12 +535,52 @@ class Switch(Series):
 		if not expect:
 			yield start, running
 
-	@property
-	def uptime(self):
+	def _summarize(self, record): # TODO record.value not used
+		date = record.timestamp.astimezone(TIMEZONE).date()
+		if not self.date:
+			self.date = date
+			return
+		if date <= self.date:
+			return
+		lower = datetime.datetime.combine(self.date, datetime.time.min)
+		lower = TIMEZONE.localize(lower)
+		upper = datetime.datetime.combine(self.date+datetime.timedelta(days=1),
+		                                  datetime.time.min)
+		upper = TIMEZONE.localize(upper)
 		total = datetime.timedelta()
-		for start, stop in self.segments:
-			total += stop - start
-		return total
+		for start, end in self.segments(self.records):
+			if end <= lower or start >= upper:
+				continue
+			if start < lower:
+				start = lower
+			if end > upper:
+				end = upper
+			total += end - start
+		hours = total / datetime.timedelta(hours=1)
+		self.summary.append(Uptime(self.date, hours))
+		self.date = date
+
+	@property
+	def text(self):
+		last_false = last_true = None
+		for record in reversed(self.records):
+			if record.value:
+				if not last_true:
+					last_true = record
+			elif not last_false:
+				last_false = record
+			if last_false and last_true:
+				break
+		current = self.current
+		yield '{}: {}'.format(self.name, _format_switch(current))
+		if last_true and (not current or not current.value):
+			yield 'Zuletzt {}'.format(_format_switch(last_true))
+		if last_false and (not current or current.value):
+			yield 'Zuletzt {}'.format(_format_switch(last_false))
+		yield 'Letzte 24 Stunden: Einschaltdauer {}'.format(
+			_format_timedelta(self.uptime(self.segments(self.day))))
+		yield 'Letzte 7 Tage: Einschaltdauer {}'.format(
+			_format_timedelta(self.uptime(self.segments(self.records))))
 
 	@property
 	def warning(self):
