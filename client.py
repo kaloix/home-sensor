@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import datetime
-import functools
 import json
 import logging
 import socket
@@ -80,8 +79,7 @@ class Sensor(object):
 		self.values = utility.allow_every_x_seconds(interval)(self.values)
 
 	def __repr__(self):
-		series_list = ['/'.join(s) for s in zip(self.groups, self.names)]
-		return '+'.join(series_list)
+		return '/'.join(self.names)
 
 	def values(self):
 		for index, value in enumerate(self.read()):
@@ -129,7 +127,8 @@ class Thermosolar(Sensor):
 				                                    'invert',
 				                                    'seven_segment.png'])
 		except subprocess.CalledProcessError as err:
-			raise SensorError('ssocr exit code {}'.format(err.returncode)) from err
+			raise SensorError('ssocr exit code {}'.format(err.returncode)) \
+				from err
 		try:
 			return int(ssocr_output)
 		except ValueError as err:

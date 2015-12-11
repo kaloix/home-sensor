@@ -38,7 +38,7 @@ TIMEZONE = pytz.timezone('Europe/Berlin')
 WEB_DIR = '/home/kaloix/html/sensor/'
 
 config = configparser.ConfigParser()
-groups = collections.defaultdict(dict)
+groups = collections.defaultdict(collections.OrderedDict)
 inbox = queue.Queue()
 now = datetime.datetime.now(tz=datetime.timezone.utc)
 Record = collections.namedtuple('Record', 'timestamp value')
@@ -117,7 +117,7 @@ def website():
 def accept_record(group, name, timestamp, value):
 	timestamp = datetime.datetime.fromtimestamp(int(timestamp),
 	                                            tz=datetime.timezone.utc)
-	logging.info('{}/{}: {} / {}'.format(group, name, timestamp, value))
+	logging.info('{}: {} / {}'.format(name, timestamp, value))
 	filename = '{}/{}_{}.csv'.format(DATA_DIR, name,
 	                                 timestamp.astimezone(TIMEZONE).year)
 	with open(filename, mode='a', newline='') as csv_file:
@@ -142,7 +142,7 @@ def detail_html(group, series_list):
 def make_plots():
 	for group, series_dict in groups.items():
 		# FIXME svg backend has memory leak in matplotlib 1.4.3
-		plot_history(series_dict.items(), '{}{}.png'.format(WEB_DIR, group))
+		plot_history(series_dict.values(), '{}{}.png'.format(WEB_DIR, group))
 
 
 def _nighttime(count, date_time):
