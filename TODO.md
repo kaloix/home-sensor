@@ -1,5 +1,8 @@
 # TODO
 ## Disconnect Bug
+* fritzbox neustart --> server neustart -- ok
+* server neustart --> (fritzbox neustart -->) ?
+
 ### Symtoms
 1. ridewood has WLAN problems (it's raining)
 2. thalgrund connections time out
