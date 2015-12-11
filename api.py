@@ -2,6 +2,7 @@ import http.client
 import http.server
 import json
 import logging
+import pickle
 import socketserver
 import ssl
 import threading
@@ -26,7 +27,11 @@ class ApiClient(object):
 		context.load_verify_locations(CERT)
 		self.conn = http.client.HTTPSConnection(HOST, PORT, timeout=TIMEOUT,
 		                                        context=context)
-		self.buffer = list()
+		try:
+			with open('buffer.pickle', 'rb') as file:
+				self.buffer = pickle.load(file)
+		except FileNotFoundError:
+			self.buffer = list()
 		self.buffer_send = threading.Event()
 		self.buffer_mutex = threading.Lock()
 		with open(TOKEN_FILE) as token_file:
@@ -44,18 +49,15 @@ class ApiClient(object):
 		self.buffer_send.set()
 		self.sender.join()
 
-	def _send(self, **kwargs):
-		kwargs['_token'] = self.token
-		try:
-			body = json.dumps(kwargs)
-		except TypeError as err:
-			raise ApiError(str(err))
-		headers = {'Content-type': CONTENT_TYPE, 'Accept': 'text/plain'}
-		self.conn.request('POST', '', body, headers)
-		resp = self.conn.getresponse()
-		resp.read()
-		if resp.status != 201:
-			raise ApiError('{} {}'.format(resp.status, resp.reason))
+	def _sender(self):
+		self.buffer_send.wait()
+		while not self.shutdown or self.buffer:
+			time.sleep(INTERVAL)
+			with self.buffer_mutex:
+				self._send_buffer()
+				self._backup_buffer()
+			if not self.shutdown:
+				self.buffer_send.wait()
 
 	def _send_buffer(self):
 		start = time.perf_counter()
@@ -78,14 +80,22 @@ class ApiClient(object):
 			logging.info('sent {} item{} in {:.1f}s'.format(
 				count, '' if count==1 else 's', time.perf_counter()-start))
 
-	def _sender(self):
-		self.buffer_send.wait()
-		while not self.shutdown or self.buffer:
-			time.sleep(INTERVAL)
-			with self.buffer_mutex:
-				self._send_buffer()
-			if not self.shutdown:
-				self.buffer_send.wait()
+	def _send(self, **kwargs):
+		kwargs['_token'] = self.token
+		try:
+			body = json.dumps(kwargs)
+		except TypeError as err:
+			raise ApiError(str(err))
+		headers = {'Content-type': CONTENT_TYPE, 'Accept': 'text/plain'}
+		self.conn.request('POST', '', body, headers)
+		resp = self.conn.getresponse()
+		resp.read()
+		if resp.status != 201:
+			raise ApiError('{} {}'.format(resp.status, resp.reason))
+
+	def _backup_buffer(self):
+		with open('buffer.pickle', 'wb') as file:
+			pickle.dump(self.buffer, file)
 
 	def send(self, **kwargs):
 		with self.buffer_mutex:
