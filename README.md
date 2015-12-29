@@ -25,10 +25,7 @@
 
 4. Usage:
 
-		./client.py <station>
-
-	The *station* parameter corresponds with the same field in the sensor list
-	of `sensor.json`.
+		./client.py
 
 ### Server
 1. The base platform is **CentOS 6.7** with **Python 3.4.3**.
