@@ -109,7 +109,8 @@ class ApiServer(object):
 		self.httpd = ThreadedHTTPServer(('', PORT), HTTPRequestHandler)
 		self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
 		                                    keyfile=KEY, certfile=CERT,
-		                                    server_side=True)
+		                                    server_side=True,
+		                                    do_handshake_on_connect=False)
 		self.httpd.handle = handle_function
 		with open(TOKEN_FILE) as token_file:
 			self.httpd.token = [t.strip() for t in token_file]
@@ -126,6 +127,21 @@ class ApiServer(object):
 
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
+
+#	https://docs.python.org/3/library/ssl.html#ssl.wrap_socket
+#	https://docs.python.org/3/library/ssl.html#notes-on-non-blocking-sockets
+#	https://hg.python.org/cpython/file/3.5/Lib/http/server.py#l411
+#	https://stackoverflow.com/q/26531146
+#	def handle(self):
+#		while True:
+#			try:
+#				self.request.do_handshake()
+#				break
+#			except ssl.SSLWantReadError:
+#				select.select([self.request], [], [])
+#			except ssl.SSLWantWriteError:
+#				select.select([], [self.request], [])
+#		super().handle()
 
 	def do_POST(self):
 		if self.headers['content-type'] != CONTENT_TYPE:

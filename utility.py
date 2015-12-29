@@ -7,7 +7,7 @@ import time
 def logging_config():
 	logging.basicConfig(
 		format = '[%(asctime)s:%(levelname)s:%(module)s] %(message)s',
-		datefmt = '%m-%d-%H-%M-%S',
+		datefmt = '%d-%H-%M-%S',
 		level = logging.DEBUG)
 
 
