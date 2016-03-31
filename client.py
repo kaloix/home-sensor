@@ -105,7 +105,7 @@ class Thermosolar(Sensor):
 			raise SensorError('camera failure')
 		image = scipy.misc.imread('thermosolar.jpg')
 		# crop seven segment
-		left, top, right, bottom = 67, 53, 160, 118
+		left, top, right, bottom = 46, 53, 160, 118
 		seven_segment = image[top:bottom, left:right]
 		image = self.make_box(image, left, top, right, bottom)
 		# crop pump light
