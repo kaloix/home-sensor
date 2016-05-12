@@ -332,7 +332,7 @@ def _format_timestamp(ts):
 
 def _format_temperature(record, low, high):
 	if not record:
-		return 'Fehler'
+		return 'Keine Daten empfangen'
 	text = '{:.1f} °C {}'.format(record.value,
 	                             _format_timestamp(record.timestamp))
 	if low <= record.value <= high:
@@ -342,7 +342,7 @@ def _format_temperature(record, low, high):
 
 def _format_switch(record):
 	if not record:
-		return 'Fehler'
+		return 'Keine Daten empfangen'
 	return '{} {}'.format('Ein' if record.value else 'Aus',
 	                      _format_timestamp(record.timestamp))
 
@@ -376,7 +376,7 @@ class Series(object):
 	def _append(self, record):
 		if self.records and record.timestamp <= self.records[-1].timestamp:
 			raise OlderThanPreviousError('{}: previous {}, new {}'.format(
-				self.name, self.records[-1].timestamp, record.timestamp))
+				self.name, self.records[-1].timestamp.timestamp(), record.timestamp.timestamp()))
 		self.records.append(record)
 		if len(self.records) >= 3 and self.records[-3].value == \
 				self.records[-2].value == self.records[-1].value and \
@@ -401,7 +401,11 @@ class Series(object):
 						int(row[0]), tz=datetime.timezone.utc)
 					value = _universal_parser(row[1])
 					record = Record(timestamp, value)
-					self._append(record)
+					try:
+						self._append(record)
+					except OlderThanPreviousError:
+						# FIXME: remove this except, instead don't save invalid data
+						continue
 					self._summarize(record)
 		except OSError:
 			pass
@@ -479,12 +483,14 @@ class Temperature(Series):
 		minimum_d, maximum_d = self.minmax(self.day)
 		yield '{}: {}'.format(
 			self.name, _format_temperature(self.current, self.low, self.high))
-		yield 'Letzte 24 Stunden: ▼ {} / ▲ {}'.format(
-			_format_temperature(minimum_d, self.low, self.high),
-			_format_temperature(maximum_d, self.low, self.high))
-		yield 'Letzte 7 Tage: ▼ {} / ▲ {}'.format(
-			_format_temperature(minimum, self.low, self.high),
-			_format_temperature(maximum, self.low, self.high))
+		if minimum_d:
+			yield 'Letzte 24 Stunden: ▼ {} / ▲ {}'.format(
+				_format_temperature(minimum_d, self.low, self.high),
+				_format_temperature(maximum_d, self.low, self.high))
+		if minimum:
+			yield 'Letzte 7 Tage: ▼ {} / ▲ {}'.format(
+				_format_temperature(minimum, self.low, self.high),
+				_format_temperature(maximum, self.low, self.high))
 		yield 'Warnbereich unter {:.0f} °C und über {:.0f} °C'.format(
 			self.low, self.high)
 
