@@ -1,11 +1,12 @@
 api_token
 config.ini
-data/
-__pycache__/
+data
+__pycache__
 server.crt
 server.key
 seven_segment.png
 ssocr*
 test.py
 thermosolar.jpg
-ve/
+ve
+.idea

@@ -14,7 +14,7 @@ def logging_config():
 def memory_check():
 	gc.collect()
 	memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e3
-	if memory > 100:
+	if memory > 200:
 		raise MemoryLeakError('{} MB'.format(memory))
 
 

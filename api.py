@@ -106,6 +106,7 @@ class ApiClient(object):
 class ApiServer(object):
 
 	def __init__(self, handle_function):
+		# FIXME removing ThreadingMixIn may resolve problems
 		self.httpd = ThreadedHTTPServer(('', PORT), HTTPRequestHandler)
 		self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
 		                                    keyfile=KEY, certfile=CERT,
