@@ -8,21 +8,24 @@ import ssl
 import threading
 import time
 
-CERT = 'server.crt'
 CONTENT_TYPE = 'application/json'
 HOST = 'kaloix.de'
 INTERVAL = 10
-KEY = 'server.key'
 PORT = 64918
 TIMEOUT = 60
-TOKEN_FILE = 'api_token'
+SERVER_KEY = 'server.key'
+SERVER_CERT = 'server.crt'
+CLIENT_KEY = 'client.key'
+CLIENT_CERT = 'client.crt'
+CLIENT_CERTS = 'clients.crt'
 
 
 class ApiClient(object):
     def __init__(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
         context.verify_mode = ssl.CERT_REQUIRED
-        context.load_verify_locations(CERT)
+        context.load_verify_locations(SERVER_CERT)
+        context.load_cert_chain(CLIENT_CERT, keyfile=CLIENT_KEY)
         self.conn = http.client.HTTPSConnection(HOST, PORT, timeout=TIMEOUT,
                                                 context=context)
         try:
@@ -32,8 +35,6 @@ class ApiClient(object):
             self.buffer = list()
         self.buffer_send = threading.Event()
         self.buffer_mutex = threading.Lock()
-        with open(TOKEN_FILE) as token_file:
-            self.token = token_file.readline().strip()
 
     def __enter__(self):
         self.shutdown = False
@@ -79,7 +80,6 @@ class ApiClient(object):
                 count, '' if count == 1 else 's', time.perf_counter() - start))
 
     def _send(self, **kwargs):
-        kwargs['_token'] = self.token
         try:
             body = json.dumps(kwargs)
         except TypeError as err:
@@ -105,13 +105,12 @@ class ApiServer(object):
     def __init__(self, handle_function):
         # FIXME removing ThreadingMixIn may resolve problems
         self.httpd = ThreadedHTTPServer(('', PORT), HTTPRequestHandler)
-        self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
-                                            keyfile=KEY, certfile=CERT,
-                                            server_side=True,
-                                            do_handshake_on_connect=False)
+        # TODO do_handshake_on_connect required?
+        self.httpd.socket = ssl.wrap_socket(
+            self.httpd.socket, keyfile=SERVER_KEY, certfile=SERVER_CERT, server_side=True,
+            cert_reqs=ssl.CERT_REQUIRED, ca_certs=CLIENT_CERTS,
+            do_handshake_on_connect=False)
         self.httpd.handle = handle_function
-        with open(TOKEN_FILE) as token_file:
-            self.httpd.token = [t.strip() for t in token_file]
 
     def __enter__(self):
         self.server = threading.Thread(target=self.httpd.serve_forever)
@@ -138,12 +137,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_error(400, 'bad json', str(err))
             self.end_headers()
             return
-        if type(data) is not dict or '_token' not in data:
-            self.send_error(401, 'missing api token')
-            self.end_headers()
-            return
-        if data.pop('_token') not in self.server.token:
-            self.send_error(401, 'invalid api token')
+        if type(data) is not dict:
+            self.send_error(401, 'invalid data')
             self.end_headers()
             return
         try:

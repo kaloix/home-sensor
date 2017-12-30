@@ -3,6 +3,21 @@
 > is not commentated and the user interface is in German language.
 
 ## Installation
+### Certificates
+Both the server and all clients need x509 certificates for authentication with
+the HTTP API. They can be generated with the following commands:
+
+    openssl genrsa -out <name>.key 4096
+    openssl req -new -key <name>.key -out <name>.csr
+    openssl x509 -req -days 1460 -in <name>.csr -signkey <name>.key -out <name>.crt
+    rm <name>.csr
+
+1. Create `server.key` and `server.crt`.
+
+2. For each client create `<hostname>.key` and `server_<hostname>.crt`. (FIXME)
+
+3. Create `clients.crt`.
+
 ### Client
 1. The base platform is  **Debian Jessie** with **Python 3.4.2**.
 
